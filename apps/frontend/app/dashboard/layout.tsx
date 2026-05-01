@@ -1,4 +1,5 @@
 import { TopNav } from '@/components/layout/top-nav';
+import { AuthGuard } from '@/components/auth/auth-guard';
 
 export default function DashboardLayout({
   children,
@@ -8,7 +9,7 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-background">
       <TopNav />
-      {children}
+      <AuthGuard>{children}</AuthGuard>
     </div>
   );
 }

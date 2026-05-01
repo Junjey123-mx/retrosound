@@ -19,6 +19,15 @@ async function request<T>(
     body: body ? JSON.stringify(body) : undefined,
   });
 
+  // Token expirado o inválido → limpiar sesión y redirigir al login
+  if (res.status === 401) {
+    if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    throw new Error('Sesión expirada. Inicia sesión nuevamente.');
+  }
+
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(

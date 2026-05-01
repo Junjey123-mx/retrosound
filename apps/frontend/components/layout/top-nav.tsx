@@ -1,15 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useCurrentUser, useLogout } from '@/hooks/use-auth';
+
+const roleBadge: Record<string, string> = {
+  admin:     'bg-purple-100 text-purple-800',
+  empleado:  'bg-blue-100 text-blue-800',
+  cliente:   'bg-green-100 text-green-800',
+  proveedor: 'bg-orange-100 text-orange-800',
+};
 
 export function TopNav() {
-  const router = useRouter();
-
-  function handleLogout() {
-    localStorage.removeItem('token');
-    router.push('/login');
-  }
+  const user   = useCurrentUser();
+  const logout = useLogout();
 
   return (
     <header className="border-b">
@@ -33,9 +36,19 @@ export function TopNav() {
           <Link href="/dashboard/reportes" className="text-sm hover:underline">
             Reportes
           </Link>
+
+          {user && (
+            <div className="flex items-center gap-2 border-l pl-4">
+              <span className="text-sm text-muted-foreground">{user.correo}</span>
+              <span className={`rounded px-2 py-0.5 text-xs font-medium ${roleBadge[user.rol] ?? 'bg-gray-100 text-gray-800'}`}>
+                {user.rol}
+              </span>
+            </div>
+          )}
+
           <button
-            onClick={handleLogout}
-            className="text-sm text-muted-foreground hover:text-foreground"
+            onClick={logout}
+            className="rounded border border-red-300 px-3 py-1 text-sm text-red-600 hover:bg-red-50"
           >
             Salir
           </button>
