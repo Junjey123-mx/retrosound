@@ -214,6 +214,117 @@ export class ReportesService {
     `;
   }
 
+  // ── DASHBOARD: resumen ejecutivo en una sola llamada ─────────────────────
+  // Seis métricas con subqueries escalares + alertas con JOINs explícitos.
+  async getDashboard() {
+    // ── 1. Estadísticas agregadas (subqueries escalares en un solo SELECT) ──
+    const [stats] = await this.prisma.$queryRaw<{
+      productos_activos:       number;
+      productos_agotados:      number;
+      productos_stock_critico: number;
+      ventas_completadas:      number;
+      compras_pendientes:      number;
+      total_vendido_mes:       string;
+    }[]>`
+      SELECT
+        (SELECT COUNT(*)::INT FROM producto         WHERE estado_producto = 'activo'::"EstadoProducto")                                                   AS productos_activos,
+        (SELECT COUNT(*)::INT FROM producto         WHERE estado_producto = 'agotado'::"EstadoProducto")                                                  AS productos_agotados,
+        (SELECT COUNT(*)::INT FROM producto         WHERE estado_producto != 'descontinuado'::"EstadoProducto" AND stock_actual <= stock_minimo)           AS productos_stock_critico,
+        (SELECT COUNT(*)::INT FROM venta            WHERE estado_venta   = 'completada'::"EstadoVenta")                                                   AS ventas_completadas,
+        (SELECT COUNT(*)::INT FROM compra_proveedor WHERE estado_compra  = 'pendiente'::"EstadoCompra")                                                   AS compras_pendientes,
+        COALESCE((
+          SELECT SUM(total_neto)
+          FROM   vista_resumen_ventas
+          WHERE  estado_venta = 'completada'
+            AND  DATE_TRUNC('month', fecha_venta) = DATE_TRUNC('month', NOW())
+        ), 0) AS total_vendido_mes
+    `;
+
+    // ── 2. Productos con stock crítico (stock_actual <= stock_minimo) ──────
+    const alertasStock = await this.prisma.$queryRaw<{
+      id_producto:      number;
+      titulo_producto:  string;
+      codigo_sku:       string;
+      stock_actual:     number;
+      stock_minimo:     number;
+      nombre_categoria: string;
+      nombre_formato:   string;
+    }[]>`
+      SELECT
+        p.id_producto,
+        p.titulo_producto,
+        p.codigo_sku,
+        p.stock_actual,
+        p.stock_minimo,
+        cat.nombre_categoria,
+        fmt.nombre_formato
+      FROM producto p
+      JOIN categoria cat ON cat.id_categoria = p.id_categoria
+      JOIN formato   fmt ON fmt.id_formato   = p.id_formato
+      WHERE p.stock_actual <= p.stock_minimo
+        AND p.estado_producto != 'descontinuado'::"EstadoProducto"
+      ORDER BY p.stock_actual ASC
+      LIMIT 10
+    `;
+
+    // ── 3. Compras pendientes con proveedor y empleado ─────────────────────
+    const comprasPendientes = await this.prisma.$queryRaw<{
+      id_compra_proveedor:    number;
+      fecha_compra_proveedor: Date;
+      nombre_proveedor:       string;
+      empleado:               string;
+      num_productos:          number;
+    }[]>`
+      SELECT
+        cp.id_compra_proveedor,
+        cp.fecha_compra_proveedor,
+        pr.nombre_proveedor,
+        (e.nombre_empleado || ' ' || e.apellido_empleado)  AS empleado,
+        COUNT(dcp.id_detalle_compra_proveedor)::INT        AS num_productos
+      FROM compra_proveedor cp
+      JOIN proveedor                    pr  ON pr.id_proveedor        = cp.id_proveedor
+      JOIN empleado                     e   ON e.id_empleado          = cp.id_empleado
+      LEFT JOIN detalle_compra_proveedor dcp ON dcp.id_compra_proveedor = cp.id_compra_proveedor
+      WHERE cp.estado_compra = 'pendiente'::"EstadoCompra"
+      GROUP BY
+        cp.id_compra_proveedor, cp.fecha_compra_proveedor,
+        pr.nombre_proveedor, e.nombre_empleado, e.apellido_empleado
+      ORDER BY cp.fecha_compra_proveedor DESC
+      LIMIT 10
+    `;
+
+    // ── 4. Ventas recientes (últimas 8) ────────────────────────────────────
+    const ventasRecientes = await this.prisma.$queryRaw<{
+      id_venta:    number;
+      fecha_venta: Date;
+      estado_venta: string;
+      metodo_pago: string;
+      cliente:     string;
+      total_neto:  string;
+    }[]>`
+      SELECT
+        v.id_venta,
+        v.fecha_venta,
+        v.estado_venta,
+        v.metodo_pago,
+        (c.nombre_cliente || ' ' || c.apellido_cliente) AS cliente,
+        ROUND(
+          COALESCE(SUM(dv.cantidad_vendida * dv.precio_unitario_venta - dv.descuento_detalle), 0)
+          - v.descuento_venta, 2
+        ) AS total_neto
+      FROM venta v
+      JOIN cliente c ON c.id_cliente = v.id_cliente
+      LEFT JOIN detalle_venta dv ON dv.id_venta = v.id_venta
+      GROUP BY
+        v.id_venta, v.fecha_venta, v.estado_venta, v.metodo_pago,
+        c.nombre_cliente, c.apellido_cliente, v.descuento_venta
+      ORDER BY v.fecha_venta DESC, v.id_venta DESC
+      LIMIT 8
+    `;
+
+    return { stats, alertasStock, comprasPendientes, ventasRecientes };
+  }
+
   // ── RÚBRICA: VIEW usado por el backend ────────────────────────────────────
   // Consulta la vista vista_resumen_ventas creada en migration.
   // Permite filtrar por estado_venta de forma segura.

@@ -26,4 +26,7 @@ export const reportesService = {
 
   resumenVentas: (estado = '') =>
     apiClient.get<Row[]>(`/reportes/resumen-ventas${estado ? `?estado=${estado}` : ''}`),
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  dashboard: () => apiClient.get<any>('/reportes/dashboard'),
 };

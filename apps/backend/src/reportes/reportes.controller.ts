@@ -50,6 +50,12 @@ export class ReportesController {
     return this.reportesService.rankingIngresos();
   }
 
+  // Resumen ejecutivo para el dashboard (stats + alertas)
+  @Get('dashboard')
+  getDashboard() {
+    return this.reportesService.getDashboard();
+  }
+
   // VIEW vista_resumen_ventas: resumen de ventas con totales
   // ?estado=completada|pendiente|cancelada (opcional)
   @Get('resumen-ventas')
