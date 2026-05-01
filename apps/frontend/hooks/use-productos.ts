@@ -1,5 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { productosService } from '@/lib/services/productos';
+import type { Producto } from '@/types';
 
 export function useProductos() {
   return useQuery({
@@ -13,5 +14,30 @@ export function useProducto(id: number) {
     queryKey: ['productos', id],
     queryFn: () => productosService.getOne(id),
     enabled: !!id,
+  });
+}
+
+export function useCreateProducto() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<Producto>) => productosService.create(data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['productos'] }),
+  });
+}
+
+export function useUpdateProducto() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<Producto> }) =>
+      productosService.update(id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['productos'] }),
+  });
+}
+
+export function useDeactivateProducto() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => productosService.remove(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['productos'] }),
   });
 }
