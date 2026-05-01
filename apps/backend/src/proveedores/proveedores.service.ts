@@ -7,7 +7,7 @@ export class ProveedoresService {
   constructor(private readonly prisma: PrismaService) {}
 
   findAll() {
-    return this.prisma.proveedor.findMany({ where: { estado: 'activo' } });
+    return this.prisma.proveedor.findMany({ orderBy: { nombre: 'asc' } });
   }
 
   async findOne(id: number) {
