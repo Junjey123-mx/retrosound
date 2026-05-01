@@ -1,0 +1,235 @@
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+
+@Injectable()
+export class ReportesService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  // ── RÚBRICA: JOIN múltiple (1/3) ──────────────────────────────────────────
+  // Ventas con cliente, empleado, producto, cantidad, precio y subtotal.
+  // Tablas: venta ⟶ cliente, empleado, detalle_venta ⟶ producto
+  async ventasDetalle() {
+    return this.prisma.$queryRaw<unknown[]>`
+      SELECT
+        v.id_venta,
+        v.fecha_venta,
+        v.metodo_pago,
+        v.estado_venta,
+        v.descuento_venta,
+        (c.nombre_cliente || ' ' || c.apellido_cliente)   AS cliente,
+        c.correo_cliente,
+        (e.nombre_empleado || ' ' || e.apellido_empleado) AS empleado,
+        p.titulo_producto,
+        p.codigo_sku,
+        dv.cantidad_vendida,
+        dv.precio_unitario_venta,
+        dv.descuento_detalle,
+        (dv.cantidad_vendida * dv.precio_unitario_venta - dv.descuento_detalle) AS subtotal
+      FROM venta v
+      JOIN cliente       c  ON c.id_cliente  = v.id_cliente
+      JOIN empleado      e  ON e.id_empleado = v.id_empleado
+      JOIN detalle_venta dv ON dv.id_venta   = v.id_venta
+      JOIN producto      p  ON p.id_producto = dv.id_producto
+      ORDER BY v.fecha_venta DESC, v.id_venta
+    `;
+  }
+
+  // ── RÚBRICA: JOIN múltiple (2/3) ──────────────────────────────────────────
+  // Productos con su categoría, formato, artistas y géneros.
+  // Tablas: producto ⟶ categoria, formato, producto_artista ⟶ artista,
+  //         producto_genero ⟶ genero_musical
+  async productosCatalogo() {
+    return this.prisma.$queryRaw<unknown[]>`
+      SELECT
+        p.id_producto,
+        p.titulo_producto,
+        p.codigo_sku,
+        p.precio_venta,
+        p.stock_actual,
+        p.stock_minimo,
+        p.estado_producto,
+        cat.nombre_categoria,
+        fmt.nombre_formato,
+        STRING_AGG(DISTINCT a.nombre_artista,  ', ') AS artistas,
+        STRING_AGG(DISTINCT g.nombre_genero_musical, ', ') AS generos
+      FROM producto p
+      JOIN categoria    cat ON cat.id_categoria = p.id_categoria
+      JOIN formato      fmt ON fmt.id_formato   = p.id_formato
+      LEFT JOIN producto_artista pa ON pa.id_producto = p.id_producto
+      LEFT JOIN artista           a  ON a.id_artista  = pa.id_artista
+      LEFT JOIN producto_genero  pg ON pg.id_producto       = p.id_producto
+      LEFT JOIN genero_musical    g  ON g.id_genero_musical = pg.id_genero_musical
+      WHERE p.estado_producto != 'descontinuado'
+      GROUP BY p.id_producto, cat.nombre_categoria, fmt.nombre_formato
+      ORDER BY p.titulo_producto
+    `;
+  }
+
+  // ── RÚBRICA: JOIN múltiple (3/3) ──────────────────────────────────────────
+  // Compras a proveedor con empleado responsable y detalle de productos.
+  // Tablas: compra_proveedor ⟶ proveedor, empleado,
+  //         detalle_compra_proveedor ⟶ producto
+  async comprasProveedor() {
+    return this.prisma.$queryRaw<unknown[]>`
+      SELECT
+        cp.id_compra_proveedor,
+        cp.fecha_compra_proveedor,
+        cp.estado_compra,
+        pr.nombre_proveedor,
+        pr.correo_proveedor,
+        (e.nombre_empleado || ' ' || e.apellido_empleado) AS empleado_responsable,
+        p.titulo_producto,
+        p.codigo_sku,
+        dcp.cantidad_comprada,
+        dcp.costo_unitario_compra,
+        (dcp.cantidad_comprada * dcp.costo_unitario_compra) AS costo_total
+      FROM compra_proveedor cp
+      JOIN proveedor                pr  ON pr.id_proveedor        = cp.id_proveedor
+      JOIN empleado                 e   ON e.id_empleado          = cp.id_empleado
+      JOIN detalle_compra_proveedor dcp ON dcp.id_compra_proveedor = cp.id_compra_proveedor
+      JOIN producto                 p   ON p.id_producto          = dcp.id_producto
+      ORDER BY cp.fecha_compra_proveedor DESC, cp.id_compra_proveedor
+    `;
+  }
+
+  // ── RÚBRICA: Subquery en FROM / escalar (1/2) ─────────────────────────────
+  // Productos cuyo stock_actual está por debajo o igual al promedio de todos.
+  // Subquery escalar: (SELECT AVG(stock_actual) FROM producto)
+  async productosStockBajo() {
+    return this.prisma.$queryRaw<unknown[]>`
+      SELECT
+        p.id_producto,
+        p.titulo_producto,
+        p.codigo_sku,
+        p.stock_actual,
+        p.stock_minimo,
+        p.estado_producto,
+        cat.nombre_categoria,
+        fmt.nombre_formato,
+        ROUND(stock_prom.promedio, 2) AS promedio_stock_general
+      FROM producto p
+      JOIN categoria cat ON cat.id_categoria = p.id_categoria
+      JOIN formato   fmt ON fmt.id_formato   = p.id_formato
+      JOIN (
+        SELECT AVG(stock_actual) AS promedio FROM producto
+      ) stock_prom ON TRUE
+      WHERE p.stock_actual <= stock_prom.promedio
+        AND p.estado_producto != 'descontinuado'
+      ORDER BY p.stock_actual ASC
+    `;
+  }
+
+  // ── RÚBRICA: Subquery EXISTS (2/2) ────────────────────────────────────────
+  // Clientes que tienen al menos una venta en estado 'completada'.
+  async clientesFrecuentes() {
+    return this.prisma.$queryRaw<unknown[]>`
+      SELECT
+        c.id_cliente,
+        (c.nombre_cliente || ' ' || c.apellido_cliente) AS cliente,
+        c.correo_cliente,
+        c.telefono_cliente,
+        c.direccion_cliente,
+        c.fecha_registro_cliente,
+        (
+          SELECT COUNT(*)
+          FROM venta v2
+          WHERE v2.id_cliente = c.id_cliente
+            AND v2.estado_venta = 'completada'
+        )::INT AS ventas_completadas
+      FROM cliente c
+      WHERE EXISTS (
+        SELECT 1
+        FROM venta v
+        WHERE v.id_cliente   = c.id_cliente
+          AND v.estado_venta = 'completada'
+      )
+        AND c.estado_cliente = 'activo'
+      ORDER BY ventas_completadas DESC, c.nombre_cliente
+    `;
+  }
+
+  // ── RÚBRICA: GROUP BY + HAVING + funciones de agregación ──────────────────
+  // Productos más vendidos: SUM(cantidad_vendida) >= min_vendidos.
+  // Parámetro seguro con Prisma.sql para evitar SQL injection.
+  async productosMasVendidos(minVendidos = 1) {
+    const min = Math.max(1, Math.floor(Number(minVendidos)));
+    return this.prisma.$queryRaw<unknown[]>`
+      SELECT
+        p.id_producto,
+        p.titulo_producto,
+        p.codigo_sku,
+        p.precio_venta,
+        cat.nombre_categoria,
+        fmt.nombre_formato,
+        SUM(dv.cantidad_vendida)::INT                              AS total_unidades,
+        COUNT(DISTINCT dv.id_venta)::INT                          AS en_ventas,
+        SUM(dv.cantidad_vendida * dv.precio_unitario_venta
+            - dv.descuento_detalle)                               AS ingresos_generados,
+        ROUND(AVG(dv.precio_unitario_venta)::NUMERIC, 2)          AS precio_promedio_venta
+      FROM detalle_venta dv
+      JOIN producto  p   ON p.id_producto  = dv.id_producto
+      JOIN categoria cat ON cat.id_categoria = p.id_categoria
+      JOIN formato   fmt ON fmt.id_formato   = p.id_formato
+      GROUP BY p.id_producto, cat.nombre_categoria, fmt.nombre_formato
+      HAVING SUM(dv.cantidad_vendida) >= ${min}
+      ORDER BY total_unidades DESC, ingresos_generados DESC
+    `;
+  }
+
+  // ── RÚBRICA: CTE (WITH) ───────────────────────────────────────────────────
+  // Ranking de productos por ingresos totales generados.
+  // CTE: calcula ingresos por producto, luego rankea con DENSE_RANK().
+  async rankingIngresos() {
+    return this.prisma.$queryRaw<unknown[]>`
+      WITH ingresos_producto AS (
+        SELECT
+          p.id_producto,
+          p.titulo_producto,
+          p.codigo_sku,
+          p.precio_venta,
+          cat.nombre_categoria,
+          fmt.nombre_formato,
+          COALESCE(SUM(
+            dv.cantidad_vendida * dv.precio_unitario_venta - dv.descuento_detalle
+          ), 0) AS ingresos_totales,
+          COALESCE(SUM(dv.cantidad_vendida), 0)::INT AS unidades_vendidas
+        FROM producto p
+        JOIN categoria    cat ON cat.id_categoria = p.id_categoria
+        JOIN formato      fmt ON fmt.id_formato   = p.id_formato
+        LEFT JOIN detalle_venta dv ON dv.id_producto = p.id_producto
+        GROUP BY p.id_producto, cat.nombre_categoria, fmt.nombre_formato
+      )
+      SELECT
+        DENSE_RANK() OVER (ORDER BY ingresos_totales DESC)::INT AS ranking,
+        id_producto,
+        titulo_producto,
+        codigo_sku,
+        nombre_categoria,
+        nombre_formato,
+        precio_venta,
+        ingresos_totales,
+        unidades_vendidas
+      FROM ingresos_producto
+      ORDER BY ranking, titulo_producto
+    `;
+  }
+
+  // ── RÚBRICA: VIEW usado por el backend ────────────────────────────────────
+  // Consulta la vista vista_resumen_ventas creada en migration.
+  // Permite filtrar por estado_venta de forma segura.
+  async resumenVentas(estado?: string) {
+    const estadosValidos = ['pendiente', 'completada', 'cancelada'];
+    // Cast explícito al enum PostgreSQL para evitar error de tipo
+    if (estado && estadosValidos.includes(estado)) {
+      const estadoEnum = estado as 'pendiente' | 'completada' | 'cancelada';
+      return this.prisma.$queryRawUnsafe<unknown[]>(
+        `SELECT * FROM vista_resumen_ventas WHERE estado_venta = $1::"EstadoVenta" ORDER BY fecha_venta DESC`,
+        estadoEnum,
+      );
+    }
+    return this.prisma.$queryRaw<unknown[]>`
+      SELECT * FROM vista_resumen_ventas
+      ORDER BY fecha_venta DESC
+    `;
+  }
+}
