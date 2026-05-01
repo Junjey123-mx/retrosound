@@ -30,6 +30,9 @@ export function TopNav() {
           <Link href="/dashboard/proveedores" className="text-sm hover:underline">
             Proveedores
           </Link>
+          <Link href="/dashboard/reportes" className="text-sm hover:underline">
+            Reportes
+          </Link>
           <button
             onClick={handleLogout}
             className="text-sm text-muted-foreground hover:text-foreground"
