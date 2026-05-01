@@ -1,0 +1,48 @@
+# ──────────────────────────────────────────────────
+# Plantilla para nuevos devs.
+# 1. Copia este archivo como docker-compose.override.yml
+# 2. Ajusta los valores según tu entorno local
+# ──────────────────────────────────────────────────
+
+include:
+  - path: apps/backend/docker-compose.yml
+    env_file: .env
+
+services:
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile.dev
+    profiles: [app]
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/retrosound?schema=public
+      JWT_SECRET: local-dev-secret
+      PORT: 3001
+      NODE_ENV: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - retrosound-network
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile.dev
+    profiles: [app]
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      NODE_ENV: development
+    depends_on:
+      - backend
+    networks:
+      - retrosound-network
+
+networks:
+  retrosound-network:
+    name: retrosound-network
+    driver: bridge

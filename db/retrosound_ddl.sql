@@ -5,15 +5,10 @@
 # Universidad del Valle de Guatemala
 # =============================================================================
 
-# Credenciales fijas para calificación: usuario proy2, contraseña secret
+
 DROP DATABASE IF EXISTS retrosound;
 CREATE DATABASE IF NOT EXISTS retrosound;
 USE retrosound;
-
-# =============================================================================
-# TABLAS DE CATÁLOGO
-# Estas tablas no tienen FK hacia otras tablas.
-# =============================================================================
 
 CREATE TABLE IF NOT EXISTS categoria(
     id_categoria INT NOT NULL AUTO_INCREMENT,
@@ -48,11 +43,6 @@ CREATE TABLE IF NOT EXISTS artista(
     PRIMARY KEY (id_artista)
 ) ENGINE=INNODB;
 
-# =============================================================================
-# TABLA PRODUCTO
-# Depende de: categoria, formato
-# =============================================================================
-
 CREATE TABLE IF NOT EXISTS producto(
     id_producto INT NOT NULL AUTO_INCREMENT,
     titulo_producto VARCHAR(255) NOT NULL,
@@ -75,12 +65,6 @@ CREATE TABLE IF NOT EXISTS producto(
     CHECK (stock_minimo >= 0)
 ) ENGINE=INNODB;
 
-# =============================================================================
-# TABLAS ASOCIATIVAS (M:N)
-# ProductoArtista: un producto puede tener múltiples artistas y viceversa
-# ProductoGenero: un producto puede tener múltiples géneros y viceversa
-# =============================================================================
-
 CREATE TABLE IF NOT EXISTS producto_artista(
     id_producto INT NOT NULL,
     id_artista INT NOT NULL,
@@ -96,11 +80,6 @@ CREATE TABLE IF NOT EXISTS producto_genero(
     FOREIGN KEY (id_producto) REFERENCES producto(id_producto),
     FOREIGN KEY (id_genero_musical) REFERENCES genero_musical(id_genero_musical)
 ) ENGINE=INNODB;
-
-# =============================================================================
-# TABLAS DE PERSONAS
-# Cliente, Empleado y Proveedor no tienen dependencias entre sí.
-# =============================================================================
 
 CREATE TABLE IF NOT EXISTS cliente(
     id_cliente INT NOT NULL AUTO_INCREMENT,
@@ -139,12 +118,6 @@ CREATE TABLE IF NOT EXISTS proveedor(
     PRIMARY KEY (id_proveedor)
 ) ENGINE=INNODB;
 
-# =============================================================================
-# TABLA USUARIO
-# Depende de: cliente, empleado, proveedor (FK nullable con restricción XOR).
-# Solo una de las tres FK puede tener valor según el rol.
-# =============================================================================
-
 CREATE TABLE IF NOT EXISTS usuario(
     id_usuario INT NOT NULL AUTO_INCREMENT,
     correo_usuario VARCHAR(255) NOT NULL,
@@ -161,13 +134,6 @@ CREATE TABLE IF NOT EXISTS usuario(
     FOREIGN KEY (id_empleado) REFERENCES empleado(id_empleado),
     FOREIGN KEY (id_proveedor) REFERENCES proveedor(id_proveedor)
 ) ENGINE=INNODB;
-
-# =============================================================================
-# TABLAS DE VENTAS
-# Venta: depende de cliente y empleado
-# DetalleVenta: depende de venta y producto
-# Un producto solo puede aparecer una vez por venta (UNIQUE)
-# =============================================================================
 
 CREATE TABLE IF NOT EXISTS venta(
     id_venta INT NOT NULL AUTO_INCREMENT,
@@ -199,13 +165,6 @@ CREATE TABLE IF NOT EXISTS detalle_venta(
     CHECK (descuento_detalle >= 0)
 ) ENGINE=INNODB;
 
-# =============================================================================
-# TABLAS DE COMPRAS A PROVEEDOR
-# CompraProveedor: depende de proveedor y empleado
-# DetalleCompraProveedor: depende de compra_proveedor y producto
-# Un producto solo puede aparecer una vez por compra (UNIQUE)
-# =============================================================================
-
 CREATE TABLE IF NOT EXISTS compra_proveedor(
     id_compra_proveedor INT NOT NULL AUTO_INCREMENT,
     fecha_compra_proveedor DATE NOT NULL,
@@ -230,23 +189,6 @@ CREATE TABLE IF NOT EXISTS detalle_compra_proveedor(
     CHECK (cantidad_comprada > 0),
     CHECK (costo_unitario_compra >= 0)
 ) ENGINE=INNODB;
-
-# =============================================================================
-# ÍNDICES EXPLÍCITOS
-# Justificación:
-#
-# 1. idx_producto_titulo: Las búsquedas de productos por título serán la
-#    operación más frecuente en la UI (barra de búsqueda). Sin índice,
-#    cada búsqueda recorre toda la tabla Producto.
-#
-# 2. idx_venta_fecha: Los reportes de ventas filtran por rango de fechas. 
-#    Un índice en fecha_venta
-#    acelera estas consultas con GROUP BY y funciones de agregación.
-#
-# 3. idx_cliente_correo: Las búsquedas de clientes por correo electrónico
-#    son frecuentes en el proceso de registro de ventas para identificar
-#    al cliente.
-# =============================================================================
 
 CREATE INDEX idx_producto_titulo ON producto(titulo_producto);
 CREATE INDEX idx_venta_fecha ON venta(fecha_venta);

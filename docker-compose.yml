@@ -1,0 +1,44 @@
+include:
+  - path: apps/backend/docker-compose.yml
+    env_file: .env
+
+services:
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    ports:
+      - "${BACKEND_PORT:-3003}:3001"
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-proy2}:${DB_PASSWORD:-secret}@postgres:5432/${DB_NAME:-retrosound}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      PORT: 3001
+      NODE_ENV: production
+      FRONTEND_URL: http://localhost:${FRONTEND_PORT:-3002}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - retrosound-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3003}
+    ports:
+      - "${FRONTEND_PORT:-3002}:3000"
+    environment:
+      NODE_ENV: production
+    depends_on:
+      - backend
+    networks:
+      - retrosound-network
+    restart: unless-stopped
+
+networks:
+  retrosound-network:
+    name: retrosound-network
+    driver: bridge
