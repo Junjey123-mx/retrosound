@@ -1,55 +1,97 @@
 @import "tailwindcss";
 
+/* ── Fuente ────────────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
 :root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 221.2 83.2% 53.3%;
+  --font-sans: 'Inter', system-ui, sans-serif;
+
+  /* shadcn tokens – modo claro */
+  --background:   0 0% 100%;
+  --foreground:   222 47% 11%;
+  --card:         0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover:      0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary:      222 84% 5%;
   --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --destructive: 0 84.2% 60.2%;
+  --secondary:    210 40% 96%;
+  --secondary-foreground: 222 47% 11%;
+  --muted:        210 40% 96%;
+  --muted-foreground: 215 16% 47%;
+  --accent:       142 72% 29%;
+  --accent-foreground: 0 0% 100%;
+  --destructive:  0 84% 60%;
   --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 221.2 83.2% 53.3%;
-  --radius: 0.5rem;
+  --border:       214 32% 91%;
+  --input:        214 32% 91%;
+  --ring:         221 83% 53%;
+  --radius:       0.75rem;
+
+  /* colores retrosound */
+  --rs-bg:        246 247 251;    /* #F6F7FB */
+  --rs-surface:   255 255 255;
+  --rs-border:    229 231 235;
+  --rs-text:      17 24 39;
+  --rs-muted:     107 114 128;
+  --rs-primary:   15 23 42;      /* #0F172A */
+  --rs-green:     34 197 94;     /* #22C55E */
+  --rs-violet:    99 102 241;    /* #6366F1 */
+  --rs-amber:     245 158 11;
+  --rs-red:       239 68 68;
 }
 
 .dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
+  --background:   222 84% 5%;
+  --foreground:   210 40% 98%;
+  --card:         217 33% 17%;
   --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
+  --popover:      222 84% 5%;
   --popover-foreground: 210 40% 98%;
-  --primary: 217.2 91.2% 59.8%;
-  --primary-foreground: 222.2 47.4% 11.2%;
-  --secondary: 217.2 32.6% 17.5%;
+  --primary:      210 40% 98%;
+  --primary-foreground: 222 47% 11%;
+  --secondary:    217 33% 17%;
   --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
+  --muted:        217 33% 17%;
+  --muted-foreground: 215 20% 65%;
+  --accent:       142 72% 29%;
+  --accent-foreground: 0 0% 100%;
+  --destructive:  0 63% 31%;
   --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 224.3 76.3% 48%;
+  --border:       217 33% 17%;
+  --input:        217 33% 17%;
+  --ring:         224 76% 48%;
+
+  /* colores retrosound dark */
+  --rs-bg:        11 15 25;      /* #0B0F19 */
+  --rs-surface:   17 24 39;      /* #111827 */
+  --rs-border:    42 52 65;
+  --rs-text:      249 250 251;
+  --rs-muted:     156 163 175;
+  --rs-primary:   229 231 235;
+  --rs-green:     34 197 94;
+  --rs-violet:    139 92 246;
+  --rs-amber:     251 191 36;
+  --rs-red:       248 113 113;
 }
 
 * {
   border-color: hsl(var(--border));
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
 }
 
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
 }
+
+/* Scrollbar sutil */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.5); }
