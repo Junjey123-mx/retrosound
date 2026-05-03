@@ -10,15 +10,13 @@ import {
 import { useCatalogos } from '@/hooks/use-catalogs';
 import type { Producto } from '@/types';
 
-// ─── Colores por estado ───────────────────────────────────────────────────────
 const ESTADO_BADGE: Record<string, string> = {
-  activo:        'bg-green-100 text-green-800',
-  inactivo:      'bg-gray-100 text-gray-600',
-  agotado:       'bg-yellow-100 text-yellow-800',
-  descontinuado: 'bg-red-100 text-red-700',
+  activo:        'border border-success/20 bg-success/10 text-success',
+  inactivo:      'border border-border bg-background-soft text-muted-foreground',
+  agotado:       'border border-warning/30 bg-warning/10 text-warning',
+  descontinuado: 'border border-destructive/30 bg-destructive/10 text-destructive',
 };
 
-// ─── Estado vacío del formulario ──────────────────────────────────────────────
 const EMPTY_FORM = {
   titulo:          '',
   descripcion:     '',
@@ -33,7 +31,6 @@ const EMPTY_FORM = {
 
 type FormState = typeof EMPTY_FORM;
 
-// ─── Validación ───────────────────────────────────────────────────────────────
 function validate(f: FormState): string | null {
   if (!f.titulo.trim())    return 'El título es obligatorio.';
   if (!f.codigoSku.trim()) return 'El SKU es obligatorio.';
@@ -48,7 +45,9 @@ function validate(f: FormState): string | null {
   return null;
 }
 
-// ─── Página principal ─────────────────────────────────────────────────────────
+const INPUT = 'w-full rounded-xl border border-input bg-input-bg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25';
+const SELECT = 'w-full rounded-xl border border-input bg-input-bg px-3 py-2 text-sm text-foreground focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25';
+
 export default function ProductosPage() {
   const { data: productos, isLoading, error: loadError } = useProductos();
   const { data: catalogos } = useCatalogos();
@@ -62,7 +61,6 @@ export default function ProductosPage() {
   const [formError,  setFormError]  = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // ── Abrir diálogo ────────────────────────────────────────────────────────
   function openCreate() {
     setEditing(null);
     setForm(EMPTY_FORM);
@@ -94,14 +92,10 @@ export default function ProductosPage() {
     setFormError(null);
   }
 
-  // ── Cambios en el formulario ─────────────────────────────────────────────
-  function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
-  ) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
-  // ── Guardar ──────────────────────────────────────────────────────────────
   async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
     const err = validate(form);
@@ -134,7 +128,6 @@ export default function ProductosPage() {
     }
   }
 
-  // ── Desactivar ───────────────────────────────────────────────────────────
   async function handleDeactivate(p: Producto) {
     if (!confirm(`¿Desactivar "${p.titulo}"?\nEl producto pasará a estado "descontinuado".`)) return;
     try {
@@ -152,24 +145,21 @@ export default function ProductosPage() {
 
   const isSaving = createMut.isPending || updateMut.isPending;
 
-  // ── Render ───────────────────────────────────────────────────────────────
   if (isLoading) return <p className="p-8 text-muted-foreground">Cargando productos…</p>;
-  if (loadError)  return <p className="p-8 text-red-600">Error al cargar productos.</p>;
+  if (loadError)  return <p className="p-8 text-destructive">Error al cargar productos.</p>;
 
   return (
-    <main className="p-8">
+    <main className="p-6 sm:p-8 space-y-6">
 
       {/* Encabezado */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Productos</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {productos?.length ?? 0} registros
-          </p>
+          <h1 className="text-2xl font-bold text-foreground">Productos</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{productos?.length ?? 0} registros</p>
         </div>
         <button
           onClick={openCreate}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground shadow-sm transition-all duration-150 hover:bg-brand-hover hover:shadow-md"
         >
           + Nuevo Producto
         </button>
@@ -177,39 +167,37 @@ export default function ProductosPage() {
 
       {/* Mensaje de éxito */}
       {successMsg && (
-        <div className="mt-4 rounded-md border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-800">
+        <div className="rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm font-medium text-success">
           {successMsg}
         </div>
       )}
 
       {/* Tabla */}
-      <div className="mt-6 overflow-x-auto rounded-md border">
+      <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
         <table className="w-full text-sm">
-          <thead className="border-b bg-gray-50">
+          <thead className="border-b border-border bg-background-soft">
             <tr>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">SKU</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">Título</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">Categoría</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">Formato</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-600">Precio</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-600">Stock</th>
-              <th className="px-4 py-3 text-center font-medium text-gray-600">Estado</th>
-              <th className="px-4 py-3 text-center font-medium text-gray-600">Acciones</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">SKU</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Título</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Categoría</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Formato</th>
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Precio</th>
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Stock</th>
+              <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">Estado</th>
+              <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">Acciones</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-border">
             {productos?.map((p) => (
-              <tr key={p.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 font-mono text-xs text-gray-500">{p.codigoSku}</td>
-                <td className="px-4 py-3 font-medium">{p.titulo}</td>
-                <td className="px-4 py-3 text-gray-500">{p.categoria?.nombre ?? '—'}</td>
-                <td className="px-4 py-3 text-gray-500">{p.formato?.nombre ?? '—'}</td>
-                <td className="px-4 py-3 text-right">Q{Number(p.precioVenta).toFixed(2)}</td>
-                <td className="px-4 py-3 text-right">{p.stockActual}</td>
+              <tr key={p.id} className="rs-table-row">
+                <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{p.codigoSku}</td>
+                <td className="px-4 py-3 font-medium text-foreground">{p.titulo}</td>
+                <td className="px-4 py-3 text-muted-foreground">{p.categoria?.nombre ?? '—'}</td>
+                <td className="px-4 py-3 text-muted-foreground">{p.formato?.nombre ?? '—'}</td>
+                <td className="px-4 py-3 text-right text-foreground">Q{Number(p.precioVenta).toFixed(2)}</td>
+                <td className="px-4 py-3 text-right text-foreground">{p.stockActual}</td>
                 <td className="px-4 py-3 text-center">
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${ESTADO_BADGE[p.estado] ?? ''}`}
-                  >
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${ESTADO_BADGE[p.estado] ?? ''}`}>
                     {p.estado}
                   </span>
                 </td>
@@ -217,7 +205,7 @@ export default function ProductosPage() {
                   <div className="flex items-center justify-center gap-2">
                     <button
                       onClick={() => openEdit(p)}
-                      className="rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
+                      className="rounded-lg px-2 py-1 text-xs font-medium text-info transition-colors hover:bg-brand-soft hover:text-brand"
                     >
                       Editar
                     </button>
@@ -225,7 +213,7 @@ export default function ProductosPage() {
                       <button
                         onClick={() => handleDeactivate(p)}
                         disabled={deactMut.isPending}
-                        className="rounded px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                        className="rounded px-2 py-1 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
                       >
                         Desactivar
                       </button>
@@ -238,146 +226,95 @@ export default function ProductosPage() {
         </table>
 
         {productos?.length === 0 && (
-          <p className="py-10 text-center text-sm text-gray-400">No hay productos registrados.</p>
+          <p className="py-10 text-center text-sm text-muted-foreground">No hay productos registrados.</p>
         )}
       </div>
 
-      {/* ── Modal crear / editar ─────────────────────────────────────────── */}
+      {/* Modal crear / editar */}
       {dialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg rounded-lg bg-white shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-lg rounded-xl bg-card shadow-xl border border-border">
 
-            {/* Cabecera del modal */}
-            <div className="flex items-center justify-between border-b px-6 py-4">
-              <h2 className="text-lg font-semibold">
+            <div className="flex items-center justify-between border-b border-border px-6 py-4">
+              <h2 className="text-lg font-semibold text-foreground">
                 {editing ? 'Editar Producto' : 'Nuevo Producto'}
               </h2>
               <button
                 type="button"
                 onClick={closeDialog}
-                className="text-gray-400 hover:text-gray-600"
                 aria-label="Cerrar"
+                className="text-muted-foreground hover:text-foreground transition-colors"
               >
                 ✕
               </button>
             </div>
 
-            {/* Formulario */}
             <form onSubmit={handleSubmit}>
               <div className="max-h-[65vh] overflow-y-auto px-6 py-4">
 
-                {/* Error de validación */}
                 {formError && (
-                  <div className="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                     {formError}
                   </div>
                 )}
 
                 <div className="grid grid-cols-2 gap-4">
 
-                  {/* Título */}
                   <div className="col-span-2">
-                    <label className="mb-1 block text-sm font-medium">
-                      Título <span className="text-red-500">*</span>
+                    <label className="mb-1 block text-sm font-medium text-foreground">
+                      Título <span className="text-destructive">*</span>
                     </label>
-                    <input
-                      name="titulo"
-                      value={form.titulo}
-                      onChange={handleChange}
-                      placeholder="Ej: The Dark Side of the Moon"
-                      className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    <input name="titulo" value={form.titulo} onChange={handleChange}
+                      placeholder="Ej: The Dark Side of the Moon" className={INPUT} />
                   </div>
 
-                  {/* SKU */}
                   <div>
-                    <label className="mb-1 block text-sm font-medium">
-                      SKU <span className="text-red-500">*</span>
+                    <label className="mb-1 block text-sm font-medium text-foreground">
+                      SKU <span className="text-destructive">*</span>
                     </label>
-                    <input
-                      name="codigoSku"
-                      value={form.codigoSku}
-                      onChange={handleChange}
-                      placeholder="Ej: RS-001-V"
-                      className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    <input name="codigoSku" value={form.codigoSku} onChange={handleChange}
+                      placeholder="Ej: RS-001-V" className={INPUT} />
                   </div>
 
-                  {/* Año */}
                   <div>
-                    <label className="mb-1 block text-sm font-medium">Año de lanzamiento</label>
-                    <input
-                      name="anioLanzamiento"
-                      type="number"
-                      min="1900"
-                      max="2099"
-                      value={form.anioLanzamiento}
-                      onChange={handleChange}
-                      placeholder="Ej: 1973"
-                      className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    <label className="mb-1 block text-sm font-medium text-foreground">Año de lanzamiento</label>
+                    <input name="anioLanzamiento" type="number" min="1900" max="2099"
+                      value={form.anioLanzamiento} onChange={handleChange}
+                      placeholder="Ej: 1973" className={INPUT} />
                   </div>
 
-                  {/* Precio */}
                   <div>
-                    <label className="mb-1 block text-sm font-medium">
-                      Precio (Q) <span className="text-red-500">*</span>
+                    <label className="mb-1 block text-sm font-medium text-foreground">
+                      Precio (Q) <span className="text-destructive">*</span>
                     </label>
-                    <input
-                      name="precioVenta"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={form.precioVenta}
-                      onChange={handleChange}
-                      placeholder="0.00"
-                      className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    <input name="precioVenta" type="number" step="0.01" min="0"
+                      value={form.precioVenta} onChange={handleChange}
+                      placeholder="0.00" className={INPUT} />
                   </div>
 
-                  {/* Stock actual */}
                   <div>
-                    <label className="mb-1 block text-sm font-medium">
-                      Stock actual <span className="text-red-500">*</span>
+                    <label className="mb-1 block text-sm font-medium text-foreground">
+                      Stock actual <span className="text-destructive">*</span>
                     </label>
-                    <input
-                      name="stockActual"
-                      type="number"
-                      min="0"
-                      value={form.stockActual}
-                      onChange={handleChange}
-                      placeholder="0"
-                      className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    <input name="stockActual" type="number" min="0"
+                      value={form.stockActual} onChange={handleChange}
+                      placeholder="0" className={INPUT} />
                   </div>
 
-                  {/* Stock mínimo */}
                   <div>
-                    <label className="mb-1 block text-sm font-medium">
-                      Stock mínimo <span className="text-red-500">*</span>
+                    <label className="mb-1 block text-sm font-medium text-foreground">
+                      Stock mínimo <span className="text-destructive">*</span>
                     </label>
-                    <input
-                      name="stockMinimo"
-                      type="number"
-                      min="0"
-                      value={form.stockMinimo}
-                      onChange={handleChange}
-                      placeholder="0"
-                      className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    <input name="stockMinimo" type="number" min="0"
+                      value={form.stockMinimo} onChange={handleChange}
+                      placeholder="0" className={INPUT} />
                   </div>
 
-                  {/* Categoría */}
                   <div>
-                    <label className="mb-1 block text-sm font-medium">
-                      Categoría <span className="text-red-500">*</span>
+                    <label className="mb-1 block text-sm font-medium text-foreground">
+                      Categoría <span className="text-destructive">*</span>
                     </label>
-                    <select
-                      name="idCategoria"
-                      value={form.idCategoria}
-                      onChange={handleChange}
-                      className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
+                    <select name="idCategoria" value={form.idCategoria} onChange={handleChange} className={SELECT}>
                       <option value="">Seleccionar…</option>
                       {catalogos?.categorias.map((c) => (
                         <option key={c.id} value={c.id}>{c.nombre}</option>
@@ -385,17 +322,11 @@ export default function ProductosPage() {
                     </select>
                   </div>
 
-                  {/* Formato */}
                   <div>
-                    <label className="mb-1 block text-sm font-medium">
-                      Formato <span className="text-red-500">*</span>
+                    <label className="mb-1 block text-sm font-medium text-foreground">
+                      Formato <span className="text-destructive">*</span>
                     </label>
-                    <select
-                      name="idFormato"
-                      value={form.idFormato}
-                      onChange={handleChange}
-                      className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
+                    <select name="idFormato" value={form.idFormato} onChange={handleChange} className={SELECT}>
                       <option value="">Seleccionar…</option>
                       {catalogos?.formatos.map((f) => (
                         <option key={f.id} value={f.id}>{f.nombre}</option>
@@ -403,35 +334,28 @@ export default function ProductosPage() {
                     </select>
                   </div>
 
-                  {/* Descripción */}
                   <div className="col-span-2">
-                    <label className="mb-1 block text-sm font-medium">Descripción</label>
-                    <textarea
-                      name="descripcion"
-                      value={form.descripcion}
-                      onChange={handleChange}
-                      rows={3}
-                      placeholder="Descripción opcional del producto…"
-                      className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    <label className="mb-1 block text-sm font-medium text-foreground">Descripción</label>
+                    <textarea name="descripcion" value={form.descripcion} onChange={handleChange}
+                      rows={3} placeholder="Descripción opcional del producto…"
+                      className={INPUT} />
                   </div>
 
                 </div>
               </div>
 
-              {/* Botones del modal */}
-              <div className="flex justify-end gap-3 border-t px-6 py-4">
+              <div className="flex justify-end gap-3 border-t border-border px-6 py-4">
                 <button
                   type="button"
                   onClick={closeDialog}
-                  className="rounded-md border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="rounded-xl border border-border bg-input-bg px-4 py-2 text-sm font-medium text-foreground rs-hover-brand hover:text-brand"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                  className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground shadow-sm transition-all duration-150 hover:bg-brand-hover hover:shadow-md disabled:opacity-50"
                 >
                   {isSaving ? 'Guardando…' : 'Guardar'}
                 </button>

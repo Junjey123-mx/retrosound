@@ -52,7 +52,7 @@ export default function RegistroPage() {
 
         {/* Logo */}
         <div className="relative flex items-center gap-2">
-          <Disc3 className="h-6 w-6 text-green-400" />
+          <Disc3 className="rs-logo-mark h-6 w-6" />
           <span className="text-lg font-bold">RetroSound</span>
         </div>
 
@@ -68,7 +68,7 @@ export default function RegistroPage() {
           <ul className="space-y-3 pt-2">
             {PERKS.map((p) => (
               <li key={p} className="flex items-start gap-3 text-sm text-white/70">
-                <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-green-400" />
+                <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-brand" />
                 {p}
               </li>
             ))}
@@ -86,7 +86,7 @@ export default function RegistroPage() {
 
           {/* Logo móvil */}
           <div className="flex items-center gap-2 lg:hidden">
-            <Disc3 className="h-5 w-5 text-green-500" />
+            <Disc3 className="rs-logo-mark h-5 w-5" />
             <span className="font-bold text-foreground">RetroSound</span>
           </div>
 
@@ -107,7 +107,7 @@ export default function RegistroPage() {
                   onChange={(e) => setNombre(e.target.value)}
                   required
                   placeholder="Juan"
-                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition"
+                  className="w-full rounded-xl border border-input bg-input-bg px-4 py-2.5 text-sm text-foreground shadow-sm placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25 transition"
                 />
               </div>
               <div className="space-y-1.5">
@@ -118,7 +118,7 @@ export default function RegistroPage() {
                   onChange={(e) => setApellido(e.target.value)}
                   required
                   placeholder="García"
-                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition"
+                  className="w-full rounded-xl border border-input bg-input-bg px-4 py-2.5 text-sm text-foreground shadow-sm placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25 transition"
                 />
               </div>
             </div>
@@ -131,7 +131,7 @@ export default function RegistroPage() {
                 onChange={(e) => setCorreo(e.target.value)}
                 required
                 placeholder="juan@email.com"
-                className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition"
+                className="w-full rounded-xl border border-input bg-input-bg px-4 py-2.5 text-sm text-foreground shadow-sm placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25 transition"
               />
             </div>
 
@@ -154,7 +154,7 @@ export default function RegistroPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full rounded-xl bg-green-600 py-3 text-sm font-semibold text-white hover:bg-green-700 active:scale-[0.98] transition disabled:opacity-50"
+              className="w-full rounded-xl bg-brand py-3 text-sm font-semibold text-brand-foreground shadow-sm transition-all duration-150 hover:bg-brand-hover hover:shadow-md active:scale-[0.98] disabled:opacity-50"
             >
               {isLoading ? 'Creando cuenta…' : 'Crear cuenta'}
             </button>
@@ -162,7 +162,7 @@ export default function RegistroPage() {
 
           <p className="text-center text-sm text-muted-foreground">
             ¿Ya tienes cuenta?{' '}
-            <Link href="/login" className="font-medium text-green-600 hover:text-green-500 transition-colors">
+            <Link href="/login" className="font-medium text-brand transition-colors hover:text-brand-hover">
               Iniciar sesión
             </Link>
           </p>

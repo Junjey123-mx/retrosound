@@ -51,7 +51,7 @@ interface DashboardData {
 
 const VENTA_BADGE: Record<string, string> = {
   pendiente:  'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
-  completada: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+  completada: 'border border-success/20 bg-success/10 text-success',
   cancelada:  'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
 };
 
@@ -79,22 +79,22 @@ export default function DashboardPage() {
       value: s.productos_activos,
       icon:  Package,
       color: 'border-l-violet-400',
-      iconColor: 'text-violet-500',
+      iconColor: 'text-action-alt',
     },
     {
       label: 'Ventas completadas',
       value: s.ventas_completadas,
       icon:  ShoppingCart,
-      color: 'border-l-green-400',
-      iconColor: 'text-green-500',
+      color: 'border-l-success',
+      iconColor: 'text-success',
     },
     {
       label: 'Total vendido (mes)',
       value: `Q${Number(s.total_vendido_mes).toFixed(2)}`,
       sub:   'ventas completadas',
       icon:  TrendingUp,
-      color: 'border-l-emerald-400',
-      iconColor: 'text-emerald-500',
+      color: 'border-l-success',
+      iconColor: 'text-success',
     },
     {
       label: 'Stock crítico',
@@ -102,21 +102,21 @@ export default function DashboardPage() {
       sub:   'stock ≤ mínimo',
       icon:  AlertTriangle,
       color: s.productos_stock_critico > 0 ? 'border-l-amber-400' : 'border-l-border',
-      iconColor: s.productos_stock_critico > 0 ? 'text-amber-500' : 'text-muted-foreground',
+      iconColor: s.productos_stock_critico > 0 ? 'text-warning' : 'text-muted-foreground',
     },
     {
       label: 'Productos agotados',
       value: s.productos_agotados,
       icon:  XCircle,
       color: s.productos_agotados > 0 ? 'border-l-red-400' : 'border-l-border',
-      iconColor: s.productos_agotados > 0 ? 'text-red-500' : 'text-muted-foreground',
+      iconColor: s.productos_agotados > 0 ? 'text-danger' : 'text-muted-foreground',
     },
     {
       label: 'Compras pendientes',
       value: s.compras_pendientes,
       icon:  Clock,
       color: s.compras_pendientes > 0 ? 'border-l-orange-400' : 'border-l-border',
-      iconColor: s.compras_pendientes > 0 ? 'text-orange-500' : 'text-muted-foreground',
+      iconColor: s.compras_pendientes > 0 ? 'text-warning' : 'text-muted-foreground',
     },
   ] : [];
 
@@ -167,17 +167,17 @@ export default function DashboardPage() {
 
       {/* Accesos rápidos */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Link href="/dashboard/productos" className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-sm font-medium text-foreground hover:bg-muted/40 transition-colors shadow-sm">
-          <Disc3 className="h-5 w-5 text-violet-500" /> Productos
+        <Link href="/dashboard/productos" className="rs-hover-success flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-sm font-medium text-foreground shadow-sm">
+          <Disc3 className="h-5 w-5 text-muted-foreground" /> Productos
         </Link>
-        <Link href="/dashboard/proveedores" className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-sm font-medium text-foreground hover:bg-muted/40 transition-colors shadow-sm">
-          <Truck className="h-5 w-5 text-blue-500" /> Proveedores
+        <Link href="/dashboard/proveedores" className="rs-hover-success flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-sm font-medium text-foreground shadow-sm">
+          <Truck className="h-5 w-5 text-muted-foreground" /> Proveedores
         </Link>
-        <Link href="/dashboard/ventas" className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-sm font-medium text-foreground hover:bg-muted/40 transition-colors shadow-sm">
-          <ShoppingCart className="h-5 w-5 text-green-500" /> Ventas
+        <Link href="/dashboard/ventas" className="rs-hover-success flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-sm font-medium text-foreground shadow-sm">
+          <ShoppingCart className="h-5 w-5 text-muted-foreground" /> Ventas
         </Link>
-        <Link href="/dashboard/reportes" className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-sm font-medium text-foreground hover:bg-muted/40 transition-colors shadow-sm">
-          <BarChart3 className="h-5 w-5 text-orange-500" /> Reportes SQL
+        <Link href="/dashboard/reportes" className="rs-hover-success flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-sm font-medium text-foreground shadow-sm">
+          <BarChart3 className="h-5 w-5 text-muted-foreground" /> Reportes SQL
         </Link>
       </div>
 
@@ -188,14 +188,14 @@ export default function DashboardPage() {
           {/* Stock crítico */}
           <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
             <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              <AlertTriangle className="h-4 w-4 text-warning" />
               Stock crítico
               <span className="ml-auto text-xs font-normal text-muted-foreground">
                 stock_actual ≤ stock_minimo
               </span>
             </h2>
             {data.alertasStock.length === 0 ? (
-              <p className="text-sm text-green-600 dark:text-green-400">
+              <p className="text-sm text-success">
                 ✓ Todos los productos tienen stock suficiente.
               </p>
             ) : (
@@ -209,7 +209,7 @@ export default function DashboardPage() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                      <span className="rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs font-semibold text-warning">
                         {p.stock_actual} / {p.stock_minimo}
                       </span>
                       <p className="mt-0.5 text-xs text-muted-foreground">actual / mínimo</p>
@@ -223,14 +223,14 @@ export default function DashboardPage() {
           {/* Compras pendientes */}
           <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
             <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
-              <Truck className="h-4 w-4 text-orange-500" />
+              <Truck className="h-4 w-4 text-warning" />
               Compras pendientes
               <span className="ml-auto text-xs font-normal text-muted-foreground">
                 estado_compra = pendiente
               </span>
             </h2>
             {data.comprasPendientes.length === 0 ? (
-              <p className="text-sm text-green-600 dark:text-green-400">
+              <p className="text-sm text-success">
                 ✓ No hay compras pendientes de recibir.
               </p>
             ) : (
@@ -242,7 +242,7 @@ export default function DashboardPage() {
                       <p className="text-xs text-muted-foreground">Responsable: {c.empleado}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs font-semibold text-orange-600 dark:text-orange-400">
+                      <p className="text-xs font-semibold text-warning">
                         {c.num_productos} producto{c.num_productos !== 1 ? 's' : ''}
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -261,7 +261,7 @@ export default function DashboardPage() {
       {data && (
         <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">
-            <Receipt className="h-4 w-4 text-blue-500" />
+            <Receipt className="h-4 w-4 text-info" />
             Ventas recientes
             <span className="ml-auto text-xs font-normal text-muted-foreground">
               últimas 8 · JOIN venta + cliente + detalle_venta
@@ -281,7 +281,7 @@ export default function DashboardPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {data.ventasRecientes.map((v) => (
-                  <tr key={v.id_venta} className="hover:bg-muted/30 transition-colors">
+                  <tr key={v.id_venta} className="rs-table-row">
                     <td className="py-2.5 font-mono text-muted-foreground">#{v.id_venta}</td>
                     <td className="py-2.5 text-foreground">{String(v.fecha_venta).slice(0, 10)}</td>
                     <td className="py-2.5 font-medium text-foreground">{v.cliente}</td>

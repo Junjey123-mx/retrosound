@@ -1,80 +1,110 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 /* ── Fuente ────────────────────────────────────────────────────────────────── */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
+/* ══════════════════════════════════════════════════════════════════════════════
+   SISTEMA DE TOKENS — RetroSound
+   Paleta oficial definida una sola vez; el resto de la UI consume estas vars.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
 :root {
   --font-sans: 'Inter', system-ui, sans-serif;
 
-  /* shadcn tokens – modo claro */
-  --background:   0 0% 100%;
-  --foreground:   222 47% 11%;
-  --card:         0 0% 100%;
-  --card-foreground: 222 47% 11%;
-  --popover:      0 0% 100%;
-  --popover-foreground: 222 47% 11%;
-  --primary:      222 84% 5%;
-  --primary-foreground: 210 40% 98%;
-  --secondary:    210 40% 96%;
-  --secondary-foreground: 222 47% 11%;
-  --muted:        210 40% 96%;
-  --muted-foreground: 215 16% 47%;
-  --accent:       142 72% 29%;
-  --accent-foreground: 0 0% 100%;
-  --destructive:  0 84% 60%;
-  --destructive-foreground: 210 40% 98%;
-  --border:       214 32% 91%;
-  --input:        214 32% 91%;
-  --ring:         221 83% 53%;
-  --radius:       0.75rem;
+  /* ── Shadcn/Tailwind tokens — Modo Claro ─────────────────────────────────── */
+  --background:             216 38% 97%;   /* #F6F8FB — fondo principal       */
+  --background-soft:        213 36% 95%;   /* #EEF2F7                          */
+  --surface:                  0  0% 100%;  /* #FFFFFF                          */
+  --surface-elevated:         0  0% 100%;  /* #FFFFFF                          */
+  --text-primary:           222 47% 11%;   /* #0F172A                          */
+  --text-secondary:         215 19% 35%;   /* #475569                          */
+  --text-muted:             215 16% 47%;   /* #64748B                          */
 
-  /* colores retrosound */
-  --rs-bg:        246 247 251;    /* #F6F7FB */
-  --rs-surface:   255 255 255;
-  --rs-border:    229 231 235;
-  --rs-text:      17 24 39;
-  --rs-muted:     107 114 128;
-  --rs-primary:   15 23 42;      /* #0F172A */
-  --rs-green:     34 197 94;     /* #22C55E */
-  --rs-violet:    99 102 241;    /* #6366F1 */
-  --rs-amber:     245 158 11;
-  --rs-red:       239 68 68;
+  --foreground:             222 47% 11%;
+  --card:                     0  0% 100%;
+  --card-foreground:        222 47% 11%;
+  --popover:                  0  0% 100%;
+  --popover-foreground:     222 47% 11%;
+  --primary:                 24 95% 53%;   /* #F97316 — marca / acción activa  */
+  --primary-foreground:     222 47% 11%;
+  --secondary:              213 36% 95%;
+  --secondary-foreground:   222 47% 11%;
+  --muted:                  213 36% 95%;
+  --muted-foreground:       215 16% 47%;
+  --accent:                 213 36% 95%;
+  --accent-foreground:      222 47% 11%;
+  --destructive:              0 84% 60%;   /* #EF4444                          */
+  --destructive-foreground:   0  0% 100%;
+  --border:                 213 30% 88%;   /* #D8E0EA                          */
+  --input:                  213 30% 88%;
+  --ring:                    24 95% 53%;
+  --radius:                 0.75rem;
+
+  /* ── Tokens RS exclusivos — Modo Claro ───────────────────────────────────── */
+  --brand:                   24 95% 53%;   /* #F97316                          */
+  --brand-hover:             21 90% 48%;   /* #EA580C                          */
+  --brand-soft:             rgba(249, 115, 22, 0.14);
+  --brand-foreground:       222 47% 11%;   /* texto sobre verde sólido          */
+  --brand-shadow:           rgba(249, 115, 22, 0.22);
+  --brand-shadow-rgb:       249, 115, 22;
+  --action-alt:             263 70% 50%;   /* #6D28D9                          */
+  --action-alt-hover:       263 70% 42%;   /* #5B21B6                          */
+  --input-bg:                 0  0% 100%;
+  --success:                145 100% 39%;
+  --success-shadow-rgb:       0, 200, 83;
+  --info:                   221 83% 54%;   /* #2563EB                          */
+  --warning:                 38 92% 50%;   /* #F59E0B                          */
+  --danger:                   0 84% 60%;   /* #EF4444                          */
 }
 
 .dark {
-  --background:   222 84% 5%;
-  --foreground:   210 40% 98%;
-  --card:         217 33% 17%;
-  --card-foreground: 210 40% 98%;
-  --popover:      222 84% 5%;
-  --popover-foreground: 210 40% 98%;
-  --primary:      210 40% 98%;
-  --primary-foreground: 222 47% 11%;
-  --secondary:    217 33% 17%;
-  --secondary-foreground: 210 40% 98%;
-  --muted:        217 33% 17%;
-  --muted-foreground: 215 20% 65%;
-  --accent:       142 72% 29%;
-  --accent-foreground: 0 0% 100%;
-  --destructive:  0 63% 31%;
-  --destructive-foreground: 210 40% 98%;
-  --border:       217 33% 17%;
-  --input:        217 33% 17%;
-  --ring:         224 76% 48%;
+  /* ── Shadcn/Tailwind tokens — Modo Oscuro ────────────────────────────────── */
+  --background:             217 59%  8%;   /* #08111F                          */
+  --background-soft:        220 53%  9%;   /* #0B1324                          */
+  --surface:                222 47% 11%;   /* #0F172A                          */
+  --surface-elevated:       219 48% 13%;   /* #111C30                          */
+  --text-primary:           210 40% 98%;   /* #F8FAFC                          */
+  --text-secondary:         214 32% 91%;   /* #CBD5E1                          */
+  --text-muted:             215 20% 65%;   /* #94A3B8                          */
 
-  /* colores retrosound dark */
-  --rs-bg:        11 15 25;      /* #0B0F19 */
-  --rs-surface:   17 24 39;      /* #111827 */
-  --rs-border:    42 52 65;
-  --rs-text:      249 250 251;
-  --rs-muted:     156 163 175;
-  --rs-primary:   229 231 235;
-  --rs-green:     34 197 94;
-  --rs-violet:    139 92 246;
-  --rs-amber:     251 191 36;
-  --rs-red:       248 113 113;
+  --foreground:             210 40% 98%;
+  --card:                   222 47% 11%;
+  --card-foreground:        214 32% 98%;
+  --popover:                222 47% 11%;
+  --popover-foreground:     214 32% 98%;
+  --primary:                151 100% 45%;  /* #00E676                          */
+  --primary-foreground:     217 59%  8%;
+  --secondary:              220 53%  9%;
+  --secondary-foreground:   214 32% 98%;
+  --muted:                  219 48% 13%;
+  --muted-foreground:       215 20% 65%;
+  --accent:                 219 48% 13%;
+  --accent-foreground:      214 32% 91%;
+  --destructive:              0 91% 71%;   /* #F87171                          */
+  --destructive-foreground: 217 59%  8%;
+  --border:                 216 37% 21%;   /* #22324A                          */
+  --input:                  216 37% 21%;
+  --ring:                   151 100% 45%;
+
+  /* ── Tokens RS exclusivos — Modo Oscuro ──────────────────────────────────── */
+  --brand:                  151 100% 45%;  /* #00E676                          */
+  --brand-hover:            145 100% 39%;  /* #00C853                          */
+  --brand-soft:             rgba(0, 230, 118, 0.12);
+  --brand-foreground:       217 59%  8%;
+  --brand-shadow:           rgba(0, 230, 118, 0.28);
+  --brand-shadow-rgb:       0, 230, 118;
+  --action-alt:             255 92% 76%;   /* #A78BFA                          */
+  --action-alt-hover:       258 90% 66%;   /* #8B5CF6                          */
+  --input-bg:               219 48% 13%;
+  --success:                151 100% 45%;
+  --success-shadow-rgb:       0, 230, 118;
+  --info:                   213 93% 68%;   /* #60A5FA                          */
+  --warning:                 43 96% 56%;   /* #FBBF24                          */
+  --danger:                   0 91% 71%;   /* #F87171                          */
 }
 
+/* ── Reset base ────────────────────────────────────────────────────────────── */
 * {
   border-color: hsl(var(--border));
   box-sizing: border-box;
@@ -90,8 +120,124 @@ body {
   color: hsl(var(--foreground));
 }
 
-/* Scrollbar sutil */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.5); }
+::selection {
+  background-color: hsl(var(--brand) / 0.22);
+  color: hsl(var(--foreground));
+}
+
+/* ── Nav activo: pill oscuro + subrayado verde ────────────────────────────── */
+.rs-nav-active {
+  background-color: hsl(var(--card));
+  color: hsl(var(--foreground));
+}
+
+.rs-nav-active::after {
+  content: '';
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: -4px;
+  height: 2px;
+  border-radius: 9999px;
+  background-color: hsl(var(--brand));
+}
+
+/* ── Nav inactivo: texto muted ────────────────────────────────────────────── */
+.rs-nav-muted {
+  color: hsl(var(--muted-foreground));
+}
+
+/* ── Nav items — hover replica del estado activo ─────────────────────────── */
+.rs-nav-item {
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.rs-nav-item::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0.75rem;
+  bottom: -4px;
+  height: 2px;
+  border-radius: 9999px;
+  background-color: hsl(var(--brand));
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.rs-nav-item:hover {
+  color: hsl(var(--foreground));
+}
+
+.rs-nav-item:hover::after {
+  opacity: 1;
+}
+
+/* ── Estados interactivos RetroSound ──────────────────────────────────────── */
+.rs-hover-brand {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.rs-hover-brand:hover {
+  border-color: hsl(var(--brand) / 0.45);
+  background-color: var(--brand-soft);
+  box-shadow: 0 14px 30px -20px rgba(var(--brand-shadow-rgb), 0.75);
+}
+
+.rs-hover-success {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.rs-hover-success:hover {
+  border-color: hsl(var(--brand) / 0.45);
+  background-color: var(--brand-soft);
+  box-shadow: 0 14px 30px -20px rgba(var(--brand-shadow-rgb), 0.75);
+  color: hsl(var(--brand));
+}
+
+.rs-hover-success:hover svg {
+  color: hsl(var(--brand));
+}
+
+.rs-hover-lift:hover {
+  transform: translateY(-1px);
+}
+
+.rs-active-brand {
+  border-color: hsl(var(--brand));
+  background-color: hsl(var(--brand));
+  color: #fff;
+  box-shadow: 0 16px 32px -18px rgba(var(--brand-shadow-rgb), 0.9);
+}
+
+.dark .rs-active-brand {
+  color: hsl(var(--brand-foreground));
+}
+
+.rs-logo-mark {
+  color: hsl(var(--brand));
+  filter: drop-shadow(0 0 10px rgba(var(--brand-shadow-rgb), 0.32));
+}
+
+.rs-table-row {
+  transition: background-color 150ms ease;
+}
+
+.rs-table-row:hover {
+  background-color: hsl(var(--brand) / 0.06);
+}
+
+/* ── Scrollbar sutil ───────────────────────────────────────────────────────── */
+::-webkit-scrollbar            { width: 6px; height: 6px; }
+::-webkit-scrollbar-track      { background: transparent; }
+::-webkit-scrollbar-thumb      { background: hsl(var(--border)); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover{ background: hsl(var(--muted-foreground) / 0.5); }

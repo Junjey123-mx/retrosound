@@ -6,9 +6,9 @@ import { Receipt, ShoppingCart, Calendar, CreditCard, User } from 'lucide-react'
 import type { Venta } from '@/types';
 
 const ESTADO_BADGE: Record<string, string> = {
-  pendiente:  'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
-  completada: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
-  cancelada:  'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+  pendiente:  'border border-warning/30 bg-warning/10 text-warning',
+  completada: 'border border-success/20 bg-success/10 text-success',
+  cancelada:  'border border-destructive/30 bg-destructive/10 text-destructive',
 };
 
 export default function VentasPage() {
@@ -25,7 +25,7 @@ export default function VentasPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Receipt className="h-6 w-6 text-green-500" />
+            <Receipt className="h-6 w-6 text-success" />
             Ventas
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -66,18 +66,18 @@ export default function VentasPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border bg-muted/30">
+                <tr className="border-b border-border bg-background-soft">
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    <span className="flex items-center gap-1"><Receipt className="h-3.5 w-3.5" />ID</span>
+                    <span className="flex items-center gap-1"><Receipt className="h-3.5 w-3.5 text-info" />ID</span>
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" />Fecha</span>
+                    <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5 text-action-alt" />Fecha</span>
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    <span className="flex items-center gap-1"><User className="h-3.5 w-3.5" />Cliente</span>
+                    <span className="flex items-center gap-1"><User className="h-3.5 w-3.5 text-info" />Cliente</span>
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    <span className="flex items-center gap-1"><CreditCard className="h-3.5 w-3.5" />Método</span>
+                    <span className="flex items-center gap-1"><CreditCard className="h-3.5 w-3.5 text-success" />Método</span>
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">Estado</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Descuento</th>
@@ -86,7 +86,7 @@ export default function VentasPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {ventas.map((v) => (
-                  <tr key={v.id} className="hover:bg-muted/30 transition-colors">
+                  <tr key={v.id} className="rs-table-row">
                     <td className="px-4 py-3 font-mono text-muted-foreground">#{v.id}</td>
                     <td className="px-4 py-3 text-foreground">
                       {String(v.fechaVenta).slice(0, 10)}
@@ -96,7 +96,7 @@ export default function VentasPage() {
                     </td>
                     <td className="px-4 py-3 text-muted-foreground capitalize">{v.metodoPago}</td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${ESTADO_BADGE[v.estado] ?? 'bg-gray-100 text-gray-600'}`}>
+                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${ESTADO_BADGE[v.estado] ?? 'border border-border bg-background-soft text-muted-foreground'}`}>
                         {v.estado}
                       </span>
                     </td>

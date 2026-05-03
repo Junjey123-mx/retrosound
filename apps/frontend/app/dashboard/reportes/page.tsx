@@ -17,52 +17,62 @@ interface TabConfig {
   criterio:  string;
 }
 
+/* Colores exactos de badge SQL según referencia visual */
+const SQL_BADGE = {
+  view:     'border border-[#22C7F2] bg-white text-[#22C7F2] dark:bg-[#111c30] dark:border-[#22C7F2] dark:text-[#22C7F2]',
+  join:     'border border-[#7C4DFF] bg-white text-[#7C4DFF] dark:bg-[#111c30] dark:border-[#7C4DFF] dark:text-[#7C4DFF]',
+  subquery: 'border border-[#EAB308] bg-white text-[#EAB308] dark:bg-[#111c30] dark:border-[#EAB308] dark:text-[#EAB308]',
+  exists:   'border border-[#F97316] bg-white text-[#F97316] dark:bg-[#111c30] dark:border-[#F97316] dark:text-[#F97316]',
+  cte:      'border border-[#32D74B] bg-white text-[#32D74B] dark:bg-[#111c30] dark:border-[#32D74B] dark:text-[#32D74B]',
+  groupby:  'border border-[#FF4D4F] bg-white text-[#FF4D4F] dark:bg-[#111c30] dark:border-[#FF4D4F] dark:text-[#FF4D4F]',
+} as const;
+
 const TABS: TabConfig[] = [
   {
     id: 'resumen', label: 'Resumen Ventas',
-    sqlType: 'VIEW', sqlColor: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',
+    sqlType: 'VIEW', sqlColor: SQL_BADGE.view,
     desc: 'SELECT * FROM vista_resumen_ventas — calcula IVA 12% directamente en la vista SQL',
     criterio: 'Vista SQL con cálculo de IVA 12%',
   },
   {
     id: 'ventas', label: 'Ventas Detalle',
-    sqlType: 'JOIN × 4', sqlColor: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+    sqlType: 'JOIN × 4', sqlColor: SQL_BADGE.join,
     desc: 'venta JOIN cliente JOIN empleado JOIN detalle_venta JOIN producto',
     criterio: 'JOIN múltiple entre 4 tablas',
   },
   {
     id: 'catalogo', label: 'Catálogo',
-    sqlType: 'JOIN × 6', sqlColor: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+    sqlType: 'JOIN × 6', sqlColor: SQL_BADGE.join,
     desc: 'producto JOIN categoria JOIN formato LEFT JOIN artistas y géneros con STRING_AGG',
     criterio: 'JOIN múltiple con STRING_AGG',
   },
   {
     id: 'compras', label: 'Compras',
-    sqlType: 'JOIN × 4', sqlColor: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+    sqlType: 'JOIN × 4', sqlColor: SQL_BADGE.join,
     desc: 'compra_proveedor JOIN proveedor JOIN empleado JOIN detalle_compra JOIN producto',
     criterio: 'JOIN múltiple en cadena',
   },
   {
     id: 'stock', label: 'Stock Bajo',
-    sqlType: 'SUBQUERY', sqlColor: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+    sqlType: 'SUBQUERY', sqlColor: SQL_BADGE.subquery,
     desc: 'JOIN (SELECT AVG(stock_actual) FROM producto) — subquery escalar en cláusula FROM',
     criterio: 'Subquery escalar en cláusula FROM',
   },
   {
     id: 'clientes', label: 'Clientes Frecuentes',
-    sqlType: 'EXISTS', sqlColor: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+    sqlType: 'EXISTS', sqlColor: SQL_BADGE.exists,
     desc: 'WHERE EXISTS (SELECT 1 FROM venta WHERE ...) + subquery correlacionado para conteo',
     criterio: 'Subquery EXISTS + subquery correlacionado',
   },
   {
     id: 'vendidos', label: 'Más Vendidos',
-    sqlType: 'GROUP BY/HAVING', sqlColor: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+    sqlType: 'GROUP BY/HAVING', sqlColor: SQL_BADGE.groupby,
     desc: 'SUM, COUNT, AVG con HAVING SUM(cantidad_vendida) ≥ mínimo configurable',
     criterio: 'GROUP BY + HAVING + funciones de agregación',
   },
   {
     id: 'ranking', label: 'Ranking Ingresos',
-    sqlType: 'CTE + RANK', sqlColor: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
+    sqlType: 'CTE + RANK', sqlColor: SQL_BADGE.cte,
     desc: 'WITH ingresos_producto AS (...) SELECT DENSE_RANK() OVER (ORDER BY ingresos DESC)',
     criterio: 'CTE (WITH) + función de ventana DENSE_RANK()',
   },
@@ -80,10 +90,10 @@ function ReportTable({ data }: { data: Row[] }) {
   );
   const cols = Object.keys(data[0]);
   return (
-    <div className="overflow-x-auto rounded-xl border border-border">
+    <div className="overflow-x-auto rounded-xl border border-border bg-card">
       <table className="w-full text-xs">
         <thead>
-          <tr className="border-b border-border bg-muted/30">
+          <tr className="border-b border-border bg-background-soft">
             {cols.map((c) => (
               <th key={c} className="whitespace-nowrap px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {c}
@@ -93,7 +103,7 @@ function ReportTable({ data }: { data: Row[] }) {
         </thead>
         <tbody className="divide-y divide-border">
           {data.map((row, i) => (
-            <tr key={i} className="hover:bg-muted/20 transition-colors">
+            <tr key={i} className="rs-table-row">
               {cols.map((c) => {
                 const raw = formatCell(row[c]);
                 const display = raw.length > 42 ? raw.slice(0, 40) + '…' : raw;
@@ -144,7 +154,7 @@ function ResumenVentasTab() {
         <select
           value={estado}
           onChange={(e) => setEstado(e.target.value)}
-          className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          className="rounded-xl border border-input bg-input-bg px-3 py-1.5 text-sm text-foreground focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25"
         >
           <option value="">Todos</option>
           <option value="pendiente">Pendiente</option>
@@ -176,7 +186,7 @@ function MasVendidosTab() {
           min={1}
           value={min}
           onChange={(e) => setMin(Math.max(1, Number(e.target.value)))}
-          className="w-24 rounded-lg border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          className="w-24 rounded-xl border border-input bg-input-bg px-3 py-1.5 text-sm text-foreground focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25"
         />
         {data && <span className="text-xs text-muted-foreground">{data.length} productos</span>}
       </div>
@@ -197,7 +207,7 @@ export default function ReportesPage() {
       {/* Encabezado */}
       <div>
         <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <Database className="h-6 w-6 text-violet-500" />
+          <Database className="h-6 w-6 text-action-alt" />
           Reportes SQL
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -211,10 +221,10 @@ export default function ReportesPage() {
           <button
             key={t.id}
             onClick={() => setActiveTab(t.id)}
-            className={`rounded-lg px-3.5 py-2 text-sm font-medium transition-colors ${
+            className={`rounded-xl border px-3.5 py-2 text-sm font-medium transition-all duration-150 ${
               activeTab === t.id
-                ? 'bg-foreground text-background shadow-sm'
-                : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                ? 'rs-active-brand'
+                : 'border-border bg-card text-muted-foreground rs-hover-brand hover:text-brand'
             }`}
           >
             {t.label}
@@ -225,7 +235,7 @@ export default function ReportesPage() {
       {/* Info del reporte activo */}
       <div className="rounded-xl border border-border bg-card p-4 space-y-2 shadow-sm">
         <div className="flex items-start gap-3">
-          <span className={`shrink-0 rounded-lg px-3 py-1 text-xs font-bold ${tab.sqlColor}`}>
+          <span className={`shrink-0 rounded-full px-3 py-0.5 text-xs font-semibold ${tab.sqlColor}`}>
             {tab.sqlType}
           </span>
           <div className="space-y-1">
