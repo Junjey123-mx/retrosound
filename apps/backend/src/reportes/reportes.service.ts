@@ -18,7 +18,7 @@ export class ReportesService {
         v.descuento_venta,
         (c.nombre_cliente || ' ' || c.apellido_cliente)   AS cliente,
         c.correo_cliente,
-        (e.nombre_empleado || ' ' || e.apellido_empleado) AS empleado,
+        COALESCE(e.nombre_empleado || ' ' || e.apellido_empleado, 'Venta Online') AS empleado,
         p.titulo_producto,
         p.codigo_sku,
         dv.cantidad_vendida,
@@ -27,7 +27,7 @@ export class ReportesService {
         (dv.cantidad_vendida * dv.precio_unitario_venta - dv.descuento_detalle) AS subtotal
       FROM venta v
       JOIN cliente       c  ON c.id_cliente  = v.id_cliente
-      JOIN empleado      e  ON e.id_empleado = v.id_empleado
+      LEFT JOIN empleado e  ON e.id_empleado = v.id_empleado
       JOIN detalle_venta dv ON dv.id_venta   = v.id_venta
       JOIN producto      p  ON p.id_producto = dv.id_producto
       ORDER BY v.fecha_venta DESC, v.id_venta

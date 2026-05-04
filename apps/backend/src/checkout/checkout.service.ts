@@ -106,6 +106,19 @@ export class CheckoutService {
         }
       }
 
+      const totalBruto = Math.round(
+        carrito.items.reduce((acc, item) => {
+          return acc + item.cantidad * Number(item.precioUnitarioSnapshot);
+        }, 0) * 100,
+      ) / 100;
+      const descuentoVenta = Number(dto.descuento ?? 0);
+
+      if (descuentoVenta > totalBruto) {
+        throw new BadRequestException(
+          'El descuento no puede superar el subtotal de la venta.',
+        );
+      }
+
       // 2. INSERT venta — SQL explícito (mismo estilo que ventas.service.ts)
       //    id_empleado = NULL: ventas online no tienen empleado asignado
       //    estado = completada: el pago online se considera inmediato
@@ -121,7 +134,7 @@ export class CheckoutService {
         VALUES
           (
             CURRENT_DATE,
-            ${dto.descuento ?? 0},
+            ${descuentoVenta},
             ${dto.metodoPago},
             'completada'::"EstadoVenta",
             ${idCliente},
@@ -132,7 +145,6 @@ export class CheckoutService {
 
       // 3. INSERT detalle_venta + descuento de stock por cada item
       //    Usa precioUnitarioSnapshot: precio que el cliente vio al agregar al carrito
-      let totalBruto = 0;
       const itemsResult: {
         idProducto: number;
         titulo: string;
@@ -144,7 +156,6 @@ export class CheckoutService {
       for (const item of carrito.items) {
         const precioUnitario = Number(item.precioUnitarioSnapshot);
         const subtotal = Math.round(item.cantidad * precioUnitario * 100) / 100;
-        totalBruto += subtotal;
 
         // INSERT detalle_venta — SQL explícito (mismo patrón que ventas.service.ts)
         await tx.$executeRaw`
@@ -190,7 +201,6 @@ export class CheckoutService {
       });
 
       // 5. Calcular recibo con IVA 12% (Guatemala — mismo cálculo que ventas.service.ts)
-      const descuentoVenta = Number(dto.descuento ?? 0);
       const totalNeto      = Math.round((totalBruto - descuentoVenta) * 100) / 100;
       const iva12          = Math.round(totalNeto * 0.12 * 100) / 100;
       const total          = Math.round(totalNeto * 1.12 * 100) / 100;

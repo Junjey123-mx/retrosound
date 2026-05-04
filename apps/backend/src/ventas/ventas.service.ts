@@ -98,6 +98,29 @@ export class VentasService {
         }
       }
 
+      const totalBruto = Math.round(
+        dto.detalles.reduce((acc, detalle) => {
+          const descuentoDetalle = detalle.descuentoDetalle ?? 0;
+          const subtotalLinea =
+            detalle.cantidadVendida * detalle.precioUnitario;
+
+          if (descuentoDetalle > subtotalLinea) {
+            throw new BadRequestException(
+              'El descuento del detalle no puede superar el subtotal de la línea.',
+            );
+          }
+
+          return acc + subtotalLinea - descuentoDetalle;
+        }, 0) * 100,
+      ) / 100;
+      const descuentoVenta = Number(dto.descuento ?? 0);
+
+      if (descuentoVenta > totalBruto) {
+        throw new BadRequestException(
+          'El descuento no puede superar el subtotal de la venta.',
+        );
+      }
+
       // 4. INSERT venta ── SQL explícito, estado inicial = pendiente
       const [venta] = await tx.$queryRaw<
         {
@@ -113,7 +136,7 @@ export class VentasService {
         VALUES
           (
             ${new Date(dto.fechaVenta)}::DATE,
-            ${dto.descuento ?? 0},
+            ${descuentoVenta},
             ${dto.metodoPago},
             'pendiente'::"EstadoVenta",
             ${dto.idCliente},
@@ -123,7 +146,6 @@ export class VentasService {
       `;
 
       // 5. INSERT detalle_venta + UPDATE stock por cada ítem
-      let totalBruto = 0;
       const detallesResult: {
         idProducto:      number;
         cantidadVendida: number;
@@ -135,7 +157,6 @@ export class VentasService {
       for (const detalle of dto.detalles) {
         const descuento = detalle.descuentoDetalle ?? 0;
         const subtotal  = detalle.cantidadVendida * detalle.precioUnitario - descuento;
-        totalBruto     += subtotal;
 
         // INSERT detalle_venta ── SQL explícito
         await tx.$executeRaw`
@@ -163,7 +184,6 @@ export class VentasService {
       }
 
       // 6. Calcular recibo con IVA 12% (Guatemala)
-      const descuentoVenta = Number(dto.descuento ?? 0);
       const totalNeto      = Math.round((totalBruto - descuentoVenta) * 100) / 100;
       const iva12          = Math.round(totalNeto * 0.12 * 100) / 100;
       const total          = Math.round(totalNeto * 1.12 * 100) / 100;
