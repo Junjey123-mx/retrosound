@@ -10,10 +10,27 @@ RetroSound Store es una tienda especializada en la venta de música en formatos 
 
 | Capa | Tecnología |
 |------|-----------|
-| Backend | NestJS 11 + TypeScript + Prisma 6 |
-| Frontend | Next.js 16 (App Router) + TypeScript + shadcn/ui |
-| Base de datos | PostgreSQL 17 (Alpine) |
-| Contenedores | Docker + Docker Compose |
+| **Backend** | NestJS 11 · TypeScript · pg/node-postgres · Passport JWT · bcrypt · class-validator |
+| **Frontend** | Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS · TanStack Query · Radix UI · Framer Motion · Lucide React |
+| **Base de datos** | PostgreSQL 17 · SQL explícito · DDL manual · Seed SQL · Views · Índices · Transacciones |
+| **Infraestructura** | Docker Compose · pgAdmin 4 · Node.js 22 Alpine |
+
+> El backend **no usa ORM**. Toda consulta SQL se ejecuta a través de `DatabaseService.query(sql, params)` con `pg` (node-postgres).
+
+## Arquitectura de capas
+
+```
+Navegador
+  └─► Next.js 16 (puerto 3002)
+        └─► NestJS 11 (puerto 3003)
+              └─► DatabaseService
+                    └─► pg.Pool
+                          └─► PostgreSQL 17 (puerto 5432 interno / 5433 host)
+```
+
+- El frontend nunca accede directamente a la base de datos.
+- Toda consulta SQL se ejecuta en NestJS con `DatabaseService.query(sql, params)`.
+- Las transacciones explícitas usan `DatabaseService.getClient()` → `BEGIN / COMMIT / ROLLBACK`.
 
 ---
 
@@ -43,7 +60,7 @@ El backend inicializa la base de datos con los scripts SQL oficiales:
 - `db/retrosound_ddl.sql`
 - `db/retrosound_seed.sql`
 
-Prisma ya no crea el esquema ni carga el seed en Docker. Cuando veas la línea:
+El backend usa **pg/node-postgres** con SQL explícito — sin ORM. Cuando veas la línea:
 
 ```
 backend-1  | Backend corriendo en http://localhost:3001
@@ -115,12 +132,17 @@ Todos los usuarios usan la misma contraseña: **`retro2025`**
 
 | # | Módulo | Descripción |
 |---|--------|-------------|
-| 1 | Autenticación | Login JWT, logout, guard de rutas, badge de rol en navbar |
+| 1 | Autenticación | Login JWT, logout, register con transacción, guard de rutas, badge de rol en navbar |
 | 2 | Dashboard | 6 métricas en tiempo real + alertas de stock crítico + compras pendientes + ventas recientes |
 | 3 | Productos | CRUD completo: crear, editar, desactivar, filtrar por categoría/formato |
 | 4 | Proveedores | CRUD completo: crear, editar, desactivar (muestra activos e inactivos) |
-| 5 | Ventas | Registro de venta con múltiples productos, descuento, IVA 12% y recibo |
-| 6 | Reportes | 8 reportes SQL con 5 tipos distintos de consultas avanzadas |
+| 5 | Clientes | CRUD completo (admin): crear, editar, inactivar |
+| 6 | Empleados | CRUD completo (admin): crear, editar, inactivar |
+| 7 | Ventas | Registro de venta con múltiples productos, descuento, IVA 12% y recibo (transacción explícita) |
+| 8 | Tienda / Carrito | Vitrina de productos, carrito persistente por cliente |
+| 9 | Checkout | Pago de carrito con transacción explícita, validación de stock con `SELECT … FOR UPDATE` |
+| 10 | Mis órdenes | Historial de compras del cliente autenticado |
+| 11 | Reportes | 8 reportes SQL con 5 tipos distintos de consultas avanzadas + dashboard |
 
 ---
 
@@ -133,9 +155,9 @@ Todos los reportes se acceden desde **Reportes** en la barra de navegación. Cad
 ### 1. Vista SQL con cálculo de IVA 12% — `vista_resumen_ventas`
 
 **Endpoint:** `GET /reportes/resumen-ventas?estado=completada`  
-**Técnica:** VIEW definido en migración SQL, consultado con `SELECT * FROM vista_resumen_ventas`
+**Técnica:** `CREATE OR REPLACE VIEW` definida en `db/retrosound_ddl.sql`, consultada con `SELECT * FROM vista_resumen_ventas`
 
-La vista fue creada mediante `CREATE OR REPLACE VIEW` en la migración `20260501080000_update_vista_resumen_ventas`:
+La vista soporta ventas online (sin empleado asignado) mostrando `'Venta Online'` cuando `id_empleado IS NULL`:
 
 ```sql
 CREATE OR REPLACE VIEW vista_resumen_ventas AS
@@ -145,32 +167,32 @@ SELECT
   v.metodo_pago,
   v.estado_venta,
   v.descuento_venta,
-  (c.nombre_cliente || ' ' || c.apellido_cliente)             AS cliente,
+  (c.nombre_cliente || ' ' || c.apellido_cliente)                            AS cliente,
   c.correo_cliente,
-  (e.nombre_empleado || ' ' || e.apellido_empleado)           AS empleado,
-  COUNT(dv.id_detalle_venta)::INT                             AS total_items,
+  COALESCE(e.nombre_empleado || ' ' || e.apellido_empleado, 'Venta Online') AS empleado,
+  COUNT(dv.id_detalle_venta)::INT                                            AS total_items,
   COALESCE(SUM(
     dv.cantidad_vendida * dv.precio_unitario_venta - dv.descuento_detalle
-  ), 0)                                                       AS total_bruto,
+  ), 0)                                                                      AS total_bruto,
   ROUND(
     COALESCE(SUM(
       dv.cantidad_vendida * dv.precio_unitario_venta - dv.descuento_detalle
     ), 0) - v.descuento_venta, 2
-  )                                                           AS total_neto,
+  )                                                                          AS total_neto,
   ROUND(
     (COALESCE(SUM(
       dv.cantidad_vendida * dv.precio_unitario_venta - dv.descuento_detalle
     ), 0) - v.descuento_venta) * 0.12, 2
-  )                                                           AS iva_12,
+  )                                                                          AS iva_12,
   ROUND(
     (COALESCE(SUM(
       dv.cantidad_vendida * dv.precio_unitario_venta - dv.descuento_detalle
     ), 0) - v.descuento_venta) * 1.12, 2
-  )                                                           AS total
+  )                                                                          AS total
 FROM venta v
-JOIN cliente  c ON c.id_cliente  = v.id_cliente
-JOIN empleado e ON e.id_empleado = v.id_empleado
-LEFT JOIN detalle_venta dv ON dv.id_venta = v.id_venta
+JOIN     cliente       c  ON c.id_cliente  = v.id_cliente
+LEFT JOIN empleado     e  ON e.id_empleado = v.id_empleado
+LEFT JOIN detalle_venta dv ON dv.id_venta  = v.id_venta
 GROUP BY
   v.id_venta, v.fecha_venta, v.metodo_pago, v.estado_venta, v.descuento_venta,
   c.nombre_cliente, c.apellido_cliente, c.correo_cliente,
@@ -362,7 +384,7 @@ HAVING SUM(dv.cantidad_vendida) >= <min>
 ORDER BY total_unidades DESC, ingresos_generados DESC;
 ```
 
-El parámetro `min` se pasa de forma segura (sin interpolación directa) usando el tagged template de Prisma.
+El parámetro `min` se pasa de forma segura usando parámetros posicionales (`$1`) con pg/node-postgres.
 
 ---
 
@@ -415,15 +437,16 @@ ORDER BY ranking, titulo_producto;
 El panel **Stock crítico** muestra todos los productos cuyo stock actual está por debajo o igual al mínimo definido para ese producto. La consulta que lo alimenta es:
 
 ```sql
-SELECT p.id_producto, p.titulo_producto, p.codigo_sku,
-       p.stock_actual, p.stock_minimo,
-       c.nombre_categoria, f.nombre_formato
+SELECT
+  p.id_producto, p.titulo_producto, p.codigo_sku,
+  p.stock_actual, p.stock_minimo,
+  cat.nombre_categoria, fmt.nombre_formato
 FROM   producto p
-JOIN   categoria c USING (id_categoria)
-JOIN   formato   f USING (id_formato)
-WHERE  p.stock_actual <= p.stock_minimo
-  AND  p.estado = 'activo'
-ORDER  BY (p.stock_actual::float / NULLIF(p.stock_minimo, 0)) ASC;
+JOIN   categoria cat ON cat.id_categoria = p.id_categoria
+JOIN   formato   fmt ON fmt.id_formato   = p.id_formato
+WHERE  p.stock_actual   <= p.stock_minimo
+  AND  p.estado_producto != 'descontinuado'
+ORDER  BY p.stock_actual ASC;
 ```
 
 Cada fila del panel muestra el par `stock_actual / stock_minimo` para que el responsable sepa cuántas unidades faltan reponer. Cuando todos los productos tienen stock suficiente, el panel indica ✓.
@@ -433,18 +456,20 @@ Cada fila del panel muestra el par `stock_actual / stock_minimo` para que el res
 El panel **Compras pendientes** lista las órdenes de compra a proveedores cuyo estado aún es `pendiente` (es decir, aún no han sido recibidas en el almacén). La consulta que lo alimenta es:
 
 ```sql
-SELECT cp.id_compra_proveedor, cp.fecha_compra_proveedor,
-       pr.nombre_proveedor,
-       u.nombre || ' ' || u.apellido AS empleado,
-       COUNT(dcp.id_producto) AS num_productos
-FROM   compra_proveedor  cp
-JOIN   proveedor         pr  USING (id_proveedor)
-JOIN   usuario           u   ON u.id_usuario = cp.id_empleado
-JOIN   detalle_compra_proveedor dcp USING (id_compra_proveedor)
+SELECT
+  cp.id_compra_proveedor,
+  cp.fecha_compra_proveedor,
+  pr.nombre_proveedor,
+  (e.nombre_empleado || ' ' || e.apellido_empleado) AS empleado,
+  COUNT(dcp.id_detalle_compra_proveedor)::INT       AS num_productos
+FROM   compra_proveedor              cp
+JOIN   proveedor                     pr  ON pr.id_proveedor         = cp.id_proveedor
+JOIN   empleado                      e   ON e.id_empleado           = cp.id_empleado
+LEFT JOIN detalle_compra_proveedor   dcp ON dcp.id_compra_proveedor = cp.id_compra_proveedor
 WHERE  cp.estado_compra = 'pendiente'
-GROUP  BY cp.id_compra_proveedor, pr.nombre_proveedor, u.nombre, u.apellido,
-          cp.fecha_compra_proveedor
-ORDER  BY cp.fecha_compra_proveedor ASC;
+GROUP  BY cp.id_compra_proveedor, cp.fecha_compra_proveedor,
+          pr.nombre_proveedor, e.nombre_empleado, e.apellido_empleado
+ORDER  BY cp.fecha_compra_proveedor DESC;
 ```
 
 Una compra pasa a `completada` cuando el empleado registra la recepción. Mientras esté `pendiente`, el stock de los productos involucrados **no** ha sido incrementado.
@@ -465,7 +490,7 @@ Lo mismo aplica para **Proveedores** (enlace en la barra de navegación).
 
 ## Cómo probar una venta (transacción explícita)
 
-La venta usa una transacción PostgreSQL explícita (`BEGIN / COMMIT / ROLLBACK`) implementada con `prisma.$transaction`.
+La venta usa una transacción PostgreSQL explícita (`BEGIN / COMMIT / ROLLBACK`) implementada directamente con `pg` (sin ORM).
 
 ### Desde la UI
 
@@ -517,35 +542,52 @@ curl -s http://localhost:3003/reportes/ventas-detalle \
 
 ---
 
+## Documentación académica
+
+La documentación académica completa del modelo de base de datos se encuentra en [docs/entrega-final.md](docs/entrega-final.md).
+
+Incluye: entidades, modelo relacional, dependencias funcionales, normalización hasta 3FN, CHECK constraints, índices, vista `vista_resumen_ventas`, reportes SQL, transacciones explícitas, DDL/DML oficiales y usuarios de prueba.
+
+---
+
 ## Estructura del proyecto
 
 ```
 retrosound/
 ├── apps/
-│   ├── backend/          ← NestJS + Prisma
+│   ├── backend/                ← NestJS 11 + pg/node-postgres (sin ORM)
 │   │   ├── src/
-│   │   │   ├── auth/
-│   │   │   ├── productos/
-│   │   │   ├── proveedores/
-│   │   │   ├── ventas/
-│   │   │   └── reportes/
-│   │   ├── prisma/
-│   │   │   ├── schema.prisma
-│   │   │   ├── seed.ts
-│   │   │   └── migrations/
+│   │   │   ├── database/       ← DatabaseService (pg Pool global)
+│   │   │   ├── auth/           ← login, register (transacción), JWT
+│   │   │   ├── usuarios/       ← CRUD admin de usuarios
+│   │   │   ├── productos/      ← CRUD productos
+│   │   │   ├── proveedores/    ← CRUD proveedores
+│   │   │   ├── clientes/       ← CRUD clientes
+│   │   │   ├── empleados/      ← CRUD empleados
+│   │   │   ├── catalogs/       ← catálogos: categorías, formatos, géneros, artistas
+│   │   │   ├── ventas/         ← CRUD ventas (transacción explícita)
+│   │   │   ├── carrito/        ← carrito de compras del cliente
+│   │   │   ├── checkout/       ← pago del carrito (transacción explícita)
+│   │   │   ├── mis-ordenes/    ← historial de compras del cliente
+│   │   │   └── reportes/       ← 8 endpoints SQL avanzados
 │   │   └── Dockerfile
-│   └── frontend/         ← Next.js 16 App Router
+│   └── frontend/               ← Next.js 16 App Router
 │       ├── app/
 │       │   └── dashboard/
 │       │       ├── productos/
 │       │       ├── proveedores/
 │       │       ├── ventas/
-│       │       └── reportes/
+│       │       ├── reportes/
+│       │       ├── tienda/     ← vitrina de productos para clientes
+│       │       └── mis-ordenes/
 │       ├── components/
 │       ├── hooks/
 │       └── Dockerfile
 ├── db/
-│   └── retrosound_ddl.sql
+│   ├── retrosound_ddl.sql      ← DDL oficial (tablas, FK, CHECK, índices, view)
+│   └── retrosound_seed.sql     ← Seed oficial (25 registros por tabla, bcrypt real)
+├── docs/
+│   └── entrega-final.md        ← documentación académica de BD
 ├── .env.example
 └── docker-compose.yml
 ```
@@ -613,7 +655,6 @@ docker compose up postgres pgadmin
 # Backend (nueva terminal)
 cd apps/backend
 npm install
-npx prisma generate
 npm run start:dev
 
 # Frontend (nueva terminal)
@@ -623,3 +664,206 @@ npm run dev
 ```
 
 En desarrollo local: frontend en `http://localhost:3000`, backend en `http://localhost:3001`.
+
+---
+
+## Endpoints principales
+
+Base URL: `http://localhost:3003`
+
+### Auth
+
+| Método | Ruta | Guard | Descripción |
+|--------|------|-------|-------------|
+| `POST` | `/auth/login` | — | Login; devuelve JWT |
+| `POST` | `/auth/register` | — | Registro de cliente; transacción BEGIN/COMMIT |
+| `GET` | `/auth/me` | JWT | Perfil del usuario autenticado |
+
+### Productos
+
+| Método | Ruta | Guard | Descripción |
+|--------|------|-------|-------------|
+| `GET` | `/productos` | — | Lista todos los productos |
+| `GET` | `/productos/:id` | — | Detalle de un producto |
+| `POST` | `/productos` | JWT + admin/empleado | Crear producto |
+| `PATCH` | `/productos/:id` | JWT + admin/empleado | Actualizar producto |
+| `DELETE` | `/productos/:id` | JWT + admin/empleado | Desactivar producto |
+
+### Proveedores
+
+| Método | Ruta | Guard | Descripción |
+|--------|------|-------|-------------|
+| `GET` | `/proveedores` | JWT | Lista proveedores |
+| `GET` | `/proveedores/:id` | JWT | Detalle de un proveedor |
+| `POST` | `/proveedores` | JWT + admin | Crear proveedor |
+| `PATCH` | `/proveedores/:id` | JWT + admin | Actualizar proveedor |
+| `DELETE` | `/proveedores/:id` | JWT + admin | Desactivar proveedor |
+
+### Clientes y Empleados
+
+| Método | Ruta | Guard |
+|--------|------|-------|
+| `GET/POST/PATCH/DELETE` | `/clientes` | JWT + admin |
+| `GET/POST/PATCH/DELETE` | `/empleados` | JWT + admin |
+
+### Catálogos
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `GET` | `/catalogs/categorias` | Lista categorías |
+| `GET` | `/catalogs/formatos` | Lista formatos |
+| `GET` | `/catalogs/generos` | Lista géneros musicales |
+| `GET` | `/catalogs/artistas` | Lista artistas |
+
+### Ventas
+
+| Método | Ruta | Guard | Descripción |
+|--------|------|-------|-------------|
+| `GET` | `/ventas` | JWT + admin/empleado | Lista ventas |
+| `GET` | `/ventas/:id` | JWT + admin/empleado | Detalle de venta |
+| `POST` | `/ventas` | JWT + admin/empleado | Registrar venta (transacción) |
+
+### Carrito y Checkout (cliente autenticado)
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `GET` | `/carrito` | Ver carrito activo |
+| `POST` | `/carrito/items` | Agregar producto al carrito |
+| `PATCH` | `/carrito/items/:id` | Actualizar cantidad |
+| `DELETE` | `/carrito/items/:id` | Eliminar ítem del carrito |
+| `DELETE` | `/carrito` | Vaciar carrito |
+| `POST` | `/checkout` | Procesar pago (transacción) |
+| `GET` | `/mis-ordenes` | Historial de compras del cliente |
+
+### Reportes (JWT requerido)
+
+| Método | Ruta | Técnica SQL |
+|--------|------|-------------|
+| `GET` | `/reportes/dashboard` | Subqueries escalares + JOINs |
+| `GET` | `/reportes/resumen-ventas` | VIEW `vista_resumen_ventas` |
+| `GET` | `/reportes/ventas-detalle` | JOIN múltiple (5 tablas) |
+| `GET` | `/reportes/productos-catalogo` | JOIN + STRING_AGG |
+| `GET` | `/reportes/compras-proveedor` | JOIN en cadena (4 tablas) |
+| `GET` | `/reportes/productos-bajo-stock` | Subquery en FROM |
+| `GET` | `/reportes/clientes-frecuentes` | EXISTS + subquery correlacionado |
+| `GET` | `/reportes/productos-mas-vendidos?min=N` | GROUP BY + HAVING |
+| `GET` | `/reportes/ranking-ingresos` | CTE WITH + DENSE_RANK() |
+
+### Usuarios (solo admin)
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `GET` | `/usuarios` | Lista todos los usuarios |
+| `GET` | `/usuarios/:id` | Detalle de usuario |
+| `PATCH` | `/usuarios/:id` | Cambiar estado/rol |
+| `DELETE` | `/usuarios/:id` | Inactivar usuario |
+
+---
+
+## Scripts oficiales de base de datos
+
+| Archivo | Contenido |
+|---------|-----------|
+| `db/retrosound_ddl.sql` | `CREATE TABLE`, PK, FK, NOT NULL, CHECK, UNIQUE, `CREATE INDEX`, `CREATE VIEW` |
+| `db/retrosound_seed.sql` | 25 registros por tabla, usuarios con hash bcrypt real para `retro2025`, carritos y órdenes de prueba |
+
+Docker aplica automáticamente estos archivos al iniciar si la base está vacía. La base de datos se inicializa con SQL explícito; no se utiliza ORM en runtime.
+
+---
+
+## Transacciones explícitas
+
+El proyecto implementa tres transacciones PostgreSQL explícitas con `BEGIN / COMMIT / ROLLBACK` usando `pg` directamente (sin ORM):
+
+### 1. `POST /ventas`
+
+```
+BEGIN
+  ├─ Validar id_cliente activo
+  ├─ Validar id_empleado activo (si se provee)
+  ├─ Por cada producto: SELECT ... FOR UPDATE (bloquea fila)
+  │    ├─ Validar estado_producto = 'activo'
+  │    └─ Validar stock_actual >= cantidad solicitada
+  ├─ INSERT INTO venta (...)
+  ├─ INSERT INTO detalle_venta (...) por cada ítem
+  └─ UPDATE producto SET stock_actual = stock_actual - cantidad por cada ítem
+COMMIT
+```
+
+**ROLLBACK automático** si: cliente inexistente, empleado inactivo, producto sin stock, o cualquier error SQL.
+
+### 2. `POST /checkout`
+
+```
+BEGIN
+  ├─ SELECT carrito activo del cliente autenticado
+  ├─ Leer ítems del carrito
+  ├─ Por cada producto: SELECT ... FOR UPDATE
+  │    └─ Validar stock_actual >= cantidad
+  ├─ INSERT INTO venta (...) con id_empleado = NULL (venta online)
+  ├─ INSERT INTO detalle_venta (...) por cada ítem
+  ├─ UPDATE producto SET stock_actual = stock_actual - cantidad
+  └─ UPDATE carrito SET estado_carrito = 'convertido'
+COMMIT
+```
+
+### 3. `POST /auth/register`
+
+```
+BEGIN
+  ├─ INSERT INTO cliente (...)
+  └─ INSERT INTO usuario (..., id_cliente)
+COMMIT
+```
+
+**ROLLBACK automático** si el correo ya existe u otro error.
+
+---
+
+## Pruebas rápidas
+
+### Build del backend
+
+```bash
+cd apps/backend
+npm install
+npm run build
+```
+
+### Docker desde cero
+
+```bash
+docker compose down -v
+docker compose up --build
+```
+
+### Verificar base de datos
+
+```bash
+# Tablas
+docker compose exec -T postgres psql -U proy2 -d retrosound -c "\dt"
+
+# Vista
+docker compose exec -T postgres psql -U proy2 -d retrosound -c "\dv"
+
+# Conteos
+docker compose exec -T postgres psql -U proy2 -d retrosound -c "
+SELECT 'categoria' AS tabla, COUNT(*) FROM categoria
+UNION ALL SELECT 'producto',  COUNT(*) FROM producto
+UNION ALL SELECT 'usuario',   COUNT(*) FROM usuario
+UNION ALL SELECT 'venta',     COUNT(*) FROM venta
+UNION ALL SELECT 'carrito',   COUNT(*) FROM carrito;"
+```
+
+### Login y endpoints
+
+```bash
+TOKEN=$(curl -s -X POST http://localhost:3003/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"correo":"admin@retrosound.com","contrasena":"retro2025"}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+
+curl -s http://localhost:3003/reportes/dashboard -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
+curl -s http://localhost:3003/reportes/resumen-ventas -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
+curl -s http://localhost:3003/productos
+```

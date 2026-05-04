@@ -11,13 +11,12 @@ services:
     ports:
       - "3001:3001"
     environment:
-      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?schema=public
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
       JWT_SECRET: ${JWT_SECRET}
       PORT: 3001
       NODE_ENV: development
     volumes:
       - ./apps/backend/src:/app/src
-      - ./apps/backend/prisma:/app/prisma
     depends_on:
       postgres:
         condition: service_healthy
