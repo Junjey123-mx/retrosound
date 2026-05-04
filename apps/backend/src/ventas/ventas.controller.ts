@@ -1,19 +1,36 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { VentasService } from './ventas.service';
 import { CreateVentaDto } from './dto/create-venta.dto';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin', 'empleado')
 @Controller('ventas')
 export class VentasController {
   constructor(private readonly ventasService: VentasService) {}
 
   @Get()
-  findAll() { return this.ventasService.findAll(); }
+  findAll() {
+    return this.ventasService.findAll();
+  }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) { return this.ventasService.findOne(id); }
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.ventasService.findOne(id);
+  }
 
   @Post()
-  create(@Body() dto: CreateVentaDto) { return this.ventasService.create(dto); }
+  create(@Body() dto: CreateVentaDto) {
+    return this.ventasService.create(dto);
+  }
 }
