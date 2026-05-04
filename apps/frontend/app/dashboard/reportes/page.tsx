@@ -9,74 +9,86 @@ type Row = Record<string, unknown>;
 type TabId = 'resumen' | 'ventas' | 'catalogo' | 'compras' | 'stock' | 'clientes' | 'vendidos' | 'ranking';
 
 interface TabConfig {
-  id:        TabId;
-  label:     string;
-  sqlType:   string;
-  sqlColor:  string;
-  desc:      string;
-  criterio:  string;
+  id:    TabId;
+  label: string;
 }
 
-/* Colores exactos de badge SQL según referencia visual */
-const SQL_BADGE = {
-  view:     'border border-[#22C7F2] bg-white text-[#22C7F2] dark:bg-[#111c30] dark:border-[#22C7F2] dark:text-[#22C7F2]',
-  join:     'border border-[#7C4DFF] bg-white text-[#7C4DFF] dark:bg-[#111c30] dark:border-[#7C4DFF] dark:text-[#7C4DFF]',
-  subquery: 'border border-[#EAB308] bg-white text-[#EAB308] dark:bg-[#111c30] dark:border-[#EAB308] dark:text-[#EAB308]',
-  exists:   'border border-[#F97316] bg-white text-[#F97316] dark:bg-[#111c30] dark:border-[#F97316] dark:text-[#F97316]',
-  cte:      'border border-[#32D74B] bg-white text-[#32D74B] dark:bg-[#111c30] dark:border-[#32D74B] dark:text-[#32D74B]',
-  groupby:  'border border-[#FF4D4F] bg-white text-[#FF4D4F] dark:bg-[#111c30] dark:border-[#FF4D4F] dark:text-[#FF4D4F]',
+const TABS: TabConfig[] = [
+  { id: 'resumen',  label: 'Resumen Ventas'     },
+  { id: 'ventas',   label: 'Ventas Detalle'      },
+  { id: 'catalogo', label: 'Catálogo'            },
+  { id: 'compras',  label: 'Compras'             },
+  { id: 'stock',    label: 'Stock Bajo'          },
+  { id: 'clientes', label: 'Clientes Frecuentes' },
+  { id: 'vendidos', label: 'Más Vendidos'        },
+  { id: 'ranking',  label: 'Ranking Ingresos'    },
+];
+
+const COL_LABEL: Record<string, string> = {
+  /* comunes */
+  id_venta:                  'ID Venta',
+  fecha_venta:               'Fecha de Venta',
+  metodo_pago:               'Método de Pago',
+  estado_venta:              'Estado',
+  descuento_venta:           'Descuento Venta',
+  /* clientes */
+  id_cliente:                'ID Cliente',
+  cliente:                   'Cliente',
+  correo_cliente:            'Correo',
+  telefono_cliente:          'Teléfono',
+  direccion_cliente:         'Dirección',
+  fecha_registro_cliente:    'Fecha de Registro',
+  ventas_completadas:        'Ventas Completadas',
+  /* empleado */
+  empleado:                  'Empleado',
+  empleado_responsable:      'Empleado Responsable',
+  /* productos */
+  id_producto:               'ID Producto',
+  titulo_producto:           'Producto',
+  codigo_sku:                'SKU',
+  precio_venta:              'Precio de Venta',
+  stock_actual:              'Stock Actual',
+  stock_minimo:              'Stock Mínimo',
+  estado_producto:           'Estado',
+  nombre_categoria:          'Categoría',
+  nombre_formato:            'Formato',
+  artistas:                  'Artistas',
+  generos:                   'Géneros',
+  promedio_stock_general:    'Promedio General',
+  /* detalle venta */
+  cantidad_vendida:          'Cantidad',
+  precio_unitario_venta:     'Precio Unitario',
+  descuento_detalle:         'Descuento Ítem',
+  subtotal:                  'Subtotal',
+  /* resumen ventas */
+  total_items:               'Ítems',
+  total_bruto:               'Total Bruto',
+  total_neto:                'Total Neto',
+  iva_12:                    'IVA 12%',
+  total:                     'Total con IVA',
+  /* compras */
+  id_compra_proveedor:       'ID Compra',
+  fecha_compra_proveedor:    'Fecha de Compra',
+  estado_compra:             'Estado',
+  nombre_proveedor:          'Proveedor',
+  correo_proveedor:          'Correo del Proveedor',
+  cantidad_comprada:         'Cantidad',
+  costo_unitario_compra:     'Costo Unitario',
+  costo_total:               'Costo Total',
+  /* más vendidos */
+  total_unidades:            'Unidades Vendidas',
+  en_ventas:                 'Nº de Ventas',
+  ingresos_generados:        'Ingresos Generados',
+  precio_promedio_venta:     'Precio Promedio',
+  /* ranking */
+  ranking:                   'Ranking',
+  ingresos_totales:          'Ingresos Totales',
+  unidades_vendidas:         'Unidades Vendidas',
 };
 
-const TABS: TabConfig[] = [
-  {
-    id: 'resumen', label: 'Resumen Ventas',
-    sqlType: 'VIEW', sqlColor: SQL_BADGE.view,
-    desc: 'SELECT * FROM vista_resumen_ventas — calcula IVA 12% directamente en la vista SQL',
-    criterio: 'Vista SQL con cálculo de IVA 12%',
-  },
-  {
-    id: 'ventas', label: 'Ventas Detalle',
-    sqlType: 'JOIN × 4', sqlColor: SQL_BADGE.join,
-    desc: 'venta JOIN cliente JOIN empleado JOIN detalle_venta JOIN producto',
-    criterio: 'JOIN múltiple entre 4 tablas',
-  },
-  {
-    id: 'catalogo', label: 'Catálogo',
-    sqlType: 'JOIN × 6', sqlColor: SQL_BADGE.join,
-    desc: 'producto JOIN categoria JOIN formato LEFT JOIN artistas y géneros con STRING_AGG',
-    criterio: 'JOIN múltiple con STRING_AGG',
-  },
-  {
-    id: 'compras', label: 'Compras',
-    sqlType: 'JOIN × 4', sqlColor: SQL_BADGE.join,
-    desc: 'compra_proveedor JOIN proveedor JOIN empleado JOIN detalle_compra JOIN producto',
-    criterio: 'JOIN múltiple en cadena',
-  },
-  {
-    id: 'stock', label: 'Stock Bajo',
-    sqlType: 'SUBQUERY', sqlColor: SQL_BADGE.subquery,
-    desc: 'JOIN (SELECT AVG(stock_actual) FROM producto) — subquery escalar en cláusula FROM',
-    criterio: 'Subquery escalar en cláusula FROM',
-  },
-  {
-    id: 'clientes', label: 'Clientes Frecuentes',
-    sqlType: 'EXISTS', sqlColor: SQL_BADGE.exists,
-    desc: 'WHERE EXISTS (SELECT 1 FROM venta WHERE ...) + subquery correlacionado para conteo',
-    criterio: 'Subquery EXISTS + subquery correlacionado',
-  },
-  {
-    id: 'vendidos', label: 'Más Vendidos',
-    sqlType: 'GROUP BY/HAVING', sqlColor: SQL_BADGE.groupby,
-    desc: 'SUM, COUNT, AVG con HAVING SUM(cantidad_vendida) ≥ mínimo configurable',
-    criterio: 'GROUP BY + HAVING + funciones de agregación',
-  },
-  {
-    id: 'ranking', label: 'Ranking Ingresos',
-    sqlType: 'CTE + RANK', sqlColor: SQL_BADGE.cte,
-    desc: 'WITH ingresos_producto AS (...) SELECT DENSE_RANK() OVER (ORDER BY ingresos DESC)',
-    criterio: 'CTE (WITH) + función de ventana DENSE_RANK()',
-  },
-];
+function colLabel(key: string): string {
+  return COL_LABEL[key.toLowerCase()] ?? key.replace(/_/g, ' ');
+}
 
 function formatCell(v: unknown): string {
   if (v === null || v === undefined) return '—';
@@ -90,13 +102,13 @@ function ReportTable({ data }: { data: Row[] }) {
   );
   const cols = Object.keys(data[0]);
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-card">
+    <div className="rs-dash-section overflow-x-auto rounded-xl border border-border bg-card">
       <table className="w-full text-xs">
         <thead>
           <tr className="border-b border-border bg-background-soft">
             {cols.map((c) => (
               <th key={c} className="whitespace-nowrap px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {c}
+                {colLabel(c)}
               </th>
             ))}
           </tr>
@@ -198,8 +210,7 @@ function MasVendidosTab() {
 }
 
 export default function ReportesPage() {
-  const [activeTab, setActiveTab] = useState<TabId>('resumen');
-  const tab = TABS.find((t) => t.id === activeTab)!;
+  const [activeTab, setActiveTab] = useState<TabId>('resumen');;
 
   return (
     <main className="p-6 sm:p-8 space-y-6">
@@ -230,19 +241,6 @@ export default function ReportesPage() {
             {t.label}
           </button>
         ))}
-      </div>
-
-      {/* Info del reporte activo */}
-      <div className="rounded-xl border border-border bg-card p-4 space-y-2 shadow-sm">
-        <div className="flex items-start gap-3">
-          <span className={`shrink-0 rounded-full px-3 py-0.5 text-xs font-semibold ${tab.sqlColor}`}>
-            {tab.sqlType}
-          </span>
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-foreground">{tab.criterio}</p>
-            <p className="text-xs text-muted-foreground font-mono">{tab.desc}</p>
-          </div>
-        </div>
       </div>
 
       {/* Contenido de la pestaña */}

@@ -62,7 +62,7 @@ export default function VentasPage() {
 
       {/* Tabla de ventas */}
       {ventas && ventas.length > 0 && (
-        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+        <div className="rs-dash-section rounded-xl border border-border bg-card shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>

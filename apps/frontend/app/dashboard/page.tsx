@@ -147,17 +147,16 @@ export default function DashboardPage() {
       {s && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           {STAT_CARDS.map((card) => (
-            <div
-              key={card.label}
-              className={`rounded-xl border-l-4 bg-card p-4 shadow-sm ${card.color}`}
-            >
-              <div className="flex items-start justify-between">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground leading-tight">
+            <div key={card.label} className="rs-kpi-card rounded-2xl bg-card p-5">
+              <div className="flex items-start justify-between mb-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground leading-tight">
                   {card.label}
                 </p>
-                <card.icon className={`h-4 w-4 shrink-0 ${card.iconColor}`} />
+                <div className="rs-icon-neutral flex h-9 w-9 items-center justify-center rounded-full bg-background-soft border border-border shrink-0">
+                  <card.icon className={`h-4 w-4 ${card.iconColor}`} />
+                </div>
               </div>
-              <p className="mt-2 text-2xl font-bold text-foreground">{card.value}</p>
+              <p className="text-2xl font-bold text-foreground">{card.value}</p>
               {card.sub && <p className="mt-0.5 text-xs text-muted-foreground">{card.sub}</p>}
             </div>
           ))}
@@ -166,18 +165,19 @@ export default function DashboardPage() {
 
       {/* Accesos rápidos */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Link href="/dashboard/productos" className="rs-hover-success flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-sm font-medium text-foreground shadow-sm">
-          <Disc3 className="h-5 w-5 text-muted-foreground" /> Productos
-        </Link>
-        <Link href="/dashboard/proveedores" className="rs-hover-success flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-sm font-medium text-foreground shadow-sm">
-          <Truck className="h-5 w-5 text-muted-foreground" /> Proveedores
-        </Link>
-        <Link href="/dashboard/ventas" className="rs-hover-success flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-sm font-medium text-foreground shadow-sm">
-          <ShoppingCart className="h-5 w-5 text-muted-foreground" /> Ventas
-        </Link>
-        <Link href="/dashboard/reportes" className="rs-hover-success flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-sm font-medium text-foreground shadow-sm">
-          <BarChart3 className="h-5 w-5 text-muted-foreground" /> Reportes SQL
-        </Link>
+        {[
+          { href: '/dashboard/productos',   Icon: Disc3,        label: 'Productos'   },
+          { href: '/dashboard/proveedores', Icon: Truck,        label: 'Proveedores' },
+          { href: '/dashboard/ventas',      Icon: ShoppingCart, label: 'Ventas'      },
+          { href: '/dashboard/reportes',    Icon: BarChart3,    label: 'Reportes SQL'},
+        ].map(({ href, Icon, label }) => (
+          <Link key={href} href={href as any} className="rs-dash-action rs-hover-success flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-sm font-medium text-foreground shadow-sm">
+            <div className="rs-icon-neutral flex h-9 w-9 items-center justify-center rounded-lg bg-background-soft border border-border shrink-0">
+              <Icon className="h-5 w-5 text-muted-foreground" />
+            </div>
+            {label}
+          </Link>
+        ))}
       </div>
 
       {/* Alertas */}
@@ -185,19 +185,19 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 
           {/* Stock crítico */}
-          <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+          <section className="rs-dash-section rounded-xl border border-border bg-card p-5 shadow-sm">
+            <h2 className="mb-4 flex items-center gap-2 text-sm font-bold text-foreground">
               <AlertTriangle className="h-4 w-4 text-warning" />
               Stock crítico
             </h2>
             {data.alertasStock.length === 0 ? (
-              <p className="text-sm text-success">
-                ✓ Todos los productos tienen stock suficiente.
+              <p className="rs-empty-ok flex items-center gap-2 text-sm">
+                <span>✓</span> Todos los productos tienen stock suficiente.
               </p>
             ) : (
-              <div className="divide-y divide-border text-sm">
+              <div className="text-sm" style={{ borderColor: 'rgba(148,163,184,0.16)' }}>
                 {data.alertasStock.map((p) => (
-                  <div key={p.id_producto} className="flex items-center justify-between py-2.5">
+                  <div key={p.id_producto} className="flex items-center justify-between py-2.5 border-b" style={{ borderColor: 'rgba(148,163,184,0.16)' }}>
                     <div>
                       <p className="font-medium text-foreground leading-tight">{p.titulo_producto}</p>
                       <p className="text-xs text-muted-foreground">
@@ -217,25 +217,25 @@ export default function DashboardPage() {
           </section>
 
           {/* Compras pendientes */}
-          <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+          <section className="rs-dash-section rounded-xl border border-border bg-card p-5 shadow-sm">
+            <h2 className="mb-4 flex items-center gap-2 text-sm font-bold text-foreground">
               <Truck className="h-4 w-4 text-warning" />
               Compras pendientes
             </h2>
             {data.comprasPendientes.length === 0 ? (
-              <p className="text-sm text-success">
-                ✓ No hay compras pendientes de recibir.
+              <p className="rs-empty-ok flex items-center gap-2 text-sm">
+                <span>✓</span> No hay compras pendientes de recibir.
               </p>
             ) : (
-              <div className="divide-y divide-border text-sm">
+              <div className="text-sm">
                 {data.comprasPendientes.map((c) => (
-                  <div key={c.id_compra_proveedor} className="flex items-center justify-between py-2.5">
+                  <div key={c.id_compra_proveedor} className="flex items-center justify-between py-2.5 border-b" style={{ borderColor: 'rgba(148,163,184,0.16)' }}>
                     <div>
                       <p className="font-medium text-foreground leading-tight">{c.nombre_proveedor}</p>
                       <p className="text-xs text-muted-foreground">Responsable: {c.empleado}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs font-semibold text-warning">
+                      <p className="text-xs font-semibold text-muted-foreground">
                         {c.num_productos} producto{c.num_productos !== 1 ? 's' : ''}
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -252,8 +252,8 @@ export default function DashboardPage() {
 
       {/* Ventas recientes */}
       {data && (
-        <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">
+        <section className="rs-dash-section rounded-xl border border-border bg-card p-5 shadow-sm">
+          <h2 className="mb-4 flex items-center gap-2 text-sm font-bold text-foreground">
             <Receipt className="h-4 w-4 text-info" />
             Ventas recientes
             <span className="ml-auto text-xs font-normal text-muted-foreground">
@@ -263,28 +263,28 @@ export default function DashboardPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border">
-                  <th className="pb-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">ID</th>
-                  <th className="pb-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Fecha</th>
-                  <th className="pb-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cliente</th>
-                  <th className="pb-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Método</th>
-                  <th className="pb-2.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">Estado</th>
-                  <th className="pb-2.5 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total neto</th>
+                <tr style={{ borderBottom: '1px solid rgba(148,163,184,0.16)' }}>
+                  <th className="pb-3 text-left text-xs font-bold uppercase tracking-wide text-foreground">ID</th>
+                  <th className="pb-3 text-left text-xs font-bold uppercase tracking-wide text-foreground">Fecha</th>
+                  <th className="pb-3 text-left text-xs font-bold uppercase tracking-wide text-foreground">Cliente</th>
+                  <th className="pb-3 text-left text-xs font-bold uppercase tracking-wide text-foreground">Método</th>
+                  <th className="pb-3 text-center text-xs font-bold uppercase tracking-wide text-foreground">Estado</th>
+                  <th className="pb-3 text-right text-xs font-bold uppercase tracking-wide text-foreground">Total Neto</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody>
                 {data.ventasRecientes.map((v) => (
-                  <tr key={v.id_venta} className="rs-table-row">
-                    <td className="py-2.5 font-mono text-muted-foreground">#{v.id_venta}</td>
-                    <td className="py-2.5 text-foreground">{String(v.fecha_venta).slice(0, 10)}</td>
-                    <td className="py-2.5 font-medium text-foreground">{v.cliente}</td>
-                    <td className="py-2.5 text-muted-foreground capitalize">{v.metodo_pago}</td>
-                    <td className="py-2.5 text-center">
-                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${VENTA_BADGE[v.estado_venta] ?? ''}`}>
+                  <tr key={v.id_venta} className="rs-table-row" style={{ borderBottom: '1px solid rgba(148,163,184,0.10)' }}>
+                    <td className="py-3 font-mono text-xs text-muted-foreground">#{v.id_venta}</td>
+                    <td className="py-3 text-muted-foreground">{String(v.fecha_venta).slice(0, 10)}</td>
+                    <td className="py-3 font-medium text-foreground">{v.cliente}</td>
+                    <td className="py-3 text-muted-foreground capitalize">{v.metodo_pago}</td>
+                    <td className="py-3 text-center">
+                      <span className={`inline-flex rounded-full text-xs ${VENTA_BADGE[v.estado_venta] ?? ''}`}>
                         {v.estado_venta}
                       </span>
                     </td>
-                    <td className="py-2.5 text-right font-mono text-foreground">
+                    <td className="py-3 text-right font-mono font-semibold text-foreground">
                       Q{Number(v.total_neto).toFixed(2)}
                     </td>
                   </tr>

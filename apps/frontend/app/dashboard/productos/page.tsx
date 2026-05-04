@@ -10,6 +10,7 @@ import {
 import { useCatalogos } from '@/hooks/use-catalogs';
 import type { Producto } from '@/types';
 import { Pencil, Trash2 } from 'lucide-react';
+import { NotifyModal } from '@/components/ui/notify-modal';
 
 const ESTADO_BADGE: Record<string, string> = {
   activo:        'rs-badge-completada',
@@ -56,11 +57,12 @@ export default function ProductosPage() {
   const updateMut  = useUpdateProducto();
   const deactMut   = useDeactivateProducto();
 
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing,    setEditing]    = useState<Producto | null>(null);
-  const [form,       setForm]       = useState<FormState>(EMPTY_FORM);
-  const [formError,  setFormError]  = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [dialogOpen,          setDialogOpen]          = useState(false);
+  const [editing,             setEditing]             = useState<Producto | null>(null);
+  const [form,                setForm]                = useState<FormState>(EMPTY_FORM);
+  const [formError,           setFormError]           = useState<string | null>(null);
+  const [notify,              setNotify]              = useState<{ type: 'success'|'error'; title: string; message: string } | null>(null);
+  const [recentlyModifiedIds, setRecentlyModifiedIds] = useState<number[]>([]);
 
   function openCreate() {
     setEditing(null);
@@ -118,12 +120,15 @@ export default function ProductosPage() {
     try {
       if (editing) {
         await updateMut.mutateAsync({ id: editing.id, data: payload });
-        flash('Producto actualizado correctamente.');
+        setRecentlyModifiedIds((prev) => [editing.id, ...prev.filter((x) => x !== editing.id)]);
+        closeDialog();
+        setNotify({ type: 'success', title: 'Producto actualizado', message: 'Los cambios se guardaron correctamente.' });
       } else {
-        await createMut.mutateAsync(payload);
-        flash('Producto creado correctamente.');
+        const created = await createMut.mutateAsync(payload);
+        if (created?.id) setRecentlyModifiedIds((prev) => [created.id, ...prev]);
+        closeDialog();
+        setNotify({ type: 'success', title: 'Nuevo producto añadido', message: 'El producto se registró correctamente.' });
       }
-      closeDialog();
     } catch (err: unknown) {
       setFormError((err as Error).message ?? 'Error al guardar el producto.');
     }
@@ -133,21 +138,26 @@ export default function ProductosPage() {
     if (!confirm(`¿Desactivar "${p.titulo}"?\nEl producto pasará a estado "descontinuado".`)) return;
     try {
       await deactMut.mutateAsync(p.id);
-      flash(`Producto "${p.titulo}" desactivado.`);
+      setRecentlyModifiedIds((prev) => [p.id, ...prev.filter((x) => x !== p.id)]);
+      setNotify({ type: 'success', title: 'Producto desactivado', message: `"${p.titulo}" pasó a estado descontinuado.` });
     } catch (err: unknown) {
-      alert((err as Error).message ?? 'Error al desactivar el producto.');
+      setNotify({ type: 'error', title: 'Error al desactivar producto', message: (err as Error).message ?? 'No se pudo completar la operación.' });
     }
-  }
-
-  function flash(msg: string) {
-    setSuccessMsg(msg);
-    setTimeout(() => setSuccessMsg(null), 4000);
   }
 
   const isSaving = createMut.isPending || updateMut.isPending;
 
   if (isLoading) return <p className="p-8 text-muted-foreground">Cargando productos…</p>;
   if (loadError)  return <p className="p-8 text-destructive">Error al cargar productos.</p>;
+
+  const sorted = [...(productos ?? [])].sort((a, b) => {
+    const ai = recentlyModifiedIds.indexOf(a.id);
+    const bi = recentlyModifiedIds.indexOf(b.id);
+    if (ai === -1 && bi === -1) return 0;
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
 
   return (
     <main className="p-6 sm:p-8 space-y-6">
@@ -160,21 +170,16 @@ export default function ProductosPage() {
         </div>
         <button
           onClick={openCreate}
-          className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground shadow-sm transition-all duration-150 hover:bg-brand-hover hover:shadow-md"
+          className="rs-btn-new"
         >
           + Nuevo Producto
         </button>
       </div>
 
-      {/* Mensaje de éxito */}
-      {successMsg && (
-        <div className="rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm font-medium text-success">
-          {successMsg}
-        </div>
-      )}
+      {notify && <NotifyModal {...notify} onClose={() => setNotify(null)} />}
 
       {/* Tabla */}
-      <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+      <div className="rs-dash-section overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
         <table className="w-full text-sm">
           <thead className="border-b border-border bg-background-soft">
             <tr>
@@ -189,7 +194,7 @@ export default function ProductosPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {productos?.map((p) => (
+            {sorted.map((p) => (
               <tr key={p.id} className="rs-table-row">
                 <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{p.codigoSku}</td>
                 <td className="px-4 py-3 font-medium text-foreground">{p.titulo}</td>
@@ -234,7 +239,7 @@ export default function ProductosPage() {
       {/* Modal crear / editar */}
       {dialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-lg rounded-xl bg-card shadow-xl border border-border">
+          <div className="w-full max-w-lg rounded-xl shadow-xl border border-border" style={{ backgroundColor: 'hsl(var(--card))' }}>
 
             <div className="flex items-center justify-between border-b border-border px-6 py-4">
               <h2 className="text-lg font-semibold text-foreground">
@@ -349,14 +354,15 @@ export default function ProductosPage() {
                 <button
                   type="button"
                   onClick={closeDialog}
-                  className="rounded-xl border border-border bg-input-bg px-4 py-2 text-sm font-medium text-foreground rs-hover-brand hover:text-brand"
+                  className="rs-btn-cancel rounded-xl px-4 py-2 text-sm font-medium"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground shadow-sm transition-all duration-150 hover:bg-brand-hover hover:shadow-md disabled:opacity-50"
+                  className="rs-btn-primary rounded-xl px-4 py-2 text-sm font-semibold shadow-sm disabled:opacity-50"
+                  style={{ backgroundColor: 'hsl(var(--brand))', color: '#ffffff' }}
                 >
                   {isSaving ? 'Guardando…' : 'Guardar'}
                 </button>

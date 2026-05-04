@@ -89,8 +89,8 @@ export function BackgroundPaths({
         </Link>
       </nav>
 
-      {/* Theme toggle bottom-left */}
-      <div className="absolute bottom-6 left-6 z-20">
+      {/* Theme toggle bottom-left — fixed so persists while scrolling */}
+      <div className="fixed bottom-6 left-6 z-50">
         <ThemeSegment />
       </div>
 

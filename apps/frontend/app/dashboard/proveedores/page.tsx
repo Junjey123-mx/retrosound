@@ -9,6 +9,7 @@ import {
 } from '@/hooks/use-proveedores';
 import type { Proveedor } from '@/types';
 import { Pencil, Trash2 } from 'lucide-react';
+import { NotifyModal } from '@/components/ui/notify-modal';
 
 const ESTADO_BADGE: Record<string, string> = {
   activo:   'rs-badge-completada',
@@ -40,11 +41,12 @@ export default function ProveedoresPage() {
   const updateMut = useUpdateProveedor();
   const deactMut  = useDeactivateProveedor();
 
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing,    setEditing]    = useState<Proveedor | null>(null);
-  const [form,       setForm]       = useState<FormState>(EMPTY_FORM);
-  const [formError,  setFormError]  = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [dialogOpen,          setDialogOpen]          = useState(false);
+  const [editing,             setEditing]             = useState<Proveedor | null>(null);
+  const [form,                setForm]                = useState<FormState>(EMPTY_FORM);
+  const [formError,           setFormError]           = useState<string | null>(null);
+  const [notify,              setNotify]              = useState<{ type: 'success'|'error'; title: string; message: string } | null>(null);
+  const [recentlyModifiedIds, setRecentlyModifiedIds] = useState<number[]>([]);
 
   function openCreate() {
     setEditing(null);
@@ -94,10 +96,12 @@ export default function ProveedoresPage() {
     try {
       if (editing) {
         await updateMut.mutateAsync({ id: editing.id, data: payload });
-        flash('Proveedor actualizado correctamente.');
+        setRecentlyModifiedIds((prev) => [editing.id, ...prev.filter((x) => x !== editing.id)]);
+        setNotify({ type: 'success', title: '¡Actualizado!', message: 'Proveedor actualizado correctamente.' });
       } else {
-        await createMut.mutateAsync(payload);
-        flash('Proveedor creado correctamente.');
+        const created = await createMut.mutateAsync(payload);
+        if (created?.id) setRecentlyModifiedIds((prev) => [created.id, ...prev]);
+        setNotify({ type: 'success', title: '¡Creado!', message: 'Proveedor creado correctamente.' });
       }
       closeDialog();
     } catch (err: unknown) {
@@ -109,15 +113,11 @@ export default function ProveedoresPage() {
     if (!confirm(`¿Desactivar al proveedor "${p.nombre}"?\nEl proveedor pasará a estado inactivo.`)) return;
     try {
       await deactMut.mutateAsync(p.id);
-      flash(`Proveedor "${p.nombre}" desactivado.`);
+      setRecentlyModifiedIds((prev) => [p.id, ...prev.filter((x) => x !== p.id)]);
+      setNotify({ type: 'success', title: '¡Desactivado!', message: `Proveedor "${p.nombre}" desactivado.` });
     } catch (err: unknown) {
-      alert((err as Error).message ?? 'Error al desactivar el proveedor.');
+      setNotify({ type: 'error', title: 'Error', message: (err as Error).message ?? 'Error al desactivar el proveedor.' });
     }
-  }
-
-  function flash(msg: string) {
-    setSuccessMsg(msg);
-    setTimeout(() => setSuccessMsg(null), 4000);
   }
 
   const isSaving = createMut.isPending || updateMut.isPending;
@@ -127,6 +127,15 @@ export default function ProveedoresPage() {
 
   const activos   = proveedores?.filter((p) => p.estado === 'activo').length ?? 0;
   const inactivos = proveedores?.filter((p) => p.estado !== 'activo').length ?? 0;
+
+  const sorted = [...(proveedores ?? [])].sort((a, b) => {
+    const ai = recentlyModifiedIds.indexOf(a.id);
+    const bi = recentlyModifiedIds.indexOf(b.id);
+    if (ai === -1 && bi === -1) return 0;
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
 
   return (
     <main className="p-6 sm:p-8 space-y-6">
@@ -139,21 +148,16 @@ export default function ProveedoresPage() {
         </div>
         <button
           onClick={openCreate}
-          className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground shadow-sm transition-all duration-150 hover:bg-brand-hover hover:shadow-md"
+          className="rs-btn-new"
         >
           + Nuevo Proveedor
         </button>
       </div>
 
-      {/* Mensaje de éxito */}
-      {successMsg && (
-        <div className="rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm font-medium text-success">
-          {successMsg}
-        </div>
-      )}
+      {notify && <NotifyModal {...notify} onClose={() => setNotify(null)} />}
 
       {/* Tabla */}
-      <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+      <div className="rs-dash-section overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
         <table className="w-full text-sm">
           <thead className="border-b border-border bg-background-soft">
             <tr>
@@ -167,7 +171,7 @@ export default function ProveedoresPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {proveedores?.map((p) => (
+            {sorted.map((p) => (
               <tr key={p.id} className="rs-table-row">
                 <td className="px-4 py-3 font-medium text-foreground">{p.nombre}</td>
                 <td className="px-4 py-3 text-muted-foreground">{p.nombreContacto ?? '—'}</td>
@@ -211,7 +215,7 @@ export default function ProveedoresPage() {
       {/* Modal crear / editar */}
       {dialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-lg rounded-xl bg-card shadow-xl border border-border">
+          <div className="w-full max-w-lg rounded-xl shadow-xl border border-border" style={{ backgroundColor: 'hsl(var(--card))' }}>
 
             <div className="flex items-center justify-between border-b border-border px-6 py-4">
               <h2 className="text-lg font-semibold text-foreground">
@@ -276,14 +280,15 @@ export default function ProveedoresPage() {
                 <button
                   type="button"
                   onClick={closeDialog}
-                  className="rounded-xl border border-border bg-input-bg px-4 py-2 text-sm font-medium text-foreground rs-hover-brand hover:text-brand"
+                  className="rs-btn-cancel rounded-xl px-4 py-2 text-sm font-medium"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground shadow-sm transition-all duration-150 hover:bg-brand-hover hover:shadow-md disabled:opacity-50"
+                  className="rs-btn-primary rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground shadow-sm disabled:opacity-50"
+                  style={{ backgroundColor: 'hsl(var(--brand))', color: '#ffffff' }}
                 >
                   {isSaving ? 'Guardando…' : 'Guardar'}
                 </button>
