@@ -11,6 +11,7 @@ import { CatalogsModule } from './catalogs/catalogs.module';
 import { ReportesModule } from './reportes/reportes.module';
 import { CarritoModule } from './carrito/carrito.module';
 import { CheckoutModule } from './checkout/checkout.module';
+import { MisOrdenesModule } from './mis-ordenes/mis-ordenes.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { CheckoutModule } from './checkout/checkout.module';
     ReportesModule,
     CarritoModule,
     CheckoutModule,
+    MisOrdenesModule,
   ],
 })
 export class AppModule {}
