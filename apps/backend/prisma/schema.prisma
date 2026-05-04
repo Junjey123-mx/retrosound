@@ -229,11 +229,12 @@ model Venta {
   descuento   Decimal     @default(0.00) @db.Decimal(10, 2) @map("descuento_venta")
   metodoPago  String      @map("metodo_pago")
   estado      EstadoVenta @default(pendiente) @map("estado_venta")
-  idCliente   Int         @map("id_cliente")
-  idEmpleado  Int         @map("id_empleado")
+  idCliente   Int          @map("id_cliente")
+  // nullable: ventas online (checkout) no tienen empleado asignado
+  idEmpleado  Int?         @map("id_empleado")
 
   cliente  Cliente        @relation(fields: [idCliente], references: [id])
-  empleado Empleado       @relation(fields: [idEmpleado], references: [id])
+  empleado Empleado?      @relation(fields: [idEmpleado], references: [id])
   detalles DetalleVenta[]
 
   @@index([fechaVenta], name: "idx_venta_fecha")
