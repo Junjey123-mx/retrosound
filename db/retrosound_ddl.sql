@@ -26,14 +26,6 @@ DROP TABLE IF EXISTS genero_musical CASCADE;
 DROP TABLE IF EXISTS formato CASCADE;
 DROP TABLE IF EXISTS categoria CASCADE;
 
-DROP TYPE IF EXISTS "EstadoCarrito" CASCADE;
-DROP TYPE IF EXISTS "EstadoCompra" CASCADE;
-DROP TYPE IF EXISTS "EstadoVenta" CASCADE;
-DROP TYPE IF EXISTS "RolUsuario" CASCADE;
-DROP TYPE IF EXISTS "EstadoUsuario" CASCADE;
-DROP TYPE IF EXISTS "EstadoProducto" CASCADE;
-DROP TYPE IF EXISTS "EstadoGeneral" CASCADE;
-
 -- ── Catálogos ────────────────────────────────────────────────────────────────
 
 CREATE TABLE categoria (

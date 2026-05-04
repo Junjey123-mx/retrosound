@@ -1,15 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { DatabaseService } from '../database';
 
 @Injectable()
 export class ReportesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly db: DatabaseService) {}
 
   // ── RÚBRICA: JOIN múltiple (1/3) ──────────────────────────────────────────
   // Ventas con cliente, empleado, producto, cantidad, precio y subtotal.
   // Tablas: venta ⟶ cliente, empleado, detalle_venta ⟶ producto
   async ventasDetalle() {
-    return this.prisma.$queryRaw<unknown[]>`
+    const result = await this.db.query(`
       SELECT
         v.id_venta,
         v.fecha_venta,
@@ -31,7 +31,8 @@ export class ReportesService {
       JOIN detalle_venta dv ON dv.id_venta   = v.id_venta
       JOIN producto      p  ON p.id_producto = dv.id_producto
       ORDER BY v.fecha_venta DESC, v.id_venta
-    `;
+    `);
+    return result.rows;
   }
 
   // ── RÚBRICA: JOIN múltiple (2/3) ──────────────────────────────────────────
@@ -39,7 +40,7 @@ export class ReportesService {
   // Tablas: producto ⟶ categoria, formato, producto_artista ⟶ artista,
   //         producto_genero ⟶ genero_musical
   async productosCatalogo() {
-    return this.prisma.$queryRaw<unknown[]>`
+    const result = await this.db.query(`
       SELECT
         p.id_producto,
         p.titulo_producto,
@@ -62,7 +63,8 @@ export class ReportesService {
       WHERE p.estado_producto != 'descontinuado'
       GROUP BY p.id_producto, cat.nombre_categoria, fmt.nombre_formato
       ORDER BY p.titulo_producto
-    `;
+    `);
+    return result.rows;
   }
 
   // ── RÚBRICA: JOIN múltiple (3/3) ──────────────────────────────────────────
@@ -70,7 +72,7 @@ export class ReportesService {
   // Tablas: compra_proveedor ⟶ proveedor, empleado,
   //         detalle_compra_proveedor ⟶ producto
   async comprasProveedor() {
-    return this.prisma.$queryRaw<unknown[]>`
+    const result = await this.db.query(`
       SELECT
         cp.id_compra_proveedor,
         cp.fecha_compra_proveedor,
@@ -89,14 +91,15 @@ export class ReportesService {
       JOIN detalle_compra_proveedor dcp ON dcp.id_compra_proveedor = cp.id_compra_proveedor
       JOIN producto                 p   ON p.id_producto          = dcp.id_producto
       ORDER BY cp.fecha_compra_proveedor DESC, cp.id_compra_proveedor
-    `;
+    `);
+    return result.rows;
   }
 
   // ── RÚBRICA: Subquery en FROM / escalar (1/2) ─────────────────────────────
   // Productos cuyo stock_actual está por debajo o igual al promedio de todos.
   // Subquery escalar: (SELECT AVG(stock_actual) FROM producto)
   async productosStockBajo() {
-    return this.prisma.$queryRaw<unknown[]>`
+    const result = await this.db.query(`
       SELECT
         p.id_producto,
         p.titulo_producto,
@@ -116,13 +119,14 @@ export class ReportesService {
       WHERE p.stock_actual <= stock_prom.promedio
         AND p.estado_producto != 'descontinuado'
       ORDER BY p.stock_actual ASC
-    `;
+    `);
+    return result.rows;
   }
 
   // ── RÚBRICA: Subquery EXISTS (2/2) ────────────────────────────────────────
   // Clientes que tienen al menos una venta en estado 'completada'.
   async clientesFrecuentes() {
-    return this.prisma.$queryRaw<unknown[]>`
+    const result = await this.db.query(`
       SELECT
         c.id_cliente,
         (c.nombre_cliente || ' ' || c.apellido_cliente) AS cliente,
@@ -145,15 +149,17 @@ export class ReportesService {
       )
         AND c.estado_cliente = 'activo'
       ORDER BY ventas_completadas DESC, c.nombre_cliente
-    `;
+    `);
+    return result.rows;
   }
 
   // ── RÚBRICA: GROUP BY + HAVING + funciones de agregación ──────────────────
   // Productos más vendidos: SUM(cantidad_vendida) >= min_vendidos.
-  // Parámetro seguro con Prisma.sql para evitar SQL injection.
+  // Parámetro seguro con pg para evitar SQL injection.
   async productosMasVendidos(minVendidos = 1) {
     const min = Math.max(1, Math.floor(Number(minVendidos)));
-    return this.prisma.$queryRaw<unknown[]>`
+    const result = await this.db.query(
+      `
       SELECT
         p.id_producto,
         p.titulo_producto,
@@ -171,16 +177,19 @@ export class ReportesService {
       JOIN categoria cat ON cat.id_categoria = p.id_categoria
       JOIN formato   fmt ON fmt.id_formato   = p.id_formato
       GROUP BY p.id_producto, cat.nombre_categoria, fmt.nombre_formato
-      HAVING SUM(dv.cantidad_vendida) >= ${min}
+      HAVING SUM(dv.cantidad_vendida) >= $1
       ORDER BY total_unidades DESC, ingresos_generados DESC
-    `;
+    `,
+      [min],
+    );
+    return result.rows;
   }
 
   // ── RÚBRICA: CTE (WITH) ───────────────────────────────────────────────────
   // Ranking de productos por ingresos totales generados.
   // CTE: calcula ingresos por producto, luego rankea con DENSE_RANK().
   async rankingIngresos() {
-    return this.prisma.$queryRaw<unknown[]>`
+    const result = await this.db.query(`
       WITH ingresos_producto AS (
         SELECT
           p.id_producto,
@@ -211,37 +220,39 @@ export class ReportesService {
         unidades_vendidas
       FROM ingresos_producto
       ORDER BY ranking, titulo_producto
-    `;
+    `);
+    return result.rows;
   }
 
   // ── DASHBOARD: resumen ejecutivo en una sola llamada ─────────────────────
   // Seis métricas con subqueries escalares + alertas con JOINs explícitos.
   async getDashboard() {
     // ── 1. Estadísticas agregadas (subqueries escalares en un solo SELECT) ──
-    const [stats] = await this.prisma.$queryRaw<{
+    const statsResult = await this.db.query<{
       productos_activos:       number;
       productos_agotados:      number;
       productos_stock_critico: number;
       ventas_completadas:      number;
       compras_pendientes:      number;
       total_vendido_mes:       string;
-    }[]>`
+    }>(`
       SELECT
-        (SELECT COUNT(*)::INT FROM producto         WHERE estado_producto = 'activo'::"EstadoProducto")                                                   AS productos_activos,
-        (SELECT COUNT(*)::INT FROM producto         WHERE estado_producto = 'agotado'::"EstadoProducto")                                                  AS productos_agotados,
-        (SELECT COUNT(*)::INT FROM producto         WHERE estado_producto != 'descontinuado'::"EstadoProducto" AND stock_actual <= stock_minimo)           AS productos_stock_critico,
-        (SELECT COUNT(*)::INT FROM venta            WHERE estado_venta   = 'completada'::"EstadoVenta")                                                   AS ventas_completadas,
-        (SELECT COUNT(*)::INT FROM compra_proveedor WHERE estado_compra  = 'pendiente'::"EstadoCompra")                                                   AS compras_pendientes,
+        (SELECT COUNT(*)::INT FROM producto         WHERE estado_producto = 'activo')                                                   AS productos_activos,
+        (SELECT COUNT(*)::INT FROM producto         WHERE estado_producto = 'agotado')                                                  AS productos_agotados,
+        (SELECT COUNT(*)::INT FROM producto         WHERE estado_producto != 'descontinuado' AND stock_actual <= stock_minimo)           AS productos_stock_critico,
+        (SELECT COUNT(*)::INT FROM venta            WHERE estado_venta   = 'completada')                                                AS ventas_completadas,
+        (SELECT COUNT(*)::INT FROM compra_proveedor WHERE estado_compra  = 'pendiente')                                                  AS compras_pendientes,
         COALESCE((
           SELECT SUM(total_neto)
           FROM   vista_resumen_ventas
           WHERE  estado_venta = 'completada'
             AND  DATE_TRUNC('month', fecha_venta) = DATE_TRUNC('month', NOW())
         ), 0) AS total_vendido_mes
-    `;
+    `);
+    const stats = statsResult.rows[0];
 
     // ── 2. Productos con stock crítico (stock_actual <= stock_minimo) ──────
-    const alertasStock = await this.prisma.$queryRaw<{
+    const alertasStock = await this.db.query<{
       id_producto:      number;
       titulo_producto:  string;
       codigo_sku:       string;
@@ -249,7 +260,7 @@ export class ReportesService {
       stock_minimo:     number;
       nombre_categoria: string;
       nombre_formato:   string;
-    }[]>`
+    }>(`
       SELECT
         p.id_producto,
         p.titulo_producto,
@@ -262,19 +273,19 @@ export class ReportesService {
       JOIN categoria cat ON cat.id_categoria = p.id_categoria
       JOIN formato   fmt ON fmt.id_formato   = p.id_formato
       WHERE p.stock_actual <= p.stock_minimo
-        AND p.estado_producto != 'descontinuado'::"EstadoProducto"
+        AND p.estado_producto != 'descontinuado'
       ORDER BY p.stock_actual ASC
       LIMIT 10
-    `;
+    `);
 
     // ── 3. Compras pendientes con proveedor y empleado ─────────────────────
-    const comprasPendientes = await this.prisma.$queryRaw<{
+    const comprasPendientes = await this.db.query<{
       id_compra_proveedor:    number;
       fecha_compra_proveedor: Date;
       nombre_proveedor:       string;
       empleado:               string;
       num_productos:          number;
-    }[]>`
+    }>(`
       SELECT
         cp.id_compra_proveedor,
         cp.fecha_compra_proveedor,
@@ -285,23 +296,23 @@ export class ReportesService {
       JOIN proveedor                    pr  ON pr.id_proveedor        = cp.id_proveedor
       JOIN empleado                     e   ON e.id_empleado          = cp.id_empleado
       LEFT JOIN detalle_compra_proveedor dcp ON dcp.id_compra_proveedor = cp.id_compra_proveedor
-      WHERE cp.estado_compra = 'pendiente'::"EstadoCompra"
+      WHERE cp.estado_compra = 'pendiente'
       GROUP BY
         cp.id_compra_proveedor, cp.fecha_compra_proveedor,
         pr.nombre_proveedor, e.nombre_empleado, e.apellido_empleado
       ORDER BY cp.fecha_compra_proveedor DESC
       LIMIT 10
-    `;
+    `);
 
     // ── 4. Ventas recientes (últimas 8) ────────────────────────────────────
-    const ventasRecientes = await this.prisma.$queryRaw<{
+    const ventasRecientes = await this.db.query<{
       id_venta:    number;
       fecha_venta: Date;
       estado_venta: string;
       metodo_pago: string;
       cliente:     string;
       total_neto:  string;
-    }[]>`
+    }>(`
       SELECT
         v.id_venta,
         v.fecha_venta,
@@ -320,27 +331,37 @@ export class ReportesService {
         c.nombre_cliente, c.apellido_cliente, v.descuento_venta
       ORDER BY v.fecha_venta DESC, v.id_venta DESC
       LIMIT 8
-    `;
+    `);
 
-    return { stats, alertasStock, comprasPendientes, ventasRecientes };
+    return {
+      stats,
+      alertasStock: alertasStock.rows,
+      comprasPendientes: comprasPendientes.rows,
+      ventasRecientes: ventasRecientes.rows,
+    };
   }
 
   // ── RÚBRICA: VIEW usado por el backend ────────────────────────────────────
-  // Consulta la vista vista_resumen_ventas creada en migration.
+  // Consulta la vista vista_resumen_ventas creada en el DDL oficial.
   // Permite filtrar por estado_venta de forma segura.
   async resumenVentas(estado?: string) {
     const estadosValidos = ['pendiente', 'completada', 'cancelada'];
-    // Cast explícito al enum PostgreSQL para evitar error de tipo
     if (estado && estadosValidos.includes(estado)) {
-      const estadoEnum = estado as 'pendiente' | 'completada' | 'cancelada';
-      return this.prisma.$queryRawUnsafe<unknown[]>(
-        `SELECT * FROM vista_resumen_ventas WHERE estado_venta = $1::"EstadoVenta" ORDER BY fecha_venta DESC`,
-        estadoEnum,
+      const result = await this.db.query(
+        `
+        SELECT * FROM vista_resumen_ventas
+        WHERE estado_venta::TEXT = $1
+        ORDER BY fecha_venta DESC
+        `,
+        [estado],
       );
+      return result.rows;
     }
-    return this.prisma.$queryRaw<unknown[]>`
+
+    const result = await this.db.query(`
       SELECT * FROM vista_resumen_ventas
       ORDER BY fecha_venta DESC
-    `;
+    `);
+    return result.rows;
   }
 }
