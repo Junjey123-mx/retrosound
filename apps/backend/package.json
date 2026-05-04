@@ -11,11 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:push": "prisma db push",
-    "prisma:seed": "prisma db seed",
-    "prisma:studio": "prisma studio"
+    "db:seed": "echo 'Use db/retrosound_seed.sql via Docker or psql'"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
@@ -23,7 +19,6 @@
     "@nestjs/jwt": "^11.0.0",
     "@nestjs/passport": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
-    "@prisma/client": "^6.0.0",
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
@@ -42,11 +37,7 @@
     "@types/passport-jwt": "^4.0.1",
     "@types/pg": "^8.20.0",
     "@vitest/coverage-v8": "^2.0.0",
-    "prisma": "^6.0.0",
     "typescript": "^5.5.0",
     "vitest": "^2.0.0"
-  },
-  "prisma": {
-    "seed": "node --experimental-strip-types prisma/seed.ts"
   }
 }

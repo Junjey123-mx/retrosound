@@ -9,7 +9,6 @@ RUN npm install
 FROM deps AS build
 WORKDIR /app
 COPY . .
-RUN npx prisma generate
 RUN npm run build && npx tsc -p tsconfig.build.json --incremental false
 
 # ── Stage 3: producción ──────────────────────────────────────────────────────
@@ -22,11 +21,8 @@ RUN addgroup -g 1001 -S nestjs && \
     adduser  -u 1001 -S nestjs -G nestjs
 
 COPY --from=build --chown=nestjs:nestjs /app/dist        ./dist
-COPY --from=build --chown=nestjs:nestjs /app/prisma      ./prisma
 COPY --from=build --chown=nestjs:nestjs /app/package*.json ./
 COPY --from=build --chown=nestjs:nestjs /tmp/prod_modules ./node_modules
-
-RUN npx prisma generate
 
 # Entrypoint: SQL oficial condicional + arranque
 COPY entrypoint.sh ./
