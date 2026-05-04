@@ -4,208 +4,281 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { DatabaseService } from '../database';
 import { AddCarritoItemDto } from './dto/add-carrito-item.dto';
 import { UpdateCarritoItemDto } from './dto/update-carrito-item.dto';
 
-// Selección reutilizable de campos de producto para items del carrito
-const productoSelect = {
-  id: true,
-  titulo: true,
-  precioVenta: true,
-  stockActual: true,
-  estado: true,
-} as const;
+type CarritoRow = {
+  id_carrito: number;
+  estado_carrito: string;
+  fecha_creacion: Date;
+  fecha_actualizacion: Date;
+};
 
-// Include reutilizable para cargar carrito con items y producto
-const carritoInclude = {
-  items: {
-    include: { producto: { select: productoSelect } },
-  },
-} as const;
+type CarritoItemRow = {
+  id_carrito_item: number;
+  id_producto: number;
+  titulo_producto: string;
+  estado_producto: string;
+  stock_actual: number;
+  precio_venta: string | number;
+  cantidad: number;
+  precio_unitario_snapshot: string | number;
+  fecha_agregado: Date;
+};
 
 @Injectable()
 export class CarritoService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly db: DatabaseService) {}
 
-  // ── Helper: resuelve id_cliente desde id_usuario del token ────────────────
-  // CurrentUser devuelve { id: id_usuario, correo, rol }.
-  // Para operar el carrito se necesita id_cliente, que se obtiene del Usuario.
   private async resolveIdCliente(idUsuario: number): Promise<number> {
-    const usuario = await this.prisma.usuario.findUnique({
-      where: { id: idUsuario },
-      select: { idCliente: true },
-    });
-    if (!usuario || usuario.idCliente === null) {
+    const result = await this.db.query<{ id_cliente: number | null }>(
+      `
+      SELECT u.id_cliente
+      FROM usuario u
+      JOIN cliente c ON c.id_cliente = u.id_cliente
+      WHERE u.id_usuario = $1
+        AND u.estado_usuario = 'activo'
+        AND c.estado_cliente = 'activo'
+      LIMIT 1
+      `,
+      [idUsuario],
+    );
+
+    const idCliente = result.rows[0]?.id_cliente;
+    if (!idCliente) {
       throw new ForbiddenException(
         'El usuario autenticado no tiene un perfil de cliente asociado',
       );
     }
-    return usuario.idCliente;
+
+    return idCliente;
   }
 
-  // ── Helper: serializa un carrito con items a respuesta JSON ───────────────
-  private serializarCarrito(carrito: {
-    id: number;
-    estado: string;
-    fechaCreacion: Date;
-    fechaActualizacion: Date;
-    items: Array<{
-      id: number;
-      cantidad: number;
-      precioUnitarioSnapshot: unknown;
-      fechaAgregado: Date;
-      producto: {
-        id: number;
-        titulo: string;
-        precioVenta: unknown;
-        stockActual: number;
-        estado: string;
-      };
-    }>;
-  }) {
-    const items = carrito.items.map((item) => {
-      const precioSnapshot = Number(item.precioUnitarioSnapshot);
-      const subtotal = Math.round(item.cantidad * precioSnapshot * 100) / 100;
+  private async findActiveCart(idCliente: number) {
+    const result = await this.db.query<CarritoRow>(
+      `
+      SELECT id_carrito, estado_carrito, fecha_creacion, fecha_actualizacion
+      FROM carrito
+      WHERE id_cliente = $1
+        AND estado_carrito = 'activo'
+      LIMIT 1
+      `,
+      [idCliente],
+    );
+
+    return result.rows[0] ?? null;
+  }
+
+  private async createActiveCart(idCliente: number) {
+    const result = await this.db.query<CarritoRow>(
+      `
+      INSERT INTO carrito (id_cliente, estado_carrito)
+      VALUES ($1, 'activo')
+      RETURNING id_carrito, estado_carrito, fecha_creacion, fecha_actualizacion
+      `,
+      [idCliente],
+    );
+
+    return result.rows[0];
+  }
+
+  private async getCartItems(idCarrito: number) {
+    const result = await this.db.query<CarritoItemRow>(
+      `
+      SELECT
+        ci.id_carrito_item,
+        ci.id_producto,
+        p.titulo_producto,
+        p.estado_producto,
+        p.stock_actual,
+        p.precio_venta,
+        ci.cantidad,
+        ci.precio_unitario_snapshot,
+        ci.fecha_agregado
+      FROM carrito_item ci
+      JOIN producto p ON p.id_producto = ci.id_producto
+      WHERE ci.id_carrito = $1
+      ORDER BY ci.id_carrito_item
+      `,
+      [idCarrito],
+    );
+
+    return result.rows;
+  }
+
+  private serializeCarrito(carrito: CarritoRow, rows: CarritoItemRow[]) {
+    const items = rows.map((item) => {
+      const precioSnapshot = Number(item.precio_unitario_snapshot);
+      const subtotal = this.roundMoney(item.cantidad * precioSnapshot);
+
       return {
-        idCarritoItem: item.id,
-        idProducto: item.producto.id,
-        titulo: item.producto.titulo,
-        estadoProducto: item.producto.estado,
-        stockActual: item.producto.stockActual,
-        precioVenta: Number(item.producto.precioVenta),
+        idCarritoItem: item.id_carrito_item,
+        idProducto: item.id_producto,
+        titulo: item.titulo_producto,
+        estadoProducto: item.estado_producto,
+        stockActual: item.stock_actual,
+        precioVenta: Number(item.precio_venta),
         cantidad: item.cantidad,
         precioUnitarioSnapshot: precioSnapshot,
         subtotal,
-        fechaAgregado: item.fechaAgregado,
+        fechaAgregado: item.fecha_agregado,
       };
     });
 
-    const subtotal =
-      Math.round(
-        items.reduce((acc, i) => acc + i.subtotal, 0) * 100,
-      ) / 100;
-
     return {
-      idCarrito: carrito.id,
-      estado: carrito.estado,
-      fechaCreacion: carrito.fechaCreacion,
-      fechaActualizacion: carrito.fechaActualizacion,
+      idCarrito: carrito.id_carrito,
+      estado: carrito.estado_carrito,
+      fechaCreacion: carrito.fecha_creacion,
+      fechaActualizacion: carrito.fecha_actualizacion,
       items,
-      subtotal,
+      subtotal: this.roundMoney(items.reduce((acc, item) => acc + item.subtotal, 0)),
     };
   }
 
-  // ── GET /carrito ──────────────────────────────────────────────────────────
-  // Devuelve el carrito activo con sus items y subtotales calculados.
-  // Si no hay carrito activo devuelve estructura vacía (no crea carrito nuevo).
   async getCarrito(idUsuario: number) {
     const idCliente = await this.resolveIdCliente(idUsuario);
-
-    const carrito = await this.prisma.carrito.findFirst({
-      where: { idCliente, estado: 'activo' },
-      include: carritoInclude,
-    });
+    const carrito = await this.findActiveCart(idCliente);
 
     if (!carrito) {
       return { idCarrito: null, estado: null, items: [], subtotal: 0 };
     }
 
-    return this.serializarCarrito(carrito);
+    const items = await this.getCartItems(carrito.id_carrito);
+    return this.serializeCarrito(carrito, items);
   }
 
-  // ── POST /carrito/items ───────────────────────────────────────────────────
-  // Agrega un producto al carrito activo del cliente.
-  // Si no hay carrito activo, lo crea junto con el item en una transacción.
-  // Si el producto ya existe en el carrito, acumula la cantidad (suma).
-  // El stock NO se descuenta — solo se valida que haya disponibilidad.
   async addItem(idUsuario: number, dto: AddCarritoItemDto) {
     const idCliente = await this.resolveIdCliente(idUsuario);
+    const client = await this.db.getClient();
 
-    // Validaciones de producto fuera de transacción (lectura rápida)
-    const producto = await this.prisma.producto.findUnique({
-      where: { id: dto.idProducto },
-    });
-    if (!producto) throw new NotFoundException('Producto no encontrado');
-    if (producto.estado === 'descontinuado' || producto.estado === 'inactivo') {
-      throw new BadRequestException(
-        `El producto "${producto.titulo}" no está disponible`,
+    try {
+      await client.query('BEGIN');
+
+      const productoResult = await client.query<{
+        id_producto: number;
+        titulo_producto: string;
+        precio_venta: string | number;
+        stock_actual: number;
+        estado_producto: string;
+      }>(
+        `
+        SELECT id_producto, titulo_producto, precio_venta, stock_actual, estado_producto
+        FROM producto
+        WHERE id_producto = $1
+        LIMIT 1
+        `,
+        [dto.idProducto],
       );
-    }
-    if (producto.stockActual <= 0) {
-      throw new BadRequestException(
-        `El producto "${producto.titulo}" no tiene stock disponible`,
-      );
-    }
+      const producto = productoResult.rows[0];
 
-    const carritoFinal = await this.prisma.$transaction(async (tx) => {
-      // Buscar carrito activo; si no existe, crear uno
-      let carrito = await tx.carrito.findFirst({
-        where: { idCliente, estado: 'activo' },
-      });
-
-      if (!carrito) {
-        carrito = await tx.carrito.create({
-          data: { idCliente, estado: 'activo' },
-        });
+      if (!producto) throw new NotFoundException('Producto no encontrado');
+      if (producto.estado_producto === 'descontinuado' || producto.estado_producto === 'inactivo') {
+        throw new BadRequestException(
+          `El producto "${producto.titulo_producto}" no está disponible`,
+        );
+      }
+      if (producto.stock_actual <= 0) {
+        throw new BadRequestException(
+          `El producto "${producto.titulo_producto}" no tiene stock disponible`,
+        );
       }
 
-      // Verificar si el producto ya está en el carrito
-      const itemExistente = await tx.carritoItem.findUnique({
-        where: {
-          idCarrito_idProducto: {
-            idCarrito: carrito.id,
-            idProducto: dto.idProducto,
-          },
-        },
-      });
+      let carrito = await client.query<CarritoRow>(
+        `
+        SELECT id_carrito, estado_carrito, fecha_creacion, fecha_actualizacion
+        FROM carrito
+        WHERE id_cliente = $1
+          AND estado_carrito = 'activo'
+        LIMIT 1
+        `,
+        [idCliente],
+      );
 
-      if (itemExistente) {
-        // Acumular cantidad: suma la solicitada a la ya existente en carrito
-        const nuevaCantidad = itemExistente.cantidad + dto.cantidad;
-        if (nuevaCantidad > producto.stockActual) {
+      let idCarrito = carrito.rows[0]?.id_carrito;
+      if (!idCarrito) {
+        carrito = await client.query<CarritoRow>(
+          `
+          INSERT INTO carrito (id_cliente, estado_carrito)
+          VALUES ($1, 'activo')
+          RETURNING id_carrito, estado_carrito, fecha_creacion, fecha_actualizacion
+          `,
+          [idCliente],
+        );
+        idCarrito = carrito.rows[0].id_carrito;
+      }
+
+      const itemExistente = await client.query<{
+        id_carrito_item: number;
+        cantidad: number;
+      }>(
+        `
+        SELECT id_carrito_item, cantidad
+        FROM carrito_item
+        WHERE id_carrito = $1
+          AND id_producto = $2
+        LIMIT 1
+        `,
+        [idCarrito, dto.idProducto],
+      );
+
+      const existente = itemExistente.rows[0];
+      if (existente) {
+        const nuevaCantidad = existente.cantidad + dto.cantidad;
+        if (nuevaCantidad > producto.stock_actual) {
           throw new BadRequestException(
-            `Stock insuficiente para "${producto.titulo}": ` +
-              `disponible=${producto.stockActual}, en carrito=${itemExistente.cantidad}, ` +
+            `Stock insuficiente para "${producto.titulo_producto}": ` +
+              `disponible=${producto.stock_actual}, en carrito=${existente.cantidad}, ` +
               `solicitado adicional=${dto.cantidad}`,
           );
         }
-        await tx.carritoItem.update({
-          where: { id: itemExistente.id },
-          data: { cantidad: nuevaCantidad },
-        });
+
+        await client.query(
+          `
+          UPDATE carrito_item
+          SET cantidad = $1
+          WHERE id_carrito_item = $2
+          `,
+          [nuevaCantidad, existente.id_carrito_item],
+        );
       } else {
-        // Nuevo item: validar que la cantidad solicitada no supere stock
-        if (dto.cantidad > producto.stockActual) {
+        if (dto.cantidad > producto.stock_actual) {
           throw new BadRequestException(
-            `Stock insuficiente para "${producto.titulo}": ` +
-              `disponible=${producto.stockActual}, solicitado=${dto.cantidad}`,
+            `Stock insuficiente para "${producto.titulo_producto}": ` +
+              `disponible=${producto.stock_actual}, solicitado=${dto.cantidad}`,
           );
         }
-        await tx.carritoItem.create({
-          data: {
-            idCarrito: carrito.id,
-            idProducto: dto.idProducto,
-            cantidad: dto.cantidad,
-            // Snapshot del precio actual — queda fijo para este item
-            precioUnitarioSnapshot: producto.precioVenta,
-          },
-        });
+
+        await client.query(
+          `
+          INSERT INTO carrito_item
+            (id_carrito, id_producto, cantidad, precio_unitario_snapshot)
+          VALUES
+            ($1, $2, $3, $4)
+          `,
+          [idCarrito, dto.idProducto, dto.cantidad, producto.precio_venta],
+        );
       }
 
-      // Devolver carrito completo con items actualizados
-      return tx.carrito.findUniqueOrThrow({
-        where: { id: carrito.id },
-        include: carritoInclude,
-      });
-    });
+      await client.query(
+        `
+        UPDATE carrito
+        SET fecha_actualizacion = CURRENT_TIMESTAMP
+        WHERE id_carrito = $1
+        `,
+        [idCarrito],
+      );
 
-    return this.serializarCarrito(carritoFinal);
+      await client.query('COMMIT');
+      return this.getCarrito(idUsuario);
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
-  // ── PATCH /carrito/items/:id ──────────────────────────────────────────────
-  // Actualiza la cantidad de un item del carrito activo del cliente.
-  // Verifica que el item pertenezca al carrito activo de este cliente.
   async updateItem(
     idUsuario: number,
     idCarritoItem: number,
@@ -213,101 +286,143 @@ export class CarritoService {
   ) {
     const idCliente = await this.resolveIdCliente(idUsuario);
 
-    // Buscar item verificando que pertenece al carrito activo de este cliente
-    const item = await this.prisma.carritoItem.findFirst({
-      where: {
-        id: idCarritoItem,
-        carrito: { idCliente, estado: 'activo' },
-      },
-      include: { producto: { select: productoSelect } },
-    });
+    const itemResult = await this.db.query<CarritoItemRow>(
+      `
+      SELECT
+        ci.id_carrito_item,
+        ci.id_producto,
+        p.titulo_producto,
+        p.estado_producto,
+        p.stock_actual,
+        p.precio_venta,
+        ci.cantidad,
+        ci.precio_unitario_snapshot,
+        ci.fecha_agregado
+      FROM carrito_item ci
+      JOIN carrito c ON c.id_carrito = ci.id_carrito
+      JOIN producto p ON p.id_producto = ci.id_producto
+      WHERE ci.id_carrito_item = $1
+        AND c.id_cliente = $2
+        AND c.estado_carrito = 'activo'
+      LIMIT 1
+      `,
+      [idCarritoItem, idCliente],
+    );
+    const item = itemResult.rows[0];
+
     if (!item) {
-      throw new NotFoundException(
-        'Item no encontrado en tu carrito activo',
-      );
+      throw new NotFoundException('Item no encontrado en tu carrito activo');
     }
 
-    // Validar stock para la nueva cantidad
-    if (dto.cantidad > item.producto.stockActual) {
+    if (dto.cantidad > item.stock_actual) {
       throw new BadRequestException(
-        `Stock insuficiente para "${item.producto.titulo}": ` +
-          `disponible=${item.producto.stockActual}, solicitado=${dto.cantidad}`,
+        `Stock insuficiente para "${item.titulo_producto}": ` +
+          `disponible=${item.stock_actual}, solicitado=${dto.cantidad}`,
       );
     }
 
-    const actualizado = await this.prisma.carritoItem.update({
-      where: { id: idCarritoItem },
-      data: { cantidad: dto.cantidad },
-      include: { producto: { select: productoSelect } },
-    });
-
-    const precioSnapshot = Number(actualizado.precioUnitarioSnapshot);
-    const subtotal =
-      Math.round(actualizado.cantidad * precioSnapshot * 100) / 100;
+    const updatedResult = await this.db.query<CarritoItemRow>(
+      `
+      UPDATE carrito_item
+      SET cantidad = $1
+      WHERE id_carrito_item = $2
+      RETURNING
+        id_carrito_item,
+        id_producto,
+        cantidad,
+        precio_unitario_snapshot,
+        fecha_agregado,
+        (SELECT titulo_producto FROM producto WHERE id_producto = carrito_item.id_producto) AS titulo_producto,
+        (SELECT estado_producto FROM producto WHERE id_producto = carrito_item.id_producto) AS estado_producto,
+        (SELECT stock_actual FROM producto WHERE id_producto = carrito_item.id_producto) AS stock_actual,
+        (SELECT precio_venta FROM producto WHERE id_producto = carrito_item.id_producto) AS precio_venta
+      `,
+      [dto.cantidad, idCarritoItem],
+    );
+    const actualizado = updatedResult.rows[0];
+    const precioSnapshot = Number(actualizado.precio_unitario_snapshot);
 
     return {
-      idCarritoItem: actualizado.id,
-      idProducto: actualizado.producto.id,
-      titulo: actualizado.producto.titulo,
-      estadoProducto: actualizado.producto.estado,
-      stockActual: actualizado.producto.stockActual,
+      idCarritoItem: actualizado.id_carrito_item,
+      idProducto: actualizado.id_producto,
+      titulo: actualizado.titulo_producto,
+      estadoProducto: actualizado.estado_producto,
+      stockActual: actualizado.stock_actual,
       cantidad: actualizado.cantidad,
       precioUnitarioSnapshot: precioSnapshot,
-      subtotal,
+      subtotal: this.roundMoney(actualizado.cantidad * precioSnapshot),
     };
   }
 
-  // ── DELETE /carrito/items/:id ─────────────────────────────────────────────
-  // Elimina un item del carrito activo del cliente.
-  // Verifica que el item pertenezca al carrito activo de este cliente.
   async removeItem(idUsuario: number, idCarritoItem: number) {
     const idCliente = await this.resolveIdCliente(idUsuario);
 
-    const item = await this.prisma.carritoItem.findFirst({
-      where: {
-        id: idCarritoItem,
-        carrito: { idCliente, estado: 'activo' },
-      },
-    });
-    if (!item) {
-      throw new NotFoundException(
-        'Item no encontrado en tu carrito activo',
-      );
+    const item = await this.db.query<{ id_carrito_item: number }>(
+      `
+      SELECT ci.id_carrito_item
+      FROM carrito_item ci
+      JOIN carrito c ON c.id_carrito = ci.id_carrito
+      WHERE ci.id_carrito_item = $1
+        AND c.id_cliente = $2
+        AND c.estado_carrito = 'activo'
+      LIMIT 1
+      `,
+      [idCarritoItem, idCliente],
+    );
+
+    if (item.rowCount === 0) {
+      throw new NotFoundException('Item no encontrado en tu carrito activo');
     }
 
-    await this.prisma.carritoItem.delete({ where: { id: idCarritoItem } });
+    await this.db.query(
+      `
+      DELETE FROM carrito_item
+      WHERE id_carrito_item = $1
+      `,
+      [idCarritoItem],
+    );
 
     return { message: 'Item eliminado del carrito' };
   }
 
-  // ── DELETE /carrito ───────────────────────────────────────────────────────
-  // Vacía y cancela el carrito activo del cliente.
-  // Decisión: marca el carrito como 'cancelado' (preserva registro histórico)
-  // y elimina los items con deleteMany explícito.
-  // No se usa CASCADE automático para mantener control explícito de la operación.
   async cancelarCarrito(idUsuario: number) {
     const idCliente = await this.resolveIdCliente(idUsuario);
+    const carrito = await this.findActiveCart(idCliente);
 
-    const carrito = await this.prisma.carrito.findFirst({
-      where: { idCliente, estado: 'activo' },
-    });
     if (!carrito) {
       throw new NotFoundException('No tienes un carrito activo para cancelar');
     }
 
-    await this.prisma.$transaction(async (tx) => {
-      // 1. Eliminar todos los items del carrito
-      await tx.carritoItem.deleteMany({ where: { idCarrito: carrito.id } });
-      // 2. Marcar carrito como cancelado (conserva el registro para historial)
-      await tx.carrito.update({
-        where: { id: carrito.id },
-        data: { estado: 'cancelado' },
-      });
-    });
+    const client = await this.db.getClient();
+    try {
+      await client.query('BEGIN');
+      await client.query('DELETE FROM carrito_item WHERE id_carrito = $1', [
+        carrito.id_carrito,
+      ]);
+      await client.query(
+        `
+        UPDATE carrito
+        SET estado_carrito = 'cancelado',
+            fecha_actualizacion = CURRENT_TIMESTAMP
+        WHERE id_carrito = $1
+        `,
+        [carrito.id_carrito],
+      );
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
 
     return {
       message: 'Carrito cancelado exitosamente',
-      idCarrito: carrito.id,
+      idCarrito: carrito.id_carrito,
     };
+  }
+
+  private roundMoney(value: number) {
+    return Math.round(value * 100) / 100;
   }
 }
