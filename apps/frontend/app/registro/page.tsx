@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { authService } from '@/lib/services/auth';
 import { PasswordInput } from '@/components/ui/password-input';
-import { Disc3, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Disc3, CheckCircle2, AlertCircle, ArrowLeft } from 'lucide-react';
+import { ThemeSegment } from '@/components/ui/theme-segment';
 
 export default function RegistroPage() {
   const router = useRouter();
@@ -83,6 +84,10 @@ export default function RegistroPage() {
       {/* ── Panel derecho — formulario ─────────────────────────────────── */}
       <div className="flex flex-1 flex-col items-center justify-center bg-background px-6 py-12">
         <div className="w-full max-w-sm space-y-8">
+          <Link href="/" className="rs-back-btn inline-flex items-center gap-1.5 text-sm font-medium">
+            <ArrowLeft className="h-4 w-4" />
+            Volver
+          </Link>
 
           {/* Logo móvil */}
           <div className="flex items-center gap-2 lg:hidden">
@@ -167,6 +172,9 @@ export default function RegistroPage() {
             </Link>
           </p>
         </div>
+      </div>
+      <div className="fixed bottom-6 left-6 z-50">
+        <ThemeSegment />
       </div>
     </main>
   );

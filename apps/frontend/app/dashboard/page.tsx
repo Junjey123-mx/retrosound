@@ -50,9 +50,9 @@ interface DashboardData {
 }
 
 const VENTA_BADGE: Record<string, string> = {
-  pendiente:  'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
-  completada: 'border border-success/20 bg-success/10 text-success',
-  cancelada:  'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+  pendiente:  'rs-badge-pendiente',
+  completada: 'rs-badge-completada',
+  cancelada:  'rs-badge-cancelada',
 };
 
 
@@ -99,7 +99,6 @@ export default function DashboardPage() {
     {
       label: 'Stock crítico',
       value: s.productos_stock_critico,
-      sub:   'stock ≤ mínimo',
       icon:  AlertTriangle,
       color: s.productos_stock_critico > 0 ? 'border-l-amber-400' : 'border-l-border',
       iconColor: s.productos_stock_critico > 0 ? 'text-warning' : 'text-muted-foreground',
@@ -190,9 +189,6 @@ export default function DashboardPage() {
             <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
               <AlertTriangle className="h-4 w-4 text-warning" />
               Stock crítico
-              <span className="ml-auto text-xs font-normal text-muted-foreground">
-                stock_actual ≤ stock_minimo
-              </span>
             </h2>
             {data.alertasStock.length === 0 ? (
               <p className="text-sm text-success">
@@ -225,9 +221,6 @@ export default function DashboardPage() {
             <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
               <Truck className="h-4 w-4 text-warning" />
               Compras pendientes
-              <span className="ml-auto text-xs font-normal text-muted-foreground">
-                estado_compra = pendiente
-              </span>
             </h2>
             {data.comprasPendientes.length === 0 ? (
               <p className="text-sm text-success">
@@ -264,7 +257,7 @@ export default function DashboardPage() {
             <Receipt className="h-4 w-4 text-info" />
             Ventas recientes
             <span className="ml-auto text-xs font-normal text-muted-foreground">
-              últimas 8 · JOIN venta + cliente + detalle_venta
+              Últimas 8
             </span>
           </h2>
           <div className="overflow-x-auto">

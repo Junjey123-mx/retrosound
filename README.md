@@ -132,6 +132,49 @@ Todos los reportes están en **Reportes** en la barra de navegación.
 
 ---
 
+## Lógica de alertas del dashboard
+
+### Stock crítico
+
+El panel **Stock crítico** muestra todos los productos cuyo stock actual está por debajo o igual al mínimo definido para ese producto. La consulta que lo alimenta es:
+
+```sql
+SELECT p.id_producto, p.titulo_producto, p.codigo_sku,
+       p.stock_actual, p.stock_minimo,
+       c.nombre_categoria, f.nombre_formato
+FROM   producto p
+JOIN   categoria c USING (id_categoria)
+JOIN   formato   f USING (id_formato)
+WHERE  p.stock_actual <= p.stock_minimo
+  AND  p.estado = 'activo'
+ORDER  BY (p.stock_actual::float / NULLIF(p.stock_minimo, 0)) ASC;
+```
+
+Cada fila del panel muestra el par `stock_actual / stock_minimo` para que el responsable sepa cuántas unidades faltan reponer. Cuando todos los productos tienen stock suficiente, el panel indica ✓.
+
+### Compras pendientes
+
+El panel **Compras pendientes** lista las órdenes de compra a proveedores cuyo estado aún es `pendiente` (es decir, aún no han sido recibidas en el almacén). La consulta que lo alimenta es:
+
+```sql
+SELECT cp.id_compra_proveedor, cp.fecha_compra_proveedor,
+       pr.nombre_proveedor,
+       u.nombre || ' ' || u.apellido AS empleado,
+       COUNT(dcp.id_producto) AS num_productos
+FROM   compra_proveedor  cp
+JOIN   proveedor         pr  USING (id_proveedor)
+JOIN   usuario           u   ON u.id_usuario = cp.id_empleado
+JOIN   detalle_compra_proveedor dcp USING (id_compra_proveedor)
+WHERE  cp.estado_compra = 'pendiente'
+GROUP  BY cp.id_compra_proveedor, pr.nombre_proveedor, u.nombre, u.apellido,
+          cp.fecha_compra_proveedor
+ORDER  BY cp.fecha_compra_proveedor ASC;
+```
+
+Una compra pasa a `completada` cuando el empleado registra la recepción. Mientras esté `pendiente`, el stock de los productos involucrados **no** ha sido incrementado.
+
+---
+
 ## Cómo probar el CRUD de productos
 
 1. Ingresar a http://localhost:3002 y autenticarse con `admin@retrosound.com` / `retro2025`.

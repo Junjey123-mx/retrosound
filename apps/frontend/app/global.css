@@ -233,7 +233,86 @@ body {
 }
 
 .rs-table-row:hover {
+  background-color: hsl(215 20% 93%);
+}
+
+.dark .rs-table-row:hover {
   background-color: hsl(var(--brand) / 0.06);
+}
+
+/* ── Badges de estado ─────────────────────────────────────────────────────── */
+/* Modo claro: solo texto, sin borde ni fondo */
+.rs-badge-pendiente  { color: #EF4444; }
+.rs-badge-completada { color: #16A34A; }
+.rs-badge-cancelada  { color: #64748B; }
+
+/* Modo oscuro: borde + fondo tintado */
+.dark .rs-badge-pendiente {
+  border: 1px solid rgba(255, 82, 82, 0.50);
+  background-color: rgba(255, 82, 82, 0.12);
+  color: #FF5252;
+}
+.dark .rs-badge-completada {
+  border: 1px solid rgba(0, 230, 118, 0.40);
+  background-color: rgba(0, 230, 118, 0.10);
+  color: #00E676;
+}
+.dark .rs-badge-cancelada {
+  border: 1px solid rgba(148, 163, 184, 0.30);
+  background-color: rgba(148, 163, 184, 0.08);
+  color: #94A3B8;
+}
+
+/* ── Botones de acción en tablas ──────────────────────────────────────────── */
+.rs-btn-edit {
+  border: 1px solid #4F9CF9;
+  color: #4F9CF9;
+  transition: background-color 150ms ease;
+}
+.rs-btn-edit:hover {
+  background-color: rgba(79, 156, 249, 0.10);
+}
+
+.rs-btn-danger {
+  border: 1px solid #FF4D4F;
+  color: #FF4D4F;
+  transition: background-color 150ms ease;
+}
+.rs-btn-danger:hover {
+  background-color: rgba(255, 77, 79, 0.10);
+}
+
+/* ── Botón "Volver" ────────────────────────────────────────────────────────── */
+.rs-back-btn {
+  color: hsl(222 47% 11%);
+  transition: color 150ms ease;
+}
+
+.dark .rs-back-btn {
+  color: hsl(210 40% 98%);
+}
+
+.rs-back-btn:hover {
+  color: hsl(var(--brand));
+}
+
+/* ── Autofill: neutraliza el amarillo del navegador ───────────────────────── */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px hsl(215 20% 93%) inset !important;
+  -webkit-text-fill-color: hsl(var(--foreground)) !important;
+  caret-color: hsl(var(--foreground));
+}
+
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus,
+.dark input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px hsl(219 48% 13%) inset !important;
+  -webkit-text-fill-color: hsl(var(--foreground)) !important;
+  caret-color: hsl(var(--foreground));
 }
 
 /* ── Scrollbar sutil ───────────────────────────────────────────────────────── */

@@ -8,10 +8,11 @@ import {
   useDeactivateProveedor,
 } from '@/hooks/use-proveedores';
 import type { Proveedor } from '@/types';
+import { Pencil, Trash2 } from 'lucide-react';
 
 const ESTADO_BADGE: Record<string, string> = {
-  activo:   'border border-success/20 bg-success/10 text-success',
-  inactivo: 'border border-border bg-background-soft text-muted-foreground',
+  activo:   'rs-badge-completada',
+  inactivo: 'rs-badge-cancelada',
 };
 
 const EMPTY_FORM = {
@@ -182,17 +183,17 @@ export default function ProveedoresPage() {
                   <div className="flex items-center justify-center gap-2">
                     <button
                       onClick={() => openEdit(p)}
-                      className="rounded-lg px-2 py-1 text-xs font-medium text-info transition-colors hover:bg-brand-soft hover:text-brand"
+                      className="rs-btn-edit inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-medium"
                     >
-                      Editar
+                      <Pencil className="h-3 w-3" /> Editar
                     </button>
                     {p.estado === 'activo' && (
                       <button
                         onClick={() => handleDeactivate(p)}
                         disabled={deactMut.isPending}
-                        className="rounded px-2 py-1 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
+                        className="rs-btn-danger inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-medium disabled:opacity-50"
                       >
-                        Desactivar
+                        <Trash2 className="h-3 w-3" /> Desactivar
                       </button>
                     )}
                   </div>

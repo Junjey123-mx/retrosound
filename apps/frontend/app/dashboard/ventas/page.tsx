@@ -6,9 +6,9 @@ import { Receipt, ShoppingCart, Calendar, CreditCard, User } from 'lucide-react'
 import type { Venta } from '@/types';
 
 const ESTADO_BADGE: Record<string, string> = {
-  pendiente:  'border border-warning/30 bg-warning/10 text-warning',
-  completada: 'border border-success/20 bg-success/10 text-success',
-  cancelada:  'border border-destructive/30 bg-destructive/10 text-destructive',
+  pendiente:  'rs-badge-pendiente',
+  completada: 'rs-badge-completada',
+  cancelada:  'rs-badge-cancelada',
 };
 
 export default function VentasPage() {

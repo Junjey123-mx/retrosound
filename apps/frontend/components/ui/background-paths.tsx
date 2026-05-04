@@ -1,7 +1,11 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { Disc3 } from 'lucide-react';
+import { ThemeSegment } from '@/components/ui/theme-segment';
+import { useTheme } from 'next-themes';
+import { useEffect, useState } from 'react';
 
 function FloatingPaths({ position }: { position: number }) {
   const paths = Array.from({ length: 36 }, (_, i) => ({
@@ -21,7 +25,7 @@ function FloatingPaths({ position }: { position: number }) {
   return (
     <div className="absolute inset-0 pointer-events-none">
       <svg
-        className="w-full h-full text-slate-950 dark:text-white"
+        className="w-full h-full text-slate-950 dark:text-[#00E676]"
         viewBox="0 0 696 316"
         fill="none"
       >
@@ -51,15 +55,45 @@ function FloatingPaths({ position }: { position: number }) {
   );
 }
 
+
 export function BackgroundPaths({
   title = 'Background Paths',
 }: {
   title?: string;
 }) {
   const words = title.split(' ');
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const isDark = mounted ? theme === 'dark' : false;
+  const brandColor = isDark ? '#00E676' : '#F97316';
 
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-white dark:bg-neutral-950">
+    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-white dark:bg-[#08111F]">
+
+      {/* Navbar top-right */}
+      <nav className="absolute top-0 left-0 right-0 z-20 flex items-center justify-end gap-4 px-6 py-5">
+        <Link
+          href="/login"
+          style={{ color: brandColor }}
+          className="text-sm font-medium transition-colors duration-150"
+        >
+          Iniciar Sesión
+        </Link>
+        <Link
+          href="/registro"
+          style={{ borderColor: brandColor, color: isDark ? '#ffffff' : '#171717' }}
+          className="rounded-full border-2 px-5 py-1.5 text-sm font-semibold transition-colors duration-150"
+        >
+          Registrarte
+        </Link>
+      </nav>
+
+      {/* Theme toggle bottom-left */}
+      <div className="absolute bottom-6 left-6 z-20">
+        <ThemeSegment />
+      </div>
+
       <div className="absolute inset-0">
         <FloatingPaths position={1} />
         <FloatingPaths position={-1} />
@@ -72,7 +106,8 @@ export function BackgroundPaths({
           transition={{ duration: 2 }}
           className="max-w-4xl mx-auto"
         >
-          <h1 className="text-5xl sm:text-7xl md:text-8xl font-bold mb-8 tracking-tighter">
+          <h1 className="flex items-center justify-center gap-6 text-5xl sm:text-7xl md:text-8xl font-bold mb-8 tracking-tighter">
+            <Disc3 className="shrink-0 h-16 w-16 sm:h-24 sm:w-24 md:h-28 md:w-28 text-[#F97316] dark:text-[#00E676]" />
             {words.map((word, wordIndex) => (
               <span key={wordIndex} className="inline-block mr-4 last:mr-0">
                 {word.split('').map((letter, letterIndex) => (
@@ -95,20 +130,6 @@ export function BackgroundPaths({
             ))}
           </h1>
 
-          <div className="inline-block group relative bg-gradient-to-b from-black/10 to-white/10 dark:from-white/10 dark:to-black/10 p-px rounded-2xl backdrop-blur-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <Button
-              variant="ghost"
-              className="rounded-[1.15rem] px-8 py-6 text-lg font-semibold backdrop-blur-md bg-white/95 hover:bg-white/100 dark:bg-black/95 dark:hover:bg-black/100 text-black dark:text-white transition-all duration-300 group-hover:-translate-y-0.5 border border-black/10 dark:border-white/10 hover:shadow-md dark:hover:shadow-neutral-800/50"
-              onClick={() => (window.location.href = '/login')}
-            >
-              <span className="opacity-90 group-hover:opacity-100 transition-opacity">
-                Discover Excellence
-              </span>
-              <span className="ml-3 opacity-70 group-hover:opacity-100 group-hover:translate-x-1.5 transition-all duration-300">
-                →
-              </span>
-            </Button>
-          </div>
         </motion.div>
       </div>
     </div>

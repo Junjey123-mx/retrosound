@@ -25,7 +25,7 @@ const SQL_BADGE = {
   exists:   'border border-[#F97316] bg-white text-[#F97316] dark:bg-[#111c30] dark:border-[#F97316] dark:text-[#F97316]',
   cte:      'border border-[#32D74B] bg-white text-[#32D74B] dark:bg-[#111c30] dark:border-[#32D74B] dark:text-[#32D74B]',
   groupby:  'border border-[#FF4D4F] bg-white text-[#FF4D4F] dark:bg-[#111c30] dark:border-[#FF4D4F] dark:text-[#FF4D4F]',
-} as const;
+};
 
 const TABS: TabConfig[] = [
   {

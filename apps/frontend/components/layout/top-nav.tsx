@@ -2,31 +2,24 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useTheme } from 'next-themes';
 import { useCurrentUser, useLogout } from '@/hooks/use-auth';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { LogOut, Disc3 } from 'lucide-react';
 
-const avatarColor: Record<string, string> = {
-  admin:     'bg-purple-500',
-  empleado:  'bg-blue-500',
-  cliente:   'bg-green-500',
-  proveedor: 'bg-orange-500',
-};
-
-const roleBadge: Record<string, string> = {
-  admin:     'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
-  empleado:  'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
-  cliente:   'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
-  proveedor: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
-};
 
 export function TopNav() {
   const user     = useCurrentUser();
   const logout   = useLogout();
   const pathname = usePathname();
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
-  const avColor  = avatarColor[user?.rol ?? ''] ?? 'bg-gray-500';
-  const initials = user ? user.correo.slice(0, 1).toUpperCase() : '?';
+  const isDark      = mounted ? theme === 'dark' : false;
+  const brandColor  = isDark ? '#00E676' : '#F97316';
+  const initials    = user ? user.correo.slice(0, 1).toUpperCase() : '?';
 
   const isActive = (href: string) =>
     href === '/dashboard'
@@ -68,14 +61,12 @@ export function TopNav() {
               aria-label="Ver mi perfil"
             >
               <div
-                className={`flex h-7 w-7 items-center justify-center rounded-full ${avColor} text-xs font-bold text-white select-none`}
+                style={{ backgroundColor: brandColor }}
+                className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white select-none"
                 aria-hidden="true"
               >
                 {initials}
               </div>
-              <span className={`hidden sm:inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${roleBadge[user.rol] ?? 'bg-gray-100 text-gray-700'}`}>
-                {user.rol}
-              </span>
             </Link>
           )}
 

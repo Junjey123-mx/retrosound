@@ -1,25 +1,27 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { useTheme } from 'next-themes';
 import { useCurrentUser, useLogout } from '@/hooks/use-auth';
 import { Mail, Shield, LogOut } from 'lucide-react';
 
-const avatarColor: Record<string, string> = {
-  admin:     'bg-purple-500',
-  empleado:  'bg-blue-500',
-  cliente:   'bg-green-500',
-  proveedor: 'bg-orange-500',
-};
-
-const roleMeta: Record<string, { badge: string; label: string }> = {
-  admin:     { badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300', label: 'Administrador' },
-  empleado:  { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',         label: 'Empleado' },
-  cliente:   { badge: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',     label: 'Cliente' },
-  proveedor: { badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300', label: 'Proveedor' },
+const roleLabel: Record<string, string> = {
+  admin:     'Administrador',
+  empleado:  'Empleado',
+  cliente:   'Cliente',
+  proveedor: 'Proveedor',
 };
 
 export default function PerfilPage() {
   const user   = useCurrentUser();
   const logout = useLogout();
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const isDark     = mounted ? theme === 'dark' : false;
+  const brandColor = isDark ? '#00E676' : '#F97316';
+  const brandBg    = isDark ? 'rgba(0,230,118,0.12)' : 'rgba(249,115,22,0.14)';
 
   if (!user) {
     return (
@@ -29,8 +31,7 @@ export default function PerfilPage() {
     );
   }
 
-  const avColor  = avatarColor[user.rol] ?? 'bg-gray-500';
-  const meta     = roleMeta[user.rol] ?? { badge: 'bg-gray-100 text-gray-700', label: user.rol };
+  const label    = roleLabel[user.rol] ?? user.rol;
   const initials = user.correo.slice(0, 1).toUpperCase();
 
   return (
@@ -46,15 +47,19 @@ export default function PerfilPage() {
         {/* Avatar + nombre */}
         <div className="flex items-center gap-4">
           <div
-            className={`flex h-16 w-16 items-center justify-center rounded-full ${avColor} text-2xl font-bold text-white select-none`}
+            style={{ backgroundColor: brandColor }}
+            className="flex h-16 w-16 items-center justify-center rounded-full text-2xl font-bold text-white select-none"
             aria-hidden="true"
           >
             {initials}
           </div>
           <div className="space-y-1">
             <p className="text-lg font-semibold text-foreground">{user.correo}</p>
-            <span className={`inline-flex rounded-full px-3 py-0.5 text-xs font-semibold ${meta.badge}`}>
-              {meta.label}
+            <span
+              style={{ backgroundColor: brandBg, color: brandColor }}
+              className="inline-flex rounded-full px-3 py-0.5 text-xs font-semibold"
+            >
+              {label}
             </span>
           </div>
         </div>
@@ -74,7 +79,7 @@ export default function PerfilPage() {
             <Shield className="h-4 w-4 text-muted-foreground shrink-0" />
             <div>
               <p className="text-xs text-muted-foreground">Rol en el sistema</p>
-              <p className="text-sm font-medium text-foreground">{meta.label}</p>
+              <p className="text-sm font-medium text-foreground">{label}</p>
             </div>
           </div>
         </div>
