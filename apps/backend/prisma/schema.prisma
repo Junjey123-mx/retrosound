@@ -47,6 +47,13 @@ enum EstadoCompra {
   cancelada
 }
 
+enum EstadoCarrito {
+  activo
+  convertido
+  abandonado
+  cancelado
+}
+
 // ─── Catálogos ────────────────────────────────────────────────────────────────
 
 model Categoria {
@@ -106,12 +113,13 @@ model Producto {
   idCategoria       Int              @map("id_categoria")
   idFormato         Int              @map("id_formato")
 
-  categoria      Categoria              @relation(fields: [idCategoria], references: [id])
-  formato        Formato                @relation(fields: [idFormato], references: [id])
+  categoria      Categoria               @relation(fields: [idCategoria], references: [id])
+  formato        Formato                 @relation(fields: [idFormato], references: [id])
   artistas       ProductoArtista[]
   generos        ProductoGenero[]
   detallesVenta  DetalleVenta[]
   detallesCompra DetalleCompraProveedor[]
+  carritoItems   CarritoItem[]
 
   @@index([titulo], name: "idx_producto_titulo")
   @@map("producto")
@@ -152,8 +160,9 @@ model Cliente {
   estado            EstadoGeneral @default(activo) @map("estado_cliente")
   fechaInactivacion DateTime?     @db.Date @map("fecha_inactivacion")
 
-  usuario Usuario?
-  ventas  Venta[]
+  usuario  Usuario?
+  ventas   Venta[]
+  carritos Carrito[]
 
   @@index([correo], name: "idx_cliente_correo")
   @@map("cliente")
@@ -274,4 +283,38 @@ model DetalleCompraProveedor {
 
   @@unique([idCompraProveedor, idProducto])
   @@map("detalle_compra_proveedor")
+}
+
+// ─── Carrito de compras ───────────────────────────────────────────────────────
+
+model Carrito {
+  id                 Int           @id @default(autoincrement()) @map("id_carrito")
+  idCliente          Int           @map("id_cliente")
+  estado             EstadoCarrito @default(activo) @map("estado_carrito")
+  fechaCreacion      DateTime      @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime      @updatedAt @map("fecha_actualizacion")
+
+  cliente Cliente       @relation(fields: [idCliente], references: [id])
+  items   CarritoItem[]
+
+  // Índice compuesto para buscar carrito activo por cliente eficientemente
+  @@index([idCliente, estado], name: "idx_carrito_cliente_estado")
+  @@map("carrito")
+}
+
+model CarritoItem {
+  id                     Int      @id @default(autoincrement()) @map("id_carrito_item")
+  idCarrito              Int      @map("id_carrito")
+  idProducto             Int      @map("id_producto")
+  cantidad               Int      @map("cantidad")
+  precioUnitarioSnapshot Decimal  @db.Decimal(10, 2) @map("precio_unitario_snapshot")
+  fechaAgregado          DateTime @default(now()) @map("fecha_agregado")
+
+  // onDelete: Cascade — al eliminar un carrito se eliminan sus items
+  carrito  Carrito  @relation(fields: [idCarrito], references: [id], onDelete: Cascade)
+  producto Producto @relation(fields: [idProducto], references: [id])
+
+  // Un producto solo puede aparecer una vez dentro del mismo carrito
+  @@unique([idCarrito, idProducto])
+  @@map("carrito_item")
 }
