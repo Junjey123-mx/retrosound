@@ -2,15 +2,15 @@ services:
   postgres:
     image: postgres:17-alpine
     environment:
-      POSTGRES_USER: ${DB_USER:-proy2}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
-      POSTGRES_DB: ${DB_NAME:-retrosound}
+      POSTGRES_USER: ${POSTGRES_USER:-proy2}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+      POSTGRES_DB: ${POSTGRES_DB:-retrosound}
     ports:
       - "${DB_PORT:-5433}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-proy2} -d ${DB_NAME:-retrosound}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-proy2} -d ${POSTGRES_DB:-retrosound}"]
       interval: 10s
       timeout: 5s
       retries: 5

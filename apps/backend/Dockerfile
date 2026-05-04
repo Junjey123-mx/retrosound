@@ -10,11 +10,13 @@ FROM deps AS build
 WORKDIR /app
 COPY . .
 RUN npx prisma generate
-RUN npm run build
+RUN npm run build && npx tsc -p tsconfig.build.json --incremental false
 
 # ── Stage 3: producción ──────────────────────────────────────────────────────
 FROM node:22-alpine AS production
 WORKDIR /app
+
+RUN apk add --no-cache postgresql-client
 
 RUN addgroup -g 1001 -S nestjs && \
     adduser  -u 1001 -S nestjs -G nestjs
@@ -26,7 +28,7 @@ COPY --from=build --chown=nestjs:nestjs /tmp/prod_modules ./node_modules
 
 RUN npx prisma generate
 
-# Entrypoint: migrations + seed condicional + arranque
+# Entrypoint: SQL oficial condicional + arranque
 COPY entrypoint.sh ./
 RUN chmod +x entrypoint.sh
 

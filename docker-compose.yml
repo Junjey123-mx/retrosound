@@ -11,10 +11,17 @@ services:
       - "${BACKEND_PORT:-3003}:3001"
     environment:
       DATABASE_URL: postgresql://${DB_USER:-proy2}:${DB_PASSWORD:-secret}@postgres:5432/${DB_NAME:-retrosound}?schema=public
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-proy2}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+      DB_NAME: ${DB_NAME:-retrosound}
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       PORT: 3001
       NODE_ENV: production
       FRONTEND_URL: http://localhost:${FRONTEND_PORT:-3002}
+    volumes:
+      - ./db:/app/db:ro
     depends_on:
       postgres:
         condition: service_healthy

@@ -38,7 +38,12 @@ El `.env.example` ya contiene los valores correctos para evaluación. No es nece
 docker compose up --build
 ```
 
-El backend ejecuta automáticamente `prisma migrate deploy` y `prisma db seed` en el primer arranque. Cuando veas la línea:
+El backend inicializa la base de datos con los scripts SQL oficiales:
+
+- `db/retrosound_ddl.sql`
+- `db/retrosound_seed.sql`
+
+Prisma ya no crea el esquema ni carga el seed en Docker. Cuando veas la línea:
 
 ```
 backend-1  | Backend corriendo en http://localhost:3001
@@ -61,6 +66,10 @@ Todas están en `.env.example` con valores por defecto funcionales:
 
 | Variable | Valor por defecto | Descripción |
 |----------|------------------|-------------|
+| `POSTGRES_USER` | `proy2` | Usuario PostgreSQL usado por el contenedor |
+| `POSTGRES_PASSWORD` | `secret` | Contraseña PostgreSQL usada por el contenedor |
+| `POSTGRES_DB` | `retrosound` | Base creada por el contenedor PostgreSQL |
+| `DB_HOST` | `localhost` | Host para conexión local fuera de Docker |
 | `DB_USER` | `proy2` | Usuario PostgreSQL (obligatorio para rúbrica) |
 | `DB_PASSWORD` | `secret` | Contraseña PostgreSQL (obligatorio para rúbrica) |
 | `DB_NAME` | `retrosound` | Nombre de la base de datos |
@@ -558,7 +567,7 @@ BACKEND_PORT=3004
 FRONTEND_PORT=3005
 ```
 
-### El backend arranca pero el seed falla
+### El backend arranca pero el seed SQL falla
 
 ```bash
 # Limpiar volumen y reiniciar desde cero
@@ -566,9 +575,9 @@ docker compose down -v
 docker compose up --build
 ```
 
-### `prisma migrate deploy` falla con "relation already exists"
+### Reiniciar esquema y datos oficiales
 
-El volumen de Postgres tiene datos de una versión anterior del esquema. Solución:
+El backend solo aplica `db/retrosound_ddl.sql` y `db/retrosound_seed.sql` cuando la base está vacía. Para reconstruir todo desde cero:
 
 ```bash
 docker compose down -v && docker compose up --build
@@ -604,8 +613,7 @@ docker compose up postgres pgadmin
 # Backend (nueva terminal)
 cd apps/backend
 npm install
-npx prisma migrate dev
-npx prisma db seed
+npx prisma generate
 npm run start:dev
 
 # Frontend (nueva terminal)
