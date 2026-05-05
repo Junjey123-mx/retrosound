@@ -24,7 +24,7 @@ export default function RegistroPage() {
     try {
       const data = await authService.register({ nombre, apellido, correo, contrasena });
       localStorage.setItem('token', data.access_token);
-      router.push('/dashboard');
+      router.push('/tienda');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al registrarse');
     } finally {
@@ -33,10 +33,10 @@ export default function RegistroPage() {
   }
 
   const PERKS = [
-    'Gestión de productos (vinilos, CDs, casetes)',
-    'Registro de ventas con transacciones SQL explícitas',
-    'Reportes avanzados: JOINs, CTEs, HAVING',
-    'Control de proveedores e inventario',
+    'Explora vinilos, CDs y casetes de colección',
+    'Agrega productos a tu carrito y realiza compras',
+    'Consulta el estado de tus órdenes en tiempo real',
+    'Descubre ediciones limitadas y clásicos imperdibles',
   ];
 
   return (
@@ -60,10 +60,10 @@ export default function RegistroPage() {
         {/* Contenido central */}
         <div className="relative space-y-6">
           <h1 className="text-4xl font-bold leading-tight">
-            Tu tienda musical,<br />en un solo lugar
+            Música física,<br />para coleccionistas.
           </h1>
           <p className="text-lg text-white/60 leading-relaxed max-w-sm">
-            Crea tu cuenta y accede a la plataforma completa de gestión de RetroSound Store.
+            Crea tu cuenta y empieza a explorar nuestro catálogo de vinilos, CDs y casetes.
           </p>
 
           <ul className="space-y-3 pt-2">

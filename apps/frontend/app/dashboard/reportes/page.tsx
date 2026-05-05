@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { reportesService } from '@/lib/services/reportes';
-import { Database, AlertCircle, Loader2 } from 'lucide-react';
+import { Database, AlertCircle, Download, Loader2 } from 'lucide-react';
 
 type Row = Record<string, unknown>;
 type TabId = 'resumen' | 'ventas' | 'catalogo' | 'compras' | 'stock' | 'clientes' | 'vendidos' | 'ranking';
@@ -96,6 +96,25 @@ function formatCell(v: unknown): string {
   return String(v);
 }
 
+function exportToCSV(data: Row[], filename: string) {
+  if (!data.length) return;
+  const cols = Object.keys(data[0]);
+  const escape = (v: string) =>
+    v.includes(',') || v.includes('"') || v.includes('\n')
+      ? `"${v.replace(/"/g, '""')}"`
+      : v;
+  const header = cols.map((c) => escape(colLabel(c))).join(',');
+  const rows   = data.map((row) => cols.map((c) => escape(formatCell(row[c]))).join(','));
+  const csv    = [header, ...rows].join('\n');
+  const blob   = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url    = URL.createObjectURL(blob);
+  const a      = document.createElement('a');
+  a.href       = url;
+  a.download   = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function ReportTable({ data }: { data: Row[] }) {
   if (!data.length) return (
     <p className="py-10 text-center text-sm text-muted-foreground">Sin datos para mostrar.</p>
@@ -136,8 +155,9 @@ function ReportTable({ data }: { data: Row[] }) {
   );
 }
 
-function ReportSection({ queryKey, queryFn }: { queryKey: string[]; queryFn: () => Promise<Row[]> }) {
+function ReportSection({ queryKey, queryFn, onData }: { queryKey: string[]; queryFn: () => Promise<Row[]>; onData: (d: Row[]) => void }) {
   const { data, isLoading, error } = useQuery({ queryKey, queryFn, staleTime: 2 * 60 * 1000, retry: 1 });
+  useEffect(() => { if (data) onData(data); }, [data, onData]);
   if (isLoading) return (
     <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
       <Loader2 className="h-4 w-4 animate-spin" /> Ejecutando consulta SQL…
@@ -152,13 +172,14 @@ function ReportSection({ queryKey, queryFn }: { queryKey: string[]; queryFn: () 
   return <div className="mt-4">{data && <ReportTable data={data} />}</div>;
 }
 
-function ResumenVentasTab() {
+function ResumenVentasTab({ onData }: { onData: (d: Row[]) => void }) {
   const [estado, setEstado] = useState('');
   const { data, isLoading, error } = useQuery({
     queryKey: ['reportes', 'resumen', estado],
     queryFn:  () => reportesService.resumenVentas(estado),
     staleTime: 2 * 60 * 1000,
   });
+  useEffect(() => { if (data) onData(data); }, [data, onData]);
   return (
     <>
       <div className="mt-4 flex items-center gap-3">
@@ -182,13 +203,14 @@ function ResumenVentasTab() {
   );
 }
 
-function MasVendidosTab() {
+function MasVendidosTab({ onData }: { onData: (d: Row[]) => void }) {
   const [min, setMin] = useState(1);
   const { data, isLoading, error } = useQuery({
     queryKey: ['reportes', 'mas-vendidos', min],
     queryFn:  () => reportesService.productosMasVendidos(min),
     staleTime: 2 * 60 * 1000,
   });
+  useEffect(() => { if (data) onData(data); }, [data, onData]);
   return (
     <>
       <div className="mt-4 flex items-center gap-3">
@@ -210,7 +232,12 @@ function MasVendidosTab() {
 }
 
 export default function ReportesPage() {
-  const [activeTab, setActiveTab] = useState<TabId>('resumen');;
+  const [activeTab, setActiveTab] = useState<TabId>('resumen');
+  const [exportData, setExportData] = useState<Row[]>([]);
+
+  const handleData = useCallback((d: Row[]) => setExportData(d), []);
+
+  useEffect(() => { setExportData([]); }, [activeTab]);
 
   return (
     <main className="p-6 sm:p-8 space-y-6">
@@ -243,16 +270,38 @@ export default function ReportesPage() {
         ))}
       </div>
 
+      {/* Barra sobre la tabla: botón exportar */}
+      <div className="flex items-center justify-end">
+        <button
+          type="button"
+          disabled={!exportData.length}
+          onClick={() => exportToCSV(exportData, `retrosound-${activeTab}.csv`)}
+          className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-all duration-150 ${
+            exportData.length
+              ? 'rs-active-brand cursor-pointer hover:opacity-90'
+              : 'border-border bg-card text-muted-foreground cursor-not-allowed opacity-50'
+          }`}
+        >
+          <Download className="h-4 w-4" />
+          Exportar CSV
+          {exportData.length > 0 && (
+            <span className="ml-1 rounded-full bg-white/20 px-1.5 py-0.5 text-xs font-bold leading-none">
+              {exportData.length}
+            </span>
+          )}
+        </button>
+      </div>
+
       {/* Contenido de la pestaña */}
       <div>
-        {activeTab === 'resumen'  && <ResumenVentasTab />}
-        {activeTab === 'vendidos' && <MasVendidosTab />}
-        {activeTab === 'ventas'   && <ReportSection queryKey={['reportes', 'ventas-detalle']} queryFn={reportesService.ventasDetalle} />}
-        {activeTab === 'catalogo' && <ReportSection queryKey={['reportes', 'productos-catalogo']} queryFn={reportesService.productosCatalogo} />}
-        {activeTab === 'compras'  && <ReportSection queryKey={['reportes', 'compras-proveedor']} queryFn={reportesService.comprasProveedor} />}
-        {activeTab === 'stock'    && <ReportSection queryKey={['reportes', 'productos-bajo-stock']} queryFn={reportesService.productosStockBajo} />}
-        {activeTab === 'clientes' && <ReportSection queryKey={['reportes', 'clientes-frecuentes']} queryFn={reportesService.clientesFrecuentes} />}
-        {activeTab === 'ranking'  && <ReportSection queryKey={['reportes', 'ranking-ingresos']} queryFn={reportesService.rankingIngresos} />}
+        {activeTab === 'resumen'  && <ResumenVentasTab onData={handleData} />}
+        {activeTab === 'vendidos' && <MasVendidosTab   onData={handleData} />}
+        {activeTab === 'ventas'   && <ReportSection queryKey={['reportes', 'ventas-detalle']}       queryFn={reportesService.ventasDetalle}       onData={handleData} />}
+        {activeTab === 'catalogo' && <ReportSection queryKey={['reportes', 'productos-catalogo']}   queryFn={reportesService.productosCatalogo}   onData={handleData} />}
+        {activeTab === 'compras'  && <ReportSection queryKey={['reportes', 'compras-proveedor']}    queryFn={reportesService.comprasProveedor}    onData={handleData} />}
+        {activeTab === 'stock'    && <ReportSection queryKey={['reportes', 'productos-bajo-stock']} queryFn={reportesService.productosStockBajo}  onData={handleData} />}
+        {activeTab === 'clientes' && <ReportSection queryKey={['reportes', 'clientes-frecuentes']}  queryFn={reportesService.clientesFrecuentes}  onData={handleData} />}
+        {activeTab === 'ranking'  && <ReportSection queryKey={['reportes', 'ranking-ingresos']}     queryFn={reportesService.rankingIngresos}     onData={handleData} />}
       </div>
 
     </main>
