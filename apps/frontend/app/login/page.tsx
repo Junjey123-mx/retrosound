@@ -90,7 +90,15 @@ export default function LoginPage() {
   async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
     const ok = await login({ correo, contrasena });
-    if (ok) router.push('/dashboard');
+    if (!ok) return;
+    try {
+      const token = localStorage.getItem('token') ?? '';
+      const part = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      const { rol } = JSON.parse(atob(part)) as { rol: string };
+      router.push((rol === 'cliente' ? '/tienda' : '/dashboard') as any);
+    } catch {
+      router.push('/dashboard');
+    }
   }
 
   return (

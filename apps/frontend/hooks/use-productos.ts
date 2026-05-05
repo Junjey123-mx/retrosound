@@ -9,11 +9,26 @@ export function useProductos() {
   });
 }
 
+export function useClienteProductos() {
+  return useQuery({
+    queryKey: ['cliente-productos'],
+    queryFn: productosService.getAll,
+  });
+}
+
 export function useProducto(id: number) {
   return useQuery({
     queryKey: ['productos', id],
     queryFn: () => productosService.getOne(id),
     enabled: !!id,
+  });
+}
+
+export function useClienteProducto(id: number) {
+  return useQuery({
+    queryKey: ['cliente-producto', id],
+    queryFn: () => productosService.getOne(id),
+    enabled: Number.isFinite(id) && id > 0,
   });
 }
 

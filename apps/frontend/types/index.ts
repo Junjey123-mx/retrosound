@@ -50,6 +50,8 @@ export interface Producto {
   stockMinimo: number;
   codigoSku: string;
   estado: EstadoProducto;
+  imagen?: string;
+  imagenUrl?: string;
   fechaInactivacion?: string;
   idCategoria: number;
   idFormato: number;
