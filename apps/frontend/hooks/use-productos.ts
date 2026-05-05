@@ -12,7 +12,7 @@ export function useProductos() {
 export function useClienteProductos() {
   return useQuery({
     queryKey: ['cliente-productos'],
-    queryFn: productosService.getAll,
+    queryFn: productosService.getAllWithAlbumCovers,
   });
 }
 
@@ -27,7 +27,7 @@ export function useProducto(id: number) {
 export function useClienteProducto(id: number) {
   return useQuery({
     queryKey: ['cliente-producto', id],
-    queryFn: () => productosService.getOne(id),
+    queryFn: () => productosService.getOneWithAlbumCover(id),
     enabled: Number.isFinite(id) && id > 0,
   });
 }

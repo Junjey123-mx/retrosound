@@ -61,6 +61,16 @@ export interface Producto {
   generos?: { generoMusical: GeneroMusical }[];
 }
 
+export interface AlbumSearchResult {
+  externalId: number;
+  title: string;
+  artist: string;
+  coverUrl: string;
+  releaseDate: string;
+  genre: string;
+  externalUrl: string;
+}
+
 export interface Cliente {
   id: number;
   nombre: string;
