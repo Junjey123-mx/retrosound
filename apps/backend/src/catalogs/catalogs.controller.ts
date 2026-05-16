@@ -31,28 +31,28 @@ export class CatalogsController {
 
   // POSTs administrativos: solo admin o empleado pueden crear catálogos
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'empleado')
+  @Roles('admin', 'empleado_inventario')
   @Post('categorias')
   createCategoria(@Body() body: { nombre: string; descripcion?: string }) {
     return this.catalogsService.createCategoria(body.nombre, body.descripcion);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'empleado')
+  @Roles('admin', 'empleado_inventario')
   @Post('formatos')
   createFormato(@Body() body: { nombre: string; descripcion?: string }) {
     return this.catalogsService.createFormato(body.nombre, body.descripcion);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'empleado')
+  @Roles('admin', 'empleado_inventario')
   @Post('generos')
   createGenero(@Body() body: { nombre: string; descripcion?: string }) {
     return this.catalogsService.createGenero(body.nombre, body.descripcion);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'empleado')
+  @Roles('admin', 'empleado_inventario')
   @Post('artistas')
   createArtista(
     @Body() body: { nombre: string; paisOrigen?: string; anioInicio?: number },

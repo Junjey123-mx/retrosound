@@ -16,7 +16,7 @@ import { ProveedoresService } from './proveedores.service';
 import { CreateProveedorDto } from './dto/create-proveedor.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin', 'empleado')
+@Roles('admin', 'empleado_inventario')
 @Controller('proveedores')
 export class ProveedoresController {
   constructor(private readonly proveedoresService: ProveedoresService) {}

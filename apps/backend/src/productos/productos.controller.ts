@@ -32,14 +32,14 @@ export class ProductosController {
 
   // Rutas administrativas: solo admin o empleado
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'empleado')
+  @Roles('admin', 'empleado_inventario')
   @Post()
   create(@Body() dto: CreateProductoDto) {
     return this.productosService.create(dto);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'empleado')
+  @Roles('admin', 'empleado_inventario')
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -49,7 +49,7 @@ export class ProductosController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'empleado')
+  @Roles('admin', 'empleado_inventario')
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.productosService.remove(id);

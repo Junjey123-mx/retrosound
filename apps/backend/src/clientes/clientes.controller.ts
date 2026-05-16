@@ -19,7 +19,7 @@ import { FindAllClientesDto } from './dto/find-all-clientes.dto';
 import { UpdateClienteDto } from './dto/update-cliente.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin', 'empleado')
+@Roles('admin', 'empleado_ventas')
 @Controller('clientes')
 export class ClientesController {
   constructor(private readonly clientesService: ClientesService) {}

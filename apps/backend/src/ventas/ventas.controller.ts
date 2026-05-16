@@ -14,7 +14,7 @@ import { VentasService } from './ventas.service';
 import { CreateVentaDto } from './dto/create-venta.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin', 'empleado')
+@Roles('admin', 'empleado_ventas')
 @Controller('ventas')
 export class VentasController {
   constructor(private readonly ventasService: VentasService) {}
