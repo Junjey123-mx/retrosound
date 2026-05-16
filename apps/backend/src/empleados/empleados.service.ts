@@ -1,161 +1,220 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { DatabaseService } from '../database';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateEmpleadoDto } from './dto/create-empleado.dto';
+import { FindAllEmpleadosDto } from './dto/find-all-empleados.dto';
+import { LinkEmpleadoUserDto } from './dto/link-empleado-user.dto';
+import { UpdateEmpleadoDto } from './dto/update-empleado.dto';
+import { UpdateEmpleadoStatusDto } from './dto/update-empleado-status.dto';
 
-type EmpleadoRow = {
-  id: number;
-  nombre: string;
-  apellido: string;
-  telefono: string | null;
-  correo: string | null;
-  fechaContratacion: string;
-  estado: string;
-  fechaInactivacion: string | null;
+const INCLUDE_EMPLEADO = {
+  usuario: {
+    select: {
+      idUsuario: true,
+      correoUsuario: true,
+      rolUsuario: true,
+      estadoUsuario: true,
+    },
+  },
+} satisfies Prisma.EmpleadoInclude;
+
+type EmpleadoConUsuario = Prisma.EmpleadoGetPayload<{
+  include: typeof INCLUDE_EMPLEADO;
+}>;
+
+type EmpleadoBase = {
+  idEmpleado: number;
+  nombreEmpleado: string;
+  apellidoEmpleado: string;
+  telefonoEmpleado: string | null;
+  correoEmpleado: string | null;
+  fechaContratacion: Date;
+  estadoEmpleado: string;
+  fechaInactivacion: Date | null;
 };
 
 @Injectable()
 export class EmpleadosService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  async findAll() {
-    const result = await this.db.query<EmpleadoRow>(`
-      SELECT
-        id_empleado AS "id",
-        nombre_empleado AS "nombre",
-        apellido_empleado AS "apellido",
-        telefono_empleado AS "telefono",
-        correo_empleado AS "correo",
-        fecha_contratacion AS "fechaContratacion",
-        estado_empleado AS "estado",
-        fecha_inactivacion AS "fechaInactivacion"
-      FROM empleado
-      WHERE estado_empleado = 'activo'
-      ORDER BY id_empleado
-    `);
+  async findAll(query: FindAllEmpleadosDto = {}) {
+    const { search, estado, page = 1, limit = 20 } = query;
 
-    return result.rows;
+    const where: Prisma.EmpleadoWhereInput = {};
+    if (search) {
+      where.OR = [
+        { nombreEmpleado: { contains: search, mode: 'insensitive' } },
+        { apellidoEmpleado: { contains: search, mode: 'insensitive' } },
+        { correoEmpleado: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+    if (estado) where.estadoEmpleado = estado;
+
+    const skip = (page - 1) * limit;
+
+    const [empleados, total] = await Promise.all([
+      this.prisma.empleado.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { idEmpleado: 'asc' },
+        include: INCLUDE_EMPLEADO,
+      }),
+      this.prisma.empleado.count({ where }),
+    ]);
+
+    return {
+      data: empleados.map((e) => this.mapEmpleadoConUsuario(e)),
+      total,
+      page,
+      limit,
+    };
+  }
+
+  // Not exposed by controller; ready for a future GET /empleados/stats endpoint.
+  async stats() {
+    const [total, activos, inactivos, conUsuario, ventas, inventario] =
+      await Promise.all([
+        this.prisma.empleado.count(),
+        this.prisma.empleado.count({ where: { estadoEmpleado: 'activo' } }),
+        this.prisma.empleado.count({ where: { estadoEmpleado: 'inactivo' } }),
+        this.prisma.usuario.count({ where: { idEmpleado: { not: null } } }),
+        this.prisma.empleado.count({
+          where: { usuario: { rolUsuario: 'empleado_ventas' } },
+        }),
+        this.prisma.empleado.count({
+          where: { usuario: { rolUsuario: 'empleado_inventario' } },
+        }),
+      ]);
+
+    return {
+      total,
+      activos,
+      inactivos,
+      ventas,
+      inventario,
+      conUsuario,
+      sinUsuario: total - conUsuario,
+    };
   }
 
   async findOne(id: number) {
-    const result = await this.db.query<EmpleadoRow>(
-      `
-      SELECT
-        id_empleado AS "id",
-        nombre_empleado AS "nombre",
-        apellido_empleado AS "apellido",
-        telefono_empleado AS "telefono",
-        correo_empleado AS "correo",
-        fecha_contratacion AS "fechaContratacion",
-        estado_empleado AS "estado",
-        fecha_inactivacion AS "fechaInactivacion"
-      FROM empleado
-      WHERE id_empleado = $1
-      LIMIT 1
-      `,
-      [id],
-    );
-
-    const empleado = result.rows[0];
+    const empleado = await this.prisma.empleado.findUnique({
+      where: { idEmpleado: id },
+      include: INCLUDE_EMPLEADO,
+    });
     if (!empleado) throw new NotFoundException('Empleado no encontrado');
-
-    return empleado;
+    return this.mapEmpleadoConUsuario(empleado);
   }
 
   async create(dto: CreateEmpleadoDto) {
-    const result = await this.db.query<EmpleadoRow>(
-      `
-      INSERT INTO empleado
-        (nombre_empleado, apellido_empleado, telefono_empleado,
-         correo_empleado, fecha_contratacion)
-      VALUES
-        ($1, $2, $3, $4, $5::DATE)
-      RETURNING
-        id_empleado AS "id",
-        nombre_empleado AS "nombre",
-        apellido_empleado AS "apellido",
-        telefono_empleado AS "telefono",
-        correo_empleado AS "correo",
-        fecha_contratacion AS "fechaContratacion",
-        estado_empleado AS "estado",
-        fecha_inactivacion AS "fechaInactivacion"
-      `,
-      [
-        dto.nombre,
-        dto.apellido,
-        dto.telefono ?? null,
-        dto.correo ?? null,
-        dto.fechaContratacion,
-      ],
-    );
-
-    return result.rows[0];
+    const empleado = await this.prisma.empleado.create({
+      data: {
+        nombreEmpleado: dto.nombre,
+        apellidoEmpleado: dto.apellido,
+        telefonoEmpleado: dto.telefono ?? null,
+        correoEmpleado: dto.correo ?? null,
+        fechaContratacion: new Date(dto.fechaContratacion),
+      },
+    });
+    return this.mapEmpleadoBase(empleado);
   }
 
-  async update(id: number, dto: Partial<CreateEmpleadoDto>) {
+  async update(id: number, dto: UpdateEmpleadoDto) {
     await this.findOne(id);
 
-    const fields: string[] = [];
-    const values: unknown[] = [];
-    const addField = (column: string, value: unknown) => {
-      values.push(value);
-      fields.push(`${column} = $${values.length}`);
-    };
-
-    if (dto.nombre !== undefined) addField('nombre_empleado', dto.nombre);
-    if (dto.apellido !== undefined) addField('apellido_empleado', dto.apellido);
-    if (dto.telefono !== undefined) addField('telefono_empleado', dto.telefono);
-    if (dto.correo !== undefined) addField('correo_empleado', dto.correo);
+    const data: Prisma.EmpleadoUpdateInput = {};
+    if (dto.nombre !== undefined) data.nombreEmpleado = dto.nombre;
+    if (dto.apellido !== undefined) data.apellidoEmpleado = dto.apellido;
+    if (dto.telefono !== undefined) data.telefonoEmpleado = dto.telefono;
+    if (dto.correo !== undefined) data.correoEmpleado = dto.correo;
     if (dto.fechaContratacion !== undefined) {
-      values.push(dto.fechaContratacion);
-      fields.push(`fecha_contratacion = $${values.length}::DATE`);
+      data.fechaContratacion = new Date(dto.fechaContratacion);
     }
 
-    if (fields.length === 0) return this.findOne(id);
+    if (Object.keys(data).length === 0) return this.findOne(id);
 
-    values.push(id);
-    const result = await this.db.query<EmpleadoRow>(
-      `
-      UPDATE empleado
-      SET ${fields.join(', ')}
-      WHERE id_empleado = $${values.length}
-      RETURNING
-        id_empleado AS "id",
-        nombre_empleado AS "nombre",
-        apellido_empleado AS "apellido",
-        telefono_empleado AS "telefono",
-        correo_empleado AS "correo",
-        fecha_contratacion AS "fechaContratacion",
-        estado_empleado AS "estado",
-        fecha_inactivacion AS "fechaInactivacion"
-      `,
-      values,
-    );
+    const empleado = await this.prisma.empleado.update({
+      where: { idEmpleado: id },
+      data,
+    });
+    return this.mapEmpleadoBase(empleado);
+  }
 
-    return result.rows[0];
+  // Not exposed by controller; ready for a future PATCH /empleados/:id/status endpoint.
+  async updateStatus(id: number, dto: UpdateEmpleadoStatusDto) {
+    await this.findOne(id);
+    const empleado = await this.prisma.empleado.update({
+      where: { idEmpleado: id },
+      data: {
+        estadoEmpleado: dto.estado,
+        fechaInactivacion: dto.estado === 'inactivo' ? new Date() : null,
+      },
+    });
+    return this.mapEmpleadoBase(empleado);
+  }
+
+  // Not exposed by controller; ready for a future POST /empleados/:id/link-user endpoint.
+  async linkUser(id: number, dto: LinkEmpleadoUserDto) {
+    await this.findOne(id);
+
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { idUsuario: dto.idUsuario },
+      select: { idUsuario: true, rolUsuario: true },
+    });
+    if (!usuario) throw new NotFoundException('Usuario no encontrado');
+    if (
+      usuario.rolUsuario !== 'empleado_ventas' &&
+      usuario.rolUsuario !== 'empleado_inventario'
+    ) {
+      throw new BadRequestException(
+        'El usuario debe tener rol empleado_ventas o empleado_inventario',
+      );
+    }
+
+    await this.prisma.usuario.update({
+      where: { idUsuario: dto.idUsuario },
+      data: { idEmpleado: id },
+    });
+    return this.findOne(id);
   }
 
   async remove(id: number) {
     await this.findOne(id);
+    const empleado = await this.prisma.empleado.update({
+      where: { idEmpleado: id },
+      data: {
+        estadoEmpleado: 'inactivo',
+        fechaInactivacion: new Date(),
+      },
+    });
+    return this.mapEmpleadoBase(empleado);
+  }
 
-    const result = await this.db.query<EmpleadoRow>(
-      `
-      UPDATE empleado
-      SET estado_empleado = 'inactivo',
-          fecha_inactivacion = CURRENT_DATE
-      WHERE id_empleado = $1
-      RETURNING
-        id_empleado AS "id",
-        nombre_empleado AS "nombre",
-        apellido_empleado AS "apellido",
-        telefono_empleado AS "telefono",
-        correo_empleado AS "correo",
-        fecha_contratacion AS "fechaContratacion",
-        estado_empleado AS "estado",
-        fecha_inactivacion AS "fechaInactivacion"
-      `,
-      [id],
-    );
+  private mapEmpleadoBase(e: EmpleadoBase) {
+    return {
+      id: e.idEmpleado,
+      nombre: e.nombreEmpleado,
+      apellido: e.apellidoEmpleado,
+      telefono: e.telefonoEmpleado,
+      correo: e.correoEmpleado,
+      fechaContratacion: e.fechaContratacion,
+      estado: e.estadoEmpleado,
+      fechaInactivacion: e.fechaInactivacion,
+    };
+  }
 
-    return result.rows[0];
+  private mapEmpleadoConUsuario(e: EmpleadoConUsuario) {
+    return {
+      ...this.mapEmpleadoBase(e),
+      usuario: e.usuario
+        ? {
+            id: e.usuario.idUsuario,
+            correo: e.usuario.correoUsuario,
+            rol: e.usuario.rolUsuario,
+            estado: e.usuario.estadoUsuario,
+          }
+        : null,
+    };
   }
 }

@@ -1,169 +1,275 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { DatabaseService } from '../database';
+import { Prisma } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateClienteDto } from './dto/create-cliente.dto';
+import { FindAllClientesDto } from './dto/find-all-clientes.dto';
+import { UpdateClienteDto } from './dto/update-cliente.dto';
+import { UpdateClienteStatusDto } from './dto/update-cliente-status.dto';
 
-type ClienteRow = {
-  id: number;
-  nombre: string;
-  apellido: string;
-  telefono: string | null;
-  correo: string | null;
-  direccion: string | null;
-  fechaRegistro: string;
-  estado: string;
-  fechaInactivacion: string | null;
+const INCLUDE_CLIENTE = {
+  usuario: {
+    select: {
+      idUsuario: true,
+      correoUsuario: true,
+      rolUsuario: true,
+      estadoUsuario: true,
+    },
+  },
+} satisfies Prisma.ClienteInclude;
+
+const INCLUDE_CLIENTE_DETAIL = {
+  usuario: {
+    select: {
+      idUsuario: true,
+      correoUsuario: true,
+      rolUsuario: true,
+      estadoUsuario: true,
+    },
+  },
+  _count: { select: { ventas: true } },
+} satisfies Prisma.ClienteInclude;
+
+type ClienteConUsuario = Prisma.ClienteGetPayload<{
+  include: typeof INCLUDE_CLIENTE;
+}>;
+
+type ClienteConDetalle = Prisma.ClienteGetPayload<{
+  include: typeof INCLUDE_CLIENTE_DETAIL;
+}>;
+
+type ClienteBase = {
+  idCliente: number;
+  nombreCliente: string;
+  apellidoCliente: string;
+  telefonoCliente: string | null;
+  correoCliente: string | null;
+  direccionCliente: string | null;
+  fechaRegistroCliente: Date;
+  estadoCliente: string;
+  fechaInactivacion: Date | null;
 };
 
 @Injectable()
 export class ClientesService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  async findAll() {
-    const result = await this.db.query<ClienteRow>(`
-      SELECT
-        id_cliente AS "id",
-        nombre_cliente AS "nombre",
-        apellido_cliente AS "apellido",
-        telefono_cliente AS "telefono",
-        correo_cliente AS "correo",
-        direccion_cliente AS "direccion",
-        fecha_registro_cliente AS "fechaRegistro",
-        estado_cliente AS "estado",
-        fecha_inactivacion AS "fechaInactivacion"
-      FROM cliente
-      WHERE estado_cliente = 'activo'
-      ORDER BY id_cliente
-    `);
+  async findAll(query: FindAllClientesDto = {}) {
+    const { search, estado, page = 1, limit = 20 } = query;
 
-    return result.rows;
+    const where: Prisma.ClienteWhereInput = {};
+    if (search) {
+      where.OR = [
+        { nombreCliente: { contains: search, mode: 'insensitive' } },
+        { apellidoCliente: { contains: search, mode: 'insensitive' } },
+        { correoCliente: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+    if (estado) where.estadoCliente = estado;
+
+    const skip = (page - 1) * limit;
+
+    const [clientes, total] = await Promise.all([
+      this.prisma.cliente.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { idCliente: 'asc' },
+        include: INCLUDE_CLIENTE,
+      }),
+      this.prisma.cliente.count({ where }),
+    ]);
+
+    return {
+      data: clientes.map((c) => this.mapClienteConUsuario(c)),
+      total,
+      page,
+      limit,
+    };
+  }
+
+  // Not exposed by controller; ready for a future GET /clientes/stats endpoint.
+  async stats() {
+    const [total, activos, inactivos, conUsuario] = await Promise.all([
+      this.prisma.cliente.count(),
+      this.prisma.cliente.count({ where: { estadoCliente: 'activo' } }),
+      this.prisma.cliente.count({ where: { estadoCliente: 'inactivo' } }),
+      this.prisma.usuario.count({ where: { idCliente: { not: null } } }),
+    ]);
+
+    return {
+      total,
+      activos,
+      inactivos,
+      conUsuario,
+      sinUsuario: total - conUsuario,
+    };
   }
 
   async findOne(id: number) {
-    const result = await this.db.query<ClienteRow>(
-      `
-      SELECT
-        id_cliente AS "id",
-        nombre_cliente AS "nombre",
-        apellido_cliente AS "apellido",
-        telefono_cliente AS "telefono",
-        correo_cliente AS "correo",
-        direccion_cliente AS "direccion",
-        fecha_registro_cliente AS "fechaRegistro",
-        estado_cliente AS "estado",
-        fecha_inactivacion AS "fechaInactivacion"
-      FROM cliente
-      WHERE id_cliente = $1
-      LIMIT 1
-      `,
-      [id],
-    );
-
-    const cliente = result.rows[0];
+    const cliente = await this.prisma.cliente.findUnique({
+      where: { idCliente: id },
+      include: INCLUDE_CLIENTE_DETAIL,
+    });
     if (!cliente) throw new NotFoundException('Cliente no encontrado');
-
-    return cliente;
+    return this.mapClienteDetalle(cliente);
   }
 
   async create(dto: CreateClienteDto) {
-    const result = await this.db.query<ClienteRow>(
-      `
-      INSERT INTO cliente
-        (nombre_cliente, apellido_cliente, telefono_cliente, correo_cliente,
-         direccion_cliente, fecha_registro_cliente)
-      VALUES
-        ($1, $2, $3, $4, $5, $6::DATE)
-      RETURNING
-        id_cliente AS "id",
-        nombre_cliente AS "nombre",
-        apellido_cliente AS "apellido",
-        telefono_cliente AS "telefono",
-        correo_cliente AS "correo",
-        direccion_cliente AS "direccion",
-        fecha_registro_cliente AS "fechaRegistro",
-        estado_cliente AS "estado",
-        fecha_inactivacion AS "fechaInactivacion"
-      `,
-      [
-        dto.nombre,
-        dto.apellido,
-        dto.telefono ?? null,
-        dto.correo ?? null,
-        dto.direccion ?? null,
-        dto.fechaRegistro,
-      ],
-    );
-
-    return result.rows[0];
+    const cliente = await this.prisma.cliente.create({
+      data: {
+        nombreCliente: dto.nombre,
+        apellidoCliente: dto.apellido,
+        telefonoCliente: dto.telefono ?? null,
+        correoCliente: dto.correo ?? null,
+        direccionCliente: dto.direccion ?? null,
+        fechaRegistroCliente: new Date(dto.fechaRegistro),
+      },
+    });
+    return this.mapClienteBase(cliente);
   }
 
-  async update(id: number, dto: Partial<CreateClienteDto>) {
+  async update(id: number, dto: UpdateClienteDto) {
     await this.findOne(id);
 
-    const fields: string[] = [];
-    const values: unknown[] = [];
-    const addField = (column: string, value: unknown) => {
-      values.push(value);
-      fields.push(`${column} = $${values.length}`);
-    };
-
-    if (dto.nombre !== undefined) addField('nombre_cliente', dto.nombre);
-    if (dto.apellido !== undefined) addField('apellido_cliente', dto.apellido);
-    if (dto.telefono !== undefined) addField('telefono_cliente', dto.telefono);
-    if (dto.correo !== undefined) addField('correo_cliente', dto.correo);
-    if (dto.direccion !== undefined) addField('direccion_cliente', dto.direccion);
+    const data: Prisma.ClienteUpdateInput = {};
+    if (dto.nombre !== undefined) data.nombreCliente = dto.nombre;
+    if (dto.apellido !== undefined) data.apellidoCliente = dto.apellido;
+    if (dto.telefono !== undefined) data.telefonoCliente = dto.telefono;
+    if (dto.correo !== undefined) data.correoCliente = dto.correo;
+    if (dto.direccion !== undefined) data.direccionCliente = dto.direccion;
     if (dto.fechaRegistro !== undefined) {
-      values.push(dto.fechaRegistro);
-      fields.push(`fecha_registro_cliente = $${values.length}::DATE`);
+      data.fechaRegistroCliente = new Date(dto.fechaRegistro);
     }
 
-    if (fields.length === 0) return this.findOne(id);
+    if (Object.keys(data).length === 0) return this.findOne(id);
 
-    values.push(id);
-    const result = await this.db.query<ClienteRow>(
-      `
-      UPDATE cliente
-      SET ${fields.join(', ')}
-      WHERE id_cliente = $${values.length}
-      RETURNING
-        id_cliente AS "id",
-        nombre_cliente AS "nombre",
-        apellido_cliente AS "apellido",
-        telefono_cliente AS "telefono",
-        correo_cliente AS "correo",
-        direccion_cliente AS "direccion",
-        fecha_registro_cliente AS "fechaRegistro",
-        estado_cliente AS "estado",
-        fecha_inactivacion AS "fechaInactivacion"
-      `,
-      values,
-    );
+    const cliente = await this.prisma.cliente.update({
+      where: { idCliente: id },
+      data,
+    });
+    return this.mapClienteBase(cliente);
+  }
 
-    return result.rows[0];
+  // Not exposed by controller; ready for a future PATCH /clientes/:id/status endpoint.
+  async updateStatus(id: number, dto: UpdateClienteStatusDto) {
+    await this.findOne(id);
+    const cliente = await this.prisma.cliente.update({
+      where: { idCliente: id },
+      data: {
+        estadoCliente: dto.estado,
+        fechaInactivacion: dto.estado === 'inactivo' ? new Date() : null,
+      },
+    });
+    return this.mapClienteBase(cliente);
+  }
+
+  // Not exposed by controller; ready for a future GET /clientes/:id/ventas endpoint.
+  async findVentasByCliente(id: number) {
+    await this.findOne(id);
+    const ventas = await this.prisma.venta.findMany({
+      where: { idCliente: id },
+      orderBy: { fechaVenta: 'desc' },
+      include: { detalles: true },
+    });
+
+    return ventas.map((v) => {
+      const subtotal = v.detalles.reduce(
+        (sum, d) =>
+          sum +
+          Number(d.precioUnitarioVenta) * d.cantidadVendida -
+          Number(d.descuentoDetalle),
+        0,
+      );
+      const total = subtotal - Number(v.descuentoVenta);
+      return {
+        id: v.idVenta,
+        fecha: v.fechaVenta,
+        estado: v.estadoVenta,
+        metodoPago: v.metodoPago,
+        subtotal,
+        iva: 0,
+        total,
+        cantidadProductos: v.detalles.length,
+      };
+    });
+  }
+
+  // Not exposed by controller; ready for a future GET /perfil endpoint.
+  async me(idUsuario: number) {
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { idUsuario },
+      select: { idCliente: true },
+    });
+    if (!usuario?.idCliente) {
+      throw new NotFoundException('No hay cliente asociado a este usuario');
+    }
+    return this.findOne(usuario.idCliente);
+  }
+
+  // Not exposed by controller; ready for a future PATCH /perfil endpoint.
+  async updateMe(idUsuario: number, dto: UpdateClienteDto) {
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { idUsuario },
+      select: { idCliente: true },
+    });
+    if (!usuario?.idCliente) {
+      throw new NotFoundException('No hay cliente asociado a este usuario');
+    }
+    const safeDto: UpdateClienteDto = {
+      nombre: dto.nombre,
+      apellido: dto.apellido,
+      telefono: dto.telefono,
+      correo: dto.correo,
+      direccion: dto.direccion,
+      // fechaRegistro excluido: campo administrativo
+    };
+    return this.update(usuario.idCliente, safeDto);
   }
 
   async remove(id: number) {
     await this.findOne(id);
+    const cliente = await this.prisma.cliente.update({
+      where: { idCliente: id },
+      data: {
+        estadoCliente: 'inactivo',
+        fechaInactivacion: new Date(),
+      },
+    });
+    return this.mapClienteBase(cliente);
+  }
 
-    const result = await this.db.query<ClienteRow>(
-      `
-      UPDATE cliente
-      SET estado_cliente = 'inactivo',
-          fecha_inactivacion = CURRENT_DATE
-      WHERE id_cliente = $1
-      RETURNING
-        id_cliente AS "id",
-        nombre_cliente AS "nombre",
-        apellido_cliente AS "apellido",
-        telefono_cliente AS "telefono",
-        correo_cliente AS "correo",
-        direccion_cliente AS "direccion",
-        fecha_registro_cliente AS "fechaRegistro",
-        estado_cliente AS "estado",
-        fecha_inactivacion AS "fechaInactivacion"
-      `,
-      [id],
-    );
+  private mapClienteBase(c: ClienteBase) {
+    return {
+      id: c.idCliente,
+      nombre: c.nombreCliente,
+      apellido: c.apellidoCliente,
+      telefono: c.telefonoCliente,
+      correo: c.correoCliente,
+      direccion: c.direccionCliente,
+      fechaRegistro: c.fechaRegistroCliente,
+      estado: c.estadoCliente,
+      fechaInactivacion: c.fechaInactivacion,
+    };
+  }
 
-    return result.rows[0];
+  private mapClienteConUsuario(c: ClienteConUsuario) {
+    return {
+      ...this.mapClienteBase(c),
+      usuario: c.usuario
+        ? {
+            id: c.usuario.idUsuario,
+            correo: c.usuario.correoUsuario,
+            rol: c.usuario.rolUsuario,
+            estado: c.usuario.estadoUsuario,
+          }
+        : null,
+    };
+  }
+
+  private mapClienteDetalle(c: ClienteConDetalle) {
+    return {
+      ...this.mapClienteConUsuario(c),
+      totalVentas: c._count.ventas,
+    };
   }
 }
