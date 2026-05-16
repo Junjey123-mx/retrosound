@@ -14,6 +14,7 @@ import { CarritoModule } from './carrito/carrito.module';
 import { CheckoutModule } from './checkout/checkout.module';
 import { MisOrdenesModule } from './mis-ordenes/mis-ordenes.module';
 import { InventarioModule } from './inventario/inventario.module';
+import { ProveedorPortalModule } from './proveedor-portal/proveedor-portal.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { InventarioModule } from './inventario/inventario.module';
     CheckoutModule,
     MisOrdenesModule,
     InventarioModule,
+    ProveedorPortalModule,
   ],
 })
 export class AppModule {}
