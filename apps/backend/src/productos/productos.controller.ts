@@ -14,6 +14,7 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { ProductosService } from './productos.service';
 import { CreateProductoDto } from './dto/create-producto.dto';
+import { UpdateProductoImagenDto } from './dto/update-producto-imagen.dto';
 
 @Controller('productos')
 export class ProductosController {
@@ -46,6 +47,16 @@ export class ProductosController {
     @Body() dto: Partial<CreateProductoDto>,
   ) {
     return this.productosService.update(id, dto);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'empleado_inventario')
+  @Patch(':id/imagen')
+  updateImage(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateProductoImagenDto,
+  ) {
+    return this.productosService.updateImage(id, dto.imagenUrl, dto.imagenPublicId);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

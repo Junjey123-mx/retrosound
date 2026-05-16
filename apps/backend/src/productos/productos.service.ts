@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductoDto } from './dto/create-producto.dto';
@@ -122,16 +127,69 @@ export class ProductosService {
     return this.mapProducto(producto);
   }
 
-  // Not yet exposed by controller; ready for a future PATCH /productos/:id/imagen endpoint.
-  // Replace with sp_actualizar_imagen_producto when provider portal is implemented.
+  // PATCH /productos/:id/imagen — admin and empleado_inventario only (p_id_proveedor = NULL).
   async updateImage(id: number, imagenUrl: string, imagenPublicId: string) {
     await this.findOne(id);
-    const producto = await this.prisma.producto.update({
+
+    // sp_actualizar_imagen_producto(p_id_producto, p_imagen_url, p_imagen_public_id,
+    //   p_id_proveedor NULL = admin/inventory bypass, OUT p_actualizado)
+    await this.prisma
+      .$queryRaw<Array<{ p_actualizado: boolean }>>`
+        CALL sp_actualizar_imagen_producto(
+          ${id}::integer,
+          ${imagenUrl}::text,
+          ${imagenPublicId}::varchar,
+          NULL::integer,
+          NULL::boolean
+        )
+      `
+      .catch((err: unknown) => this.mapImagenSpError(err));
+
+    const producto = await this.prisma.producto.findUnique({
       where: { idProducto: id },
-      data: { imagenUrl, imagenPublicId },
-      include: INCLUDE_RELACIONES,
+      select: {
+        idProducto: true,
+        tituloProducto: true,
+        imagenUrl: true,
+        imagenPublicId: true,
+      },
     });
-    return this.mapProducto(producto);
+
+    return {
+      idProducto: producto!.idProducto,
+      titulo: producto!.tituloProducto,
+      imagenUrl: producto!.imagenUrl,
+      imagenPublicId: producto!.imagenPublicId,
+      mensaje: 'Imagen actualizada correctamente',
+    };
+  }
+
+  private mapImagenSpError(error: unknown): never {
+    let msg = '';
+    if (error instanceof Error) {
+      msg = error.message.toLowerCase();
+      const meta = (error as { meta?: { message?: string } }).meta;
+      if (meta?.message) msg += ' ' + meta.message.toLowerCase();
+    }
+    if (msg.includes('product') && msg.includes('does not exist')) {
+      throw new NotFoundException('Producto no encontrado');
+    }
+    if (msg.includes('imagen_url') || msg.includes('imagen_public_id')) {
+      throw new BadRequestException(
+        'La URL o ID público de la imagen no puede estar vacío',
+      );
+    }
+    if (msg.includes('supplier') && msg.includes('does not exist')) {
+      throw new BadRequestException('El proveedor no existe en el sistema');
+    }
+    if (msg.includes('no ownership')) {
+      throw new ForbiddenException(
+        'El proveedor no tiene permisos sobre este producto',
+      );
+    }
+    throw new BadRequestException(
+      'Error al actualizar la imagen. Verifique los datos e intente nuevamente.',
+    );
   }
 
   async remove(id: number) {
