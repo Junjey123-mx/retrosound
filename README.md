@@ -1,6 +1,6 @@
 # RetroSound Store
 
-Proyecto 2 — Bases de Datos 1 (cc3088) · Universidad del Valle de Guatemala · Ciclo 1 2026
+Proyecto 3 — Bases de Datos 1 (cc3088) · Universidad del Valle de Guatemala · Ciclo 1 2026
 
 RetroSound Store es una tienda especializada en la venta de música en formatos físicos: vinilos, CDs y casetes. Permite gestionar productos, proveedores, ventas con transacciones explícitas y generar reportes SQL avanzados.
 
@@ -55,12 +55,19 @@ El `.env.example` ya contiene los valores correctos para evaluación. No es nece
 docker compose up --build
 ```
 
-El backend inicializa la base de datos con los scripts SQL oficiales:
+PostgreSQL inicializa la base de datos automáticamente con todos los scripts SQL de Project 3 en el orden correcto:
 
-- `db/retrosound_ddl.sql`
-- `db/retrosound_seed.sql`
+1. `db/retrosound_ddl.sql`
+2. `db/retrosound_seed.sql`
+3. `db/project3/01_schema_project3.sql`
+4. `db/project3/02_seed_project3.sql`
+5. `db/project3/03_roles_project3.sql`
+6. `db/project3/04_procedures_project3.sql`
+7. `db/project3/05_views_project3.sql`
+8. `db/project3/06_indexes_project3.sql`
+9. `db/project3/07_permissions_project3.sql`
 
-El backend usa **pg/node-postgres** con SQL explícito — sin ORM. Cuando veas la línea:
+La inicialización ocurre una sola vez (cuando el volumen `pgdata` está vacío). El backend usa **pg/node-postgres** con SQL explícito — sin ORM. Cuando veas la línea:
 
 ```
 backend-1  | Backend corriendo en http://localhost:3001
@@ -83,11 +90,11 @@ Todas están en `.env.example` con valores por defecto funcionales:
 
 | Variable | Valor por defecto | Descripción |
 |----------|------------------|-------------|
-| `POSTGRES_USER` | `proy2` | Usuario PostgreSQL usado por el contenedor |
+| `POSTGRES_USER` | `proy3` | Usuario PostgreSQL usado por el contenedor |
 | `POSTGRES_PASSWORD` | `secret` | Contraseña PostgreSQL usada por el contenedor |
 | `POSTGRES_DB` | `retrosound` | Base creada por el contenedor PostgreSQL |
 | `DB_HOST` | `localhost` | Host para conexión local fuera de Docker |
-| `DB_USER` | `proy2` | Usuario PostgreSQL (obligatorio para rúbrica) |
+| `DB_USER` | `proy3` | Usuario PostgreSQL (obligatorio para rúbrica) |
 | `DB_PASSWORD` | `secret` | Contraseña PostgreSQL (obligatorio para rúbrica) |
 | `DB_NAME` | `retrosound` | Nombre de la base de datos |
 | `DB_PORT` | `5433` | Puerto expuesto de Postgres en el host |
@@ -107,7 +114,7 @@ Todas están en `.env.example` con valores por defecto funcionales:
 | **Frontend** | http://localhost:3002 | Ver usuarios de prueba abajo |
 | **Backend API** | http://localhost:3003 | — |
 | **pgAdmin** | http://localhost:5051 | `admin@retrosound.dev` / `admin` |
-| **PostgreSQL** | `localhost:5433` | `proy2` / `secret` / db `retrosound` |
+| **PostgreSQL** | `localhost:5433` | `proy3` / `secret` / db `retrosound` |
 
 ---
 
@@ -766,8 +773,15 @@ Base URL: `http://localhost:3003`
 |---------|-----------|
 | `db/retrosound_ddl.sql` | `CREATE TABLE`, PK, FK, NOT NULL, CHECK, UNIQUE, `CREATE INDEX`, `CREATE VIEW` |
 | `db/retrosound_seed.sql` | 25 registros por tabla, usuarios con hash bcrypt real para `retro2025`, carritos y órdenes de prueba |
+| `db/project3/01_schema_project3.sql` | Alteraciones Project 3: nuevos roles, columnas Cloudinary, tabla `producto_proveedor` |
+| `db/project3/02_seed_project3.sql` | Cuentas demo para cada rol de Project 3 |
+| `db/project3/03_roles_project3.sql` | Creación de roles DBMS (`rs_admin`, `rs_empleado_ventas`, etc.) |
+| `db/project3/04_procedures_project3.sql` | Stored procedures: entregas proveedor, confirmación stock, venta, checkout, imagen |
+| `db/project3/05_views_project3.sql` | Vistas: `vista_recepciones_pendientes`, `vista_productos_proveedor`, `vista_stock_critico` |
+| `db/project3/06_indexes_project3.sql` | Índices explícitos para columnas de alto uso |
+| `db/project3/07_permissions_project3.sql` | GRANT/REVOKE por rol; permisos de ejecución de procedures |
 
-Docker aplica automáticamente estos archivos al iniciar si la base está vacía. La base de datos se inicializa con SQL explícito; no se utiliza ORM en runtime.
+Docker aplica automáticamente todos estos archivos al iniciar si el volumen `pgdata` está vacío. La carga se realiza en el orden indicado mediante `db/init_all.sh` montado en `/docker-entrypoint-initdb.d/`. La base de datos se inicializa con SQL explícito; no se utiliza ORM en runtime.
 
 ---
 
@@ -841,13 +855,13 @@ docker compose up --build
 
 ```bash
 # Tablas
-docker compose exec -T postgres psql -U proy2 -d retrosound -c "\dt"
+docker compose exec -T postgres psql -U proy3 -d retrosound -c "\dt"
 
 # Vista
-docker compose exec -T postgres psql -U proy2 -d retrosound -c "\dv"
+docker compose exec -T postgres psql -U proy3 -d retrosound -c "\dv"
 
 # Conteos
-docker compose exec -T postgres psql -U proy2 -d retrosound -c "
+docker compose exec -T postgres psql -U proy3 -d retrosound -c "
 SELECT 'categoria' AS tabla, COUNT(*) FROM categoria
 UNION ALL SELECT 'producto',  COUNT(*) FROM producto
 UNION ALL SELECT 'usuario',   COUNT(*) FROM usuario
