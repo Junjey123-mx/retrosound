@@ -5,6 +5,15 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
+type CurrentUserPayload = {
+  id: number;
+  correo: string;
+  rol: string;
+  idCliente: number | null;
+  idEmpleado: number | null;
+  idProveedor: number | null;
+};
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -19,11 +28,9 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
-  // Retorna el usuario autenticado actual (id, correo, rol)
-  // 401 si el token es inválido o está expirado
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  me(@CurrentUser() user: { id: number; correo: string; rol: string }) {
+  me(@CurrentUser() user: CurrentUserPayload) {
     return user;
   }
 }

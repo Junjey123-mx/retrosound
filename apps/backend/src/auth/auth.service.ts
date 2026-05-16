@@ -5,141 +5,139 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { DatabaseService } from '../database';
+import { Prisma } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
-type UsuarioAuthRow = {
-  id_usuario: number;
-  correo_usuario: string;
-  contrasena_hash: string;
-  rol_usuario: string;
-  estado_usuario: string;
-  id_cliente: number | null;
-  id_empleado: number | null;
-  id_proveedor: number | null;
+type AuthPayload = {
+  idUsuario: number;
+  correoUsuario: string;
+  rolUsuario: string;
+  estadoUsuario: string;
+  idCliente: number | null;
+  idEmpleado: number | null;
+  idProveedor: number | null;
+  nombre: string | null;
 };
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly db: DatabaseService,
+    private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
   ) {}
 
   async register(dto: RegisterDto) {
-    const client = await this.db.getClient();
+    const hash = await bcrypt.hash(dto.contrasena, 10);
 
     try {
-      await client.query('BEGIN');
+      const { usuario, cliente } = await this.prisma.$transaction(async (tx) => {
+        const cliente = await tx.cliente.create({
+          data: {
+            nombreCliente: dto.nombre,
+            apellidoCliente: dto.apellido,
+            correoCliente: dto.correo,
+            fechaRegistroCliente: new Date(),
+            estadoCliente: 'activo',
+          },
+        });
 
-      const existe = await client.query<{ id_usuario: number }>(
-        `
-        SELECT id_usuario
-        FROM usuario
-        WHERE correo_usuario = $1
-        LIMIT 1
-        `,
-        [dto.correo],
-      );
-      if (existe.rowCount && existe.rowCount > 0) {
+        const usuario = await tx.usuario.create({
+          data: {
+            correoUsuario: dto.correo,
+            contrasenaHash: hash,
+            rolUsuario: 'cliente',
+            estadoUsuario: 'activo',
+            idCliente: cliente.idCliente,
+          },
+        });
+
+        return { usuario, cliente };
+      });
+
+      return this.firmarToken({
+        idUsuario: usuario.idUsuario,
+        correoUsuario: usuario.correoUsuario,
+        rolUsuario: usuario.rolUsuario,
+        estadoUsuario: usuario.estadoUsuario,
+        idCliente: usuario.idCliente,
+        idEmpleado: usuario.idEmpleado,
+        idProveedor: usuario.idProveedor,
+        nombre: `${cliente.nombreCliente} ${cliente.apellidoCliente}`,
+      });
+    } catch (e) {
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2002'
+      ) {
         throw new ConflictException('El correo ya está registrado');
       }
-
-      const hash = await bcrypt.hash(dto.contrasena, 10);
-
-      const clienteResult = await client.query<{ id_cliente: number }>(
-        `
-        INSERT INTO cliente
-          (nombre_cliente, apellido_cliente, correo_cliente, fecha_registro_cliente, estado_cliente)
-        VALUES
-          ($1, $2, $3, CURRENT_DATE, 'activo')
-        RETURNING id_cliente
-        `,
-        [dto.nombre, dto.apellido, dto.correo],
-      );
-      const cliente = clienteResult.rows[0];
-
-      const usuarioResult = await client.query<{
-        id_usuario: number;
-        correo_usuario: string;
-        rol_usuario: string;
-      }>(
-        `
-        INSERT INTO usuario
-          (correo_usuario, contrasena_hash, rol_usuario, estado_usuario, id_cliente, id_empleado, id_proveedor)
-        VALUES
-          ($1, $2, 'cliente', 'activo', $3, NULL, NULL)
-        RETURNING id_usuario, correo_usuario, rol_usuario
-        `,
-        [dto.correo, hash, cliente.id_cliente],
-      );
-      const usuario = usuarioResult.rows[0];
-
-      await client.query('COMMIT');
-
-      return this.firmarToken(
-        usuario.id_usuario,
-        usuario.correo_usuario,
-        usuario.rol_usuario,
-      );
-    } catch (error) {
-      await client.query('ROLLBACK');
-      if (this.isUniqueViolation(error)) {
-        throw new ConflictException('El correo ya está registrado');
-      }
-      throw error;
-    } finally {
-      client.release();
+      throw e;
     }
   }
 
   async login(dto: LoginDto) {
-    const result = await this.db.query<UsuarioAuthRow>(
-      `
-      SELECT
-        id_usuario,
-        correo_usuario,
-        contrasena_hash,
-        rol_usuario,
-        estado_usuario,
-        id_cliente,
-        id_empleado,
-        id_proveedor
-      FROM usuario
-      WHERE correo_usuario = $1
-      LIMIT 1
-      `,
-      [dto.correo],
-    );
-    const usuario = result.rows[0];
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { correoUsuario: dto.correo },
+      include: {
+        cliente: { select: { nombreCliente: true, apellidoCliente: true } },
+        empleado: { select: { nombreEmpleado: true, apellidoEmpleado: true } },
+        proveedor: { select: { nombreProveedor: true } },
+      },
+    });
+
     if (!usuario) throw new UnauthorizedException('Credenciales inválidas');
 
-    if (usuario.estado_usuario !== 'activo') {
+    if (usuario.estadoUsuario !== 'activo') {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    const valido = await bcrypt.compare(dto.contrasena, usuario.contrasena_hash);
+    const valido = await bcrypt.compare(dto.contrasena, usuario.contrasenaHash);
     if (!valido) throw new UnauthorizedException('Credenciales inválidas');
 
-    return this.firmarToken(
-      usuario.id_usuario,
-      usuario.correo_usuario,
-      usuario.rol_usuario,
-    );
+    const nombre = usuario.cliente
+      ? `${usuario.cliente.nombreCliente} ${usuario.cliente.apellidoCliente}`
+      : usuario.empleado
+        ? `${usuario.empleado.nombreEmpleado} ${usuario.empleado.apellidoEmpleado}`
+        : usuario.proveedor
+          ? usuario.proveedor.nombreProveedor
+          : null;
+
+    return this.firmarToken({
+      idUsuario: usuario.idUsuario,
+      correoUsuario: usuario.correoUsuario,
+      rolUsuario: usuario.rolUsuario,
+      estadoUsuario: usuario.estadoUsuario,
+      idCliente: usuario.idCliente,
+      idEmpleado: usuario.idEmpleado,
+      idProveedor: usuario.idProveedor,
+      nombre,
+    });
   }
 
-  private firmarToken(id: number, correo: string, rol: string) {
-    const token = this.jwt.sign({ sub: id, correo, rol });
-    return { access_token: token };
-  }
+  private firmarToken(u: AuthPayload) {
+    const payload = {
+      sub: u.idUsuario,
+      correo: u.correoUsuario,
+      rol: u.rolUsuario,
+      idCliente: u.idCliente,
+      idEmpleado: u.idEmpleado,
+      idProveedor: u.idProveedor,
+    };
 
-  private isUniqueViolation(error: unknown) {
-    return (
-      typeof error === 'object' &&
-      error !== null &&
-      'code' in error &&
-      error.code === '23505'
-    );
+    return {
+      access_token: this.jwt.sign(payload),
+      user: {
+        id: u.idUsuario,
+        correo: u.correoUsuario,
+        rol: u.rolUsuario,
+        estado: u.estadoUsuario,
+        nombre: u.nombre,
+        idCliente: u.idCliente,
+        idEmpleado: u.idEmpleado,
+        idProveedor: u.idProveedor,
+      },
+    };
   }
 }
