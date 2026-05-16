@@ -1,8 +1,6 @@
 -- ============================================================
 -- RetroSound Store - Proyecto 3
 -- File: 07_permissions_project3.sql
--- Purpose: GRANT/REVOKE for the 5 DBMS roles
--- Run after: 01_schema_project3.sql, 03_roles_project3.sql, 05_views_project3.sql
 -- ============================================================
 
 -- ── Security baseline ────────────────────────────────────────
