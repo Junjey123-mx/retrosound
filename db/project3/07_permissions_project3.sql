@@ -101,3 +101,6 @@ GRANT rs_empleado_ventas       TO proy3;
 GRANT rs_empleado_inventario   TO proy3;
 GRANT rs_cliente               TO proy3;
 GRANT rs_proveedor             TO proy3;
+
+-- sales summary view defined in retrosound_ddl.sql
+GRANT SELECT ON vista_resumen_ventas TO rs_empleado_ventas, rs_admin;
