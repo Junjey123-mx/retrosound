@@ -47,4 +47,24 @@ ALTER TABLE compra_proveedor
 ALTER TABLE compra_proveedor
     ALTER COLUMN id_empleado DROP NOT NULL;
 
+-- explicit product-supplier ownership; enables provider portal scoping and permission grants
+CREATE TABLE IF NOT EXISTS producto_proveedor (
+    id_producto          INTEGER NOT NULL,
+    id_proveedor         INTEGER NOT NULL,
+    es_proveedor_principal BOOLEAN NOT NULL DEFAULT TRUE,
+
+    CONSTRAINT producto_proveedor_pkey PRIMARY KEY (id_producto, id_proveedor),
+    CONSTRAINT producto_proveedor_prod_fkey
+        FOREIGN KEY (id_producto)  REFERENCES producto(id_producto)  ON DELETE CASCADE,
+    CONSTRAINT producto_proveedor_prov_fkey
+        FOREIGN KEY (id_proveedor) REFERENCES proveedor(id_proveedor) ON DELETE CASCADE
+);
+
+-- seed from purchase history; existing rows are skipped on re-run
+INSERT INTO producto_proveedor (id_producto, id_proveedor)
+SELECT DISTINCT dcp.id_producto, cp.id_proveedor
+FROM   detalle_compra_proveedor dcp
+JOIN   compra_proveedor cp ON cp.id_compra_proveedor = dcp.id_compra_proveedor
+ON CONFLICT DO NOTHING;
+
 COMMIT;
