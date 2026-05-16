@@ -21,4 +21,18 @@ ALTER TABLE producto
     ADD COLUMN IF NOT EXISTS imagen_url       TEXT,
     ADD COLUMN IF NOT EXISTS imagen_public_id VARCHAR(255);
 
+-- NULL while delivery is pending; set on receipt confirmation
+ALTER TABLE detalle_compra_proveedor
+    ADD COLUMN IF NOT EXISTS cantidad_recibida INTEGER;
+
+ALTER TABLE detalle_compra_proveedor
+    DROP CONSTRAINT IF EXISTS chk_cantidad_recibida_valida,
+    DROP CONSTRAINT IF EXISTS chk_cantidad_recibida_no_supera_comprada;
+
+ALTER TABLE detalle_compra_proveedor
+    ADD CONSTRAINT chk_cantidad_recibida_valida
+        CHECK (cantidad_recibida IS NULL OR cantidad_recibida >= 0),
+    ADD CONSTRAINT chk_cantidad_recibida_no_supera_comprada
+        CHECK (cantidad_recibida IS NULL OR cantidad_recibida <= cantidad_comprada);
+
 COMMIT;
