@@ -6,7 +6,14 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CheckoutService } from './checkout.service';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
 
-type UsuarioToken = { id: number; correo: string; rol: string };
+type AuthUser = {
+  id: number;
+  correo: string;
+  rol: string;
+  idCliente: number | null;
+  idEmpleado: number | null;
+  idProveedor: number | null;
+};
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('cliente')
@@ -14,15 +21,11 @@ type UsuarioToken = { id: number; correo: string; rol: string };
 export class CheckoutController {
   constructor(private readonly checkoutService: CheckoutService) {}
 
-  // POST /checkout
-  // Convierte el carrito activo en una venta real.
-  // Requiere JWT con rol=cliente.
-  // idCliente se resuelve desde el token — no se acepta en el body.
   @Post()
   checkout(
-    @CurrentUser() user: UsuarioToken,
+    @CurrentUser() user: AuthUser,
     @Body() dto: CreateCheckoutDto,
   ) {
-    return this.checkoutService.checkout(user.id, dto);
+    return this.checkoutService.checkout(user.idCliente, dto);
   }
 }
