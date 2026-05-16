@@ -1,0 +1,299 @@
+// RetroSound Store — Prisma schema
+// Maps to existing PostgreSQL schema; no migrations generated from here.
+// All status/role fields use String (DB uses VARCHAR + CHECK, not native enums).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Catálogos ──────────────────────────────────────────────────────────────
+
+model Categoria {
+  idCategoria          Int       @id @default(autoincrement()) @map("id_categoria")
+  nombreCategoria      String    @map("nombre_categoria") @db.VarChar(255)
+  descripcionCategoria String?   @map("descripcion_categoria") @db.VarChar(255)
+  estadoCategoria      String    @default("activo") @map("estado_categoria") @db.VarChar(20)
+
+  productos            Producto[]
+
+  @@map("categoria")
+}
+
+model Formato {
+  idFormato          Int       @id @default(autoincrement()) @map("id_formato")
+  nombreFormato      String    @map("nombre_formato") @db.VarChar(255)
+  descripcionFormato String?   @map("descripcion_formato") @db.VarChar(255)
+  estadoFormato      String    @default("activo") @map("estado_formato") @db.VarChar(20)
+
+  productos          Producto[]
+
+  @@map("formato")
+}
+
+model GeneroMusical {
+  idGeneroMusical          Int              @id @default(autoincrement()) @map("id_genero_musical")
+  nombreGeneroMusical      String           @map("nombre_genero_musical") @db.VarChar(255)
+  descripcionGeneroMusical String?          @map("descripcion_genero_musical") @db.VarChar(255)
+  estadoGeneroMusical      String           @default("activo") @map("estado_genero_musical") @db.VarChar(20)
+
+  productosGenero          ProductoGenero[]
+
+  @@map("genero_musical")
+}
+
+model Artista {
+  idArtista          Int               @id @default(autoincrement()) @map("id_artista")
+  nombreArtista      String            @map("nombre_artista") @db.VarChar(255)
+  paisOrigenArtista  String?           @map("pais_origen_artista") @db.VarChar(255)
+  anioInicioArtista  Int?              @map("anio_inicio_artista")
+  estadoArtista      String            @default("activo") @map("estado_artista") @db.VarChar(20)
+
+  productosArtista   ProductoArtista[]
+
+  @@map("artista")
+}
+
+// ── Personas / terceros ────────────────────────────────────────────────────
+
+model Cliente {
+  idCliente            Int       @id @default(autoincrement()) @map("id_cliente")
+  nombreCliente        String    @map("nombre_cliente") @db.VarChar(255)
+  apellidoCliente      String    @map("apellido_cliente") @db.VarChar(255)
+  telefonoCliente      String?   @map("telefono_cliente") @db.VarChar(255)
+  correoCliente        String?   @map("correo_cliente") @db.VarChar(255)
+  direccionCliente     String?   @map("direccion_cliente") @db.VarChar(255)
+  fechaRegistroCliente DateTime  @map("fecha_registro_cliente") @db.Date
+  estadoCliente        String    @default("activo") @map("estado_cliente") @db.VarChar(20)
+  fechaInactivacion    DateTime? @map("fecha_inactivacion") @db.Date
+
+  usuario              Usuario?
+  ventas               Venta[]
+  carritos             Carrito[]
+
+  @@map("cliente")
+}
+
+model Empleado {
+  idEmpleado        Int       @id @default(autoincrement()) @map("id_empleado")
+  nombreEmpleado    String    @map("nombre_empleado") @db.VarChar(255)
+  apellidoEmpleado  String    @map("apellido_empleado") @db.VarChar(255)
+  telefonoEmpleado  String?   @map("telefono_empleado") @db.VarChar(255)
+  correoEmpleado    String?   @map("correo_empleado") @db.VarChar(255)
+  fechaContratacion DateTime  @map("fecha_contratacion") @db.Date
+  estadoEmpleado    String    @default("activo") @map("estado_empleado") @db.VarChar(20)
+  fechaInactivacion DateTime? @map("fecha_inactivacion") @db.Date
+
+  usuario           Usuario?
+  ventas            Venta[]
+  comprasProveedor  CompraProveedor[]
+
+  @@map("empleado")
+}
+
+model Proveedor {
+  idProveedor             Int                 @id @default(autoincrement()) @map("id_proveedor")
+  nombreProveedor         String              @map("nombre_proveedor") @db.VarChar(255)
+  telefonoProveedor       String?             @map("telefono_proveedor") @db.VarChar(255)
+  correoProveedor         String?             @map("correo_proveedor") @db.VarChar(255)
+  direccionProveedor      String?             @map("direccion_proveedor") @db.VarChar(255)
+  nombreContactoProveedor String?             @map("nombre_contacto_proveedor") @db.VarChar(255)
+  estadoProveedor         String              @default("activo") @map("estado_proveedor") @db.VarChar(20)
+  fechaInactivacion       DateTime?           @map("fecha_inactivacion") @db.Date
+
+  usuario                 Usuario?
+  comprasProveedor        CompraProveedor[]
+  productosProveedor      ProductoProveedor[]
+
+  @@map("proveedor")
+}
+
+// ── Productos ──────────────────────────────────────────────────────────────
+
+model Producto {
+  idProducto          Int       @id @default(autoincrement()) @map("id_producto")
+  tituloProducto      String    @map("titulo_producto") @db.VarChar(255)
+  descripcionProducto String?   @map("descripcion_producto") @db.VarChar(255)
+  anioLanzamiento     Int?      @map("anio_lanzamiento")
+  precioVenta         Decimal   @map("precio_venta") @db.Decimal(10, 2)
+  stockActual         Int       @default(0) @map("stock_actual")
+  stockMinimo         Int       @default(0) @map("stock_minimo")
+  codigoSku           String    @unique @map("codigo_sku") @db.VarChar(255)
+  estadoProducto      String    @default("activo") @map("estado_producto") @db.VarChar(30)
+  fechaInactivacion   DateTime? @map("fecha_inactivacion") @db.Date
+  // added by 01_schema_project3.sql (Cloudinary image reference)
+  imagenUrl           String?   @map("imagen_url")
+  imagenPublicId      String?   @map("imagen_public_id") @db.VarChar(255)
+  idCategoria         Int       @map("id_categoria")
+  idFormato           Int       @map("id_formato")
+
+  categoria           Categoria              @relation(fields: [idCategoria], references: [idCategoria])
+  formato             Formato                @relation(fields: [idFormato], references: [idFormato])
+  productosArtista    ProductoArtista[]
+  productosGenero     ProductoGenero[]
+  detallesVenta       DetalleVenta[]
+  detallesCompra      DetalleCompraProveedor[]
+  carritoItems        CarritoItem[]
+  productosProveedor  ProductoProveedor[]
+
+  @@map("producto")
+}
+
+model ProductoArtista {
+  idProducto Int @map("id_producto")
+  idArtista  Int @map("id_artista")
+
+  producto   Producto @relation(fields: [idProducto], references: [idProducto])
+  artista    Artista  @relation(fields: [idArtista], references: [idArtista])
+
+  @@id([idProducto, idArtista])
+  @@map("producto_artista")
+}
+
+model ProductoGenero {
+  idProducto      Int @map("id_producto")
+  idGeneroMusical Int @map("id_genero_musical")
+
+  producto        Producto      @relation(fields: [idProducto], references: [idProducto])
+  generoMusical   GeneroMusical @relation(fields: [idGeneroMusical], references: [idGeneroMusical])
+
+  @@id([idProducto, idGeneroMusical])
+  @@map("producto_genero")
+}
+
+// added by 01_schema_project3.sql
+model ProductoProveedor {
+  idProducto           Int     @map("id_producto")
+  idProveedor          Int     @map("id_proveedor")
+  esProveedorPrincipal Boolean @default(true) @map("es_proveedor_principal")
+
+  producto             Producto  @relation(fields: [idProducto], references: [idProducto], onDelete: Cascade)
+  proveedor            Proveedor @relation(fields: [idProveedor], references: [idProveedor], onDelete: Cascade)
+
+  @@id([idProducto, idProveedor])
+  @@map("producto_proveedor")
+}
+
+// ── Autenticación ──────────────────────────────────────────────────────────
+
+model Usuario {
+  idUsuario         Int       @id @default(autoincrement()) @map("id_usuario")
+  correoUsuario     String    @unique @map("correo_usuario") @db.VarChar(255)
+  contrasenaHash    String    @map("contrasena_hash") @db.VarChar(255)
+  // valid values: admin | empleado_ventas | empleado_inventario | cliente | proveedor
+  rolUsuario        String    @map("rol_usuario") @db.VarChar(20)
+  estadoUsuario     String    @default("activo") @map("estado_usuario") @db.VarChar(20)
+  fechaInactivacion DateTime? @map("fecha_inactivacion") @db.Date
+  idCliente         Int?      @unique @map("id_cliente")
+  idEmpleado        Int?      @unique @map("id_empleado")
+  idProveedor       Int?      @unique @map("id_proveedor")
+
+  cliente           Cliente?   @relation(fields: [idCliente], references: [idCliente])
+  empleado          Empleado?  @relation(fields: [idEmpleado], references: [idEmpleado])
+  proveedor         Proveedor? @relation(fields: [idProveedor], references: [idProveedor])
+
+  @@map("usuario")
+}
+
+// ── Ventas ─────────────────────────────────────────────────────────────────
+
+model Venta {
+  idVenta        Int       @id @default(autoincrement()) @map("id_venta")
+  fechaVenta     DateTime  @map("fecha_venta") @db.Date
+  descuentoVenta Decimal   @default(0.00) @map("descuento_venta") @db.Decimal(10, 2)
+  metodoPago     String    @map("metodo_pago") @db.VarChar(255)
+  // valid values: pendiente | completada | cancelada
+  estadoVenta    String    @default("pendiente") @map("estado_venta") @db.VarChar(20)
+  idCliente      Int       @map("id_cliente")
+  idEmpleado     Int?      @map("id_empleado")
+
+  cliente        Cliente   @relation(fields: [idCliente], references: [idCliente])
+  empleado       Empleado? @relation(fields: [idEmpleado], references: [idEmpleado])
+  detalles       DetalleVenta[]
+
+  @@map("venta")
+}
+
+model DetalleVenta {
+  idDetalleVenta      Int     @id @default(autoincrement()) @map("id_detalle_venta")
+  idVenta             Int     @map("id_venta")
+  idProducto          Int     @map("id_producto")
+  cantidadVendida     Int     @map("cantidad_vendida")
+  precioUnitarioVenta Decimal @map("precio_unitario_venta") @db.Decimal(10, 2)
+  descuentoDetalle    Decimal @default(0.00) @map("descuento_detalle") @db.Decimal(10, 2)
+
+  venta               Venta   @relation(fields: [idVenta], references: [idVenta])
+  producto            Producto @relation(fields: [idProducto], references: [idProducto])
+
+  @@unique([idVenta, idProducto])
+  @@map("detalle_venta")
+}
+
+// ── Compras a proveedor ────────────────────────────────────────────────────
+
+model CompraProveedor {
+  idCompraProveedor    Int       @id @default(autoincrement()) @map("id_compra_proveedor")
+  fechaCompraProveedor DateTime  @map("fecha_compra_proveedor") @db.Date
+  // valid values: pendiente | recibida | parcial | cancelada
+  estadoCompra         String    @default("pendiente") @map("estado_compra") @db.VarChar(20)
+  idProveedor          Int       @map("id_proveedor")
+  // nullable since 01_schema_project3.sql: NULL until employee confirms receipt
+  idEmpleado           Int?      @map("id_empleado")
+
+  proveedor            Proveedor               @relation(fields: [idProveedor], references: [idProveedor])
+  empleado             Empleado?               @relation(fields: [idEmpleado], references: [idEmpleado])
+  detalles             DetalleCompraProveedor[]
+
+  @@map("compra_proveedor")
+}
+
+model DetalleCompraProveedor {
+  idDetalleCompraProveedor Int      @id @default(autoincrement()) @map("id_detalle_compra_proveedor")
+  idCompraProveedor        Int      @map("id_compra_proveedor")
+  idProducto               Int      @map("id_producto")
+  cantidadComprada         Int      @map("cantidad_comprada")
+  costoUnitarioCompra      Decimal  @map("costo_unitario_compra") @db.Decimal(10, 2)
+  // added by 01_schema_project3.sql; NULL until receipt confirmed
+  cantidadRecibida         Int?     @map("cantidad_recibida")
+
+  compraProveedor          CompraProveedor @relation(fields: [idCompraProveedor], references: [idCompraProveedor])
+  producto                 Producto        @relation(fields: [idProducto], references: [idProducto])
+
+  @@unique([idCompraProveedor, idProducto])
+  @@map("detalle_compra_proveedor")
+}
+
+// ── Carrito ────────────────────────────────────────────────────────────────
+
+model Carrito {
+  idCarrito          Int       @id @default(autoincrement()) @map("id_carrito")
+  idCliente          Int       @map("id_cliente")
+  // valid values: activo | convertido | abandonado | cancelado
+  estadoCarrito      String    @default("activo") @map("estado_carrito") @db.VarChar(20)
+  fechaCreacion      DateTime  @default(now()) @map("fecha_creacion") @db.Timestamp(3)
+  fechaActualizacion DateTime  @default(now()) @updatedAt @map("fecha_actualizacion") @db.Timestamp(3)
+
+  cliente            Cliente     @relation(fields: [idCliente], references: [idCliente])
+  items              CarritoItem[]
+
+  @@map("carrito")
+}
+
+model CarritoItem {
+  idCarritoItem          Int      @id @default(autoincrement()) @map("id_carrito_item")
+  idCarrito              Int      @map("id_carrito")
+  idProducto             Int      @map("id_producto")
+  cantidad               Int      @map("cantidad")
+  precioUnitarioSnapshot Decimal  @map("precio_unitario_snapshot") @db.Decimal(10, 2)
+  fechaAgregado          DateTime @default(now()) @map("fecha_agregado") @db.Timestamp(3)
+
+  carrito                Carrito  @relation(fields: [idCarrito], references: [idCarrito], onDelete: Cascade)
+  producto               Producto @relation(fields: [idProducto], references: [idProducto])
+
+  @@unique([idCarrito, idProducto])
+  @@map("carrito_item")
+}
