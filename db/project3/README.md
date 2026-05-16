@@ -296,3 +296,221 @@ Candidatos identificados:
 | Usar Prisma en al menos 3 operaciones CRUD reales                      | Media     |
 | Implementar `SET ROLE` por request en el backend                       | Media     |
 | Definir índices en `06_indexes_project3.sql`                           | Baja      |
+
+---
+
+## 15. Validación final de scripts DB
+
+Esta sección documenta los comandos para verificar manualmente que los scripts se aplicaron correctamente. Todos los comandos asumen que la base ya fue inicializada con todos los scripts en el orden del paso 2.
+
+> Los ejemplos de `CALL` usan IDs del seed base (`db/retrosound_seed.sql` + `02_seed_project3.sql`). Si el seed cambia o se ejecuta en limpio, verificar que los IDs existan antes de ejecutar.
+
+### Conexión a psql desde Docker
+
+```bash
+# Reemplazar 'db' por el nombre real del servicio en docker-compose.yml si es diferente
+docker compose exec db psql -U proy3 -d retrosound
+```
+
+---
+
+### Validar roles DBMS
+
+```sql
+-- Listar todos los roles del servidor
+\du
+
+-- Verificar los 6 roles esperados (5 funcionales + 1 técnico)
+SELECT rolname
+FROM pg_roles
+WHERE rolname IN (
+    'rs_admin',
+    'rs_empleado_ventas',
+    'rs_empleado_inventario',
+    'rs_cliente',
+    'rs_proveedor',
+    'proy3'
+);
+```
+
+Resultado esperado: 6 filas.
+
+---
+
+### Validar tablas
+
+```sql
+-- Listar tablas del schema public
+\dt
+
+-- Conteos básicos de integridad
+SELECT COUNT(*) FROM producto;
+SELECT COUNT(*) FROM usuario;
+SELECT COUNT(*) FROM producto_proveedor;
+```
+
+---
+
+### Validar columnas nuevas de Proyecto 3
+
+```sql
+-- Columnas imagen_url e imagen_public_id en producto
+SELECT column_name
+FROM information_schema.columns
+WHERE table_name = 'producto'
+  AND column_name IN ('imagen_url', 'imagen_public_id');
+
+-- Columna cantidad_recibida en detalle_compra_proveedor
+SELECT column_name
+FROM information_schema.columns
+WHERE table_name = 'detalle_compra_proveedor'
+  AND column_name = 'cantidad_recibida';
+```
+
+Resultado esperado: 2 filas en la primera consulta, 1 fila en la segunda.
+
+---
+
+### Validar vistas
+
+```sql
+-- Listar vistas disponibles
+\dv
+
+-- Probar cada vista (ajustar LIMIT según datos disponibles)
+SELECT * FROM vista_recepciones_pendientes LIMIT 5;
+SELECT * FROM vista_productos_proveedor    LIMIT 5;
+SELECT * FROM vista_stock_critico          LIMIT 5;
+SELECT * FROM vista_resumen_ventas         LIMIT 5;
+```
+
+---
+
+### Validar stored procedures
+
+```sql
+-- Verificar que los 5 procedures existen
+SELECT proname
+FROM pg_proc
+WHERE proname IN (
+    'sp_registrar_entrega_proveedor',
+    'sp_confirmar_recepcion_stock',
+    'sp_crear_venta',
+    'sp_checkout_carrito',
+    'sp_actualizar_imagen_producto'
+);
+```
+
+Resultado esperado: 5 filas.
+
+---
+
+### Ejemplos de CALL
+
+En PostgreSQL, los parámetros `OUT` se pasan como `NULL` en la llamada desde psql.
+
+> **Nota:** Los IDs usados (`id_proveedor=3`, `id_producto=1`, `id_empleado=12`, `id_cliente=14`) corresponden al seed. Ajustar si se ejecuta en una base con datos distintos.
+
+#### `sp_registrar_entrega_proveedor`
+Registra una entrega del proveedor 3 para el producto 1.
+```sql
+CALL sp_registrar_entrega_proveedor(3, 1, 5, 100.00, NULL);
+```
+
+#### `sp_confirmar_recepcion_stock`
+Confirma la recepción del detalle de compra 1, recibiendo 3 unidades, confirmado por el empleado 12.
+```sql
+CALL sp_confirmar_recepcion_stock(1, 3, 12, NULL, NULL);
+```
+
+#### `sp_crear_venta`
+Crea una venta para el cliente 14, atendida por el empleado 11, con 1 unidad del producto 1.
+```sql
+CALL sp_crear_venta(
+    14,
+    11,
+    'tarjeta',
+    0,
+    '[{"idProducto": 1, "cantidad": 1, "descuento": 0}]'::jsonb,
+    NULL
+);
+```
+
+#### `sp_checkout_carrito`
+Convierte el carrito activo del cliente 14 en una venta pagada con tarjeta. Requiere que el cliente tenga un carrito activo con al menos un ítem.
+```sql
+CALL sp_checkout_carrito(14, 'tarjeta', NULL);
+```
+
+#### `sp_actualizar_imagen_producto`
+Actualiza la imagen del producto 1. `p_id_proveedor = NULL` indica uso por admin o inventario (sin verificar ownership).
+```sql
+CALL sp_actualizar_imagen_producto(
+    1,
+    'https://res.cloudinary.com/demo/image/upload/sample.jpg',
+    'retrosound/sample',
+    NULL,
+    NULL
+);
+```
+
+Para llamada desde un proveedor con ownership validado (proveedor 3 sobre producto 1):
+```sql
+CALL sp_actualizar_imagen_producto(
+    1,
+    'https://res.cloudinary.com/demo/image/upload/sample.jpg',
+    'retrosound/sample',
+    3,
+    NULL
+);
+```
+
+---
+
+### Validar permisos con SET ROLE
+
+`proy3` hereda todos los roles DBMS. Usar `SET ROLE` para simular el contexto de cada rol:
+
+```sql
+-- Simular rol de proveedor
+SET ROLE rs_proveedor;
+SELECT * FROM vista_productos_proveedor LIMIT 5;
+RESET ROLE;
+
+-- Simular rol de inventario
+SET ROLE rs_empleado_inventario;
+SELECT * FROM vista_recepciones_pendientes LIMIT 5;
+RESET ROLE;
+
+-- Simular rol de ventas
+SET ROLE rs_empleado_ventas;
+SELECT * FROM vista_resumen_ventas LIMIT 5;
+RESET ROLE;
+```
+
+Una operación bloqueada debe devolver `ERROR: permission denied`. Eso confirma que los GRANT/REVOKE funcionan correctamente.
+
+---
+
+### Prisma: migraciones y seed
+
+**No se usan Prisma migrations en esta etapa.** La base de datos existente se controla completamente mediante los scripts SQL de `db/`. Ejecutar `prisma migrate` crearía una migración inicial que entraría en conflicto con la estructura ya aplicada.
+
+- `apps/backend/prisma/schema.prisma` funciona como mapeo ORM de la base existente, no como fuente de verdad del DDL.
+- El seed principal es SQL: `db/retrosound_seed.sql` + `db/project3/02_seed_project3.sql`.
+- Si en el futuro se requiere un seed Prisma (`apps/backend/prisma/seed.ts`), no debe duplicar los datos del seed SQL.
+
+### Comandos Prisma para cuando se instale la dependencia
+
+```bash
+cd apps/backend
+
+# Instalar dependencias
+npm install prisma @prisma/client
+
+# Verificar que el schema es sintácticamente válido
+npx prisma validate
+
+# Generar el cliente Prisma (no ejecuta migraciones)
+npx prisma generate
+```
