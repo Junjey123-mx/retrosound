@@ -1,17 +1,23 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsDateString, IsInt, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 
 export class CreateDetalleVentaDto {
   @IsInt()
+  @Min(1)
   idProducto: number;
 
   @IsInt()
   @Min(1)
   cantidadVendida: number;
-
-  @IsNumber()
-  @Min(0)
-  precioUnitario: number;
 
   @IsOptional()
   @IsNumber()
@@ -20,24 +26,20 @@ export class CreateDetalleVentaDto {
 }
 
 export class CreateVentaDto {
-  @IsDateString()
-  fechaVenta: string;
+  @IsInt()
+  @Min(1)
+  idCliente: number;
+
+  @IsString()
+  metodoPago: string;
 
   @IsOptional()
   @IsNumber()
   @Min(0)
   descuento?: number;
 
-  @IsString()
-  metodoPago: string;
-
-  @IsInt()
-  idCliente: number;
-
-  @IsInt()
-  idEmpleado: number;
-
   @IsArray()
+  @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => CreateDetalleVentaDto)
   detalles: CreateDetalleVentaDto[];
