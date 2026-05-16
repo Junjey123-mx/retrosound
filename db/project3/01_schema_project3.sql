@@ -35,4 +35,16 @@ ALTER TABLE detalle_compra_proveedor
     ADD CONSTRAINT chk_cantidad_recibida_no_supera_comprada
         CHECK (cantidad_recibida IS NULL OR cantidad_recibida <= cantidad_comprada);
 
+-- 'parcial' covers receipts where cantidad_recibida < cantidad_comprada
+ALTER TABLE compra_proveedor
+    DROP CONSTRAINT IF EXISTS chk_compra_proveedor_estado;
+
+ALTER TABLE compra_proveedor
+    ADD CONSTRAINT chk_compra_proveedor_estado
+        CHECK (estado_compra IN ('pendiente', 'recibida', 'parcial', 'cancelada'));
+
+-- provider-initiated deliveries arrive before an employee confirms them
+ALTER TABLE compra_proveedor
+    ALTER COLUMN id_empleado DROP NOT NULL;
+
 COMMIT;
