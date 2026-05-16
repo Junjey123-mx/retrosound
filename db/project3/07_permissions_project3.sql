@@ -102,3 +102,10 @@ GRANT rs_proveedor             TO proy3;
 
 -- sales summary view defined in retrosound_ddl.sql
 GRANT SELECT ON vista_resumen_ventas TO rs_empleado_ventas, rs_admin;
+
+-- ── procedure permissions (04_procedures_project3.sql) ───────
+-- OUT params are excluded from the signature in GRANT EXECUTE
+GRANT EXECUTE ON PROCEDURE sp_registrar_entrega_proveedor(INTEGER, INTEGER, INTEGER, NUMERIC)
+    TO rs_proveedor, rs_admin;
+GRANT EXECUTE ON PROCEDURE sp_confirmar_recepcion_stock(INTEGER, INTEGER, INTEGER)
+    TO rs_empleado_inventario, rs_admin;
