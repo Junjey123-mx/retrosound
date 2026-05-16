@@ -74,11 +74,25 @@ La integración del ORM (Prisma) se implementará en un paso posterior. Este com
 
 ---
 
+## Notas de migración
+
+### 01_schema_project3.sql — migración de datos incluida
+
+El seed base (`db/retrosound_seed.sql`) inserta 9 usuarios con `rol_usuario = 'empleado'`. Este valor ya no es válido en Proyecto 3. Por esa razón, `01_schema_project3.sql` ejecuta un `UPDATE` de migración **antes** de reemplazar la constraint `chk_usuario_rol`:
+
+1. Migra todos los `'empleado'` → `'empleado_ventas'` (valor por defecto).
+2. Elimina la constraint anterior (`DROP CONSTRAINT IF EXISTS chk_usuario_rol`).
+3. Crea la nueva constraint con los 5 roles de Proyecto 3.
+
+El archivo `02_seed_project3.sql` se encargará de reclasificar algunos de esos usuarios a `'empleado_inventario'` según su función real dentro de la tienda.
+
+---
+
 ## Descripción de cada archivo
 
 | Archivo                      | Propósito                                                        |
 |------------------------------|------------------------------------------------------------------|
-| `01_schema_project3.sql`     | Cambios de esquema sobre las tablas existentes (ALTER TABLE)     |
+| `01_schema_project3.sql`     | Migración de constraint + ALTER TABLE para los 5 roles funcionales |
 | `02_seed_project3.sql`       | Datos de prueba adicionales para los 5 roles funcionales         |
 | `03_roles_project3.sql`      | Creación de los 5 roles DBMS en PostgreSQL                       |
 | `04_procedures_project3.sql` | Stored procedures obligatorios de la rúbrica                     |
