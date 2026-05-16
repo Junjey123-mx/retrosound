@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -112,23 +113,26 @@ export class InventarioService {
 
     // sp_confirmar_recepcion_stock(p_id_detalle_compra, p_cantidad_recibida, p_id_empleado,
     //   OUT p_nuevo_stock, OUT p_estado_compra)
-    // PostgreSQL CALL returns OUT params as a result row.
-    const [row] = await this.prisma.$queryRaw<
-      Array<{ p_nuevo_stock: number; p_estado_compra: string }>
-    >`
-      CALL sp_confirmar_recepcion_stock(
-        ${idDetalle}::integer,
-        ${dto.cantidadRecibida}::integer,
-        ${idEmpleado}::integer,
-        NULL::integer,
-        NULL::varchar
-      )
-    `;
+    const spResult = await this.prisma
+      .$queryRaw<Array<{ p_nuevo_stock: number; p_estado_compra: string }>>`
+        CALL sp_confirmar_recepcion_stock(
+          ${idDetalle}::integer,
+          ${dto.cantidadRecibida}::integer,
+          ${idEmpleado}::integer,
+          NULL::integer,
+          NULL::varchar
+        )
+      `
+      .catch((err: unknown) => this.mapSpError(err));
+
+    const row = spResult[0];
 
     return {
       idDetalleCompra: idDetalle,
+      cantidadRecibida: dto.cantidadRecibida,
       nuevoStock: Number(row.p_nuevo_stock),
       estadoCompra: row.p_estado_compra,
+      mensaje: 'Recepción confirmada correctamente',
     };
   }
 
@@ -226,6 +230,50 @@ export class InventarioService {
       stockSuficiente: Number(stockSuficiente),
       proveedoresPrincipales: proveedoresDistintos.length,
     };
+  }
+
+  private mapSpError(error: unknown): never {
+    let msg = '';
+    if (error instanceof Error) {
+      msg = error.message.toLowerCase();
+      // Prisma wraps raw-query failures; the original PG message lives in meta.message
+      const meta = (error as { meta?: { message?: string } }).meta;
+      if (meta?.message) msg += ' ' + meta.message.toLowerCase();
+    }
+
+    if (msg.includes('cantidad_recibida must be > 0')) {
+      throw new BadRequestException('La cantidad recibida debe ser mayor a 0');
+    }
+    if (msg.includes('exceeds cantidad_comprada')) {
+      throw new BadRequestException(
+        'La cantidad recibida supera la cantidad comprada en este pedido',
+      );
+    }
+    if (msg.includes('receipt already confirmed')) {
+      throw new ConflictException(
+        'Esta línea de recepción ya fue confirmada anteriormente',
+      );
+    }
+    if (msg.includes('is cancelled')) {
+      throw new ConflictException(
+        'No se puede confirmar: la compra de proveedor fue cancelada',
+      );
+    }
+    if (msg.includes('detalle_compra') && msg.includes('does not exist')) {
+      throw new NotFoundException('Detalle de compra no encontrado');
+    }
+    if (msg.includes('employee') && msg.includes('does not exist')) {
+      throw new BadRequestException(
+        'El empleado asociado no existe en el sistema',
+      );
+    }
+    if (msg.includes('compra_proveedor') && msg.includes('does not exist')) {
+      throw new NotFoundException('Compra de proveedor no encontrada');
+    }
+
+    throw new BadRequestException(
+      'Error al confirmar la recepción. Verifique los datos e intente nuevamente.',
+    );
   }
 
   private mapRecepcion(r: CompraConDetalles) {

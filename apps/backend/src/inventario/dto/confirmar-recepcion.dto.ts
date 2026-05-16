@@ -2,6 +2,6 @@ import { IsInt, Min } from 'class-validator';
 
 export class ConfirmarRecepcionDto {
   @IsInt()
-  @Min(0)
+  @Min(1)
   cantidadRecibida: number;
 }
