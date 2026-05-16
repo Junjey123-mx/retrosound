@@ -1,6 +1,7 @@
 export enum RolUsuario {
   ADMIN = 'admin',
-  EMPLEADO = 'empleado',
+  EMPLEADO_VENTAS = 'empleado_ventas',
+  EMPLEADO_INVENTARIO = 'empleado_inventario',
   CLIENTE = 'cliente',
   PROVEEDOR = 'proveedor',
 }
