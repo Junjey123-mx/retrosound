@@ -237,6 +237,59 @@ EXCEPTION
 END;
 $$;
 
+-- ── sp_actualizar_imagen_producto ────────────────────────────
+-- Updates imagen_url and imagen_public_id only.
+-- p_id_proveedor NULL = admin/inventory call (no ownership check).
+CREATE OR REPLACE PROCEDURE sp_actualizar_imagen_producto(
+    IN  p_id_producto       INTEGER,
+    IN  p_imagen_url        TEXT,
+    IN  p_imagen_public_id  VARCHAR,
+    IN  p_id_proveedor      INTEGER,
+    OUT p_actualizado       BOOLEAN
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM producto WHERE id_producto = p_id_producto) THEN
+        RAISE EXCEPTION 'product % does not exist', p_id_producto;
+    END IF;
+
+    IF p_imagen_url IS NULL OR p_imagen_url = '' THEN
+        RAISE EXCEPTION 'imagen_url cannot be NULL or empty';
+    END IF;
+
+    IF p_imagen_public_id IS NULL OR p_imagen_public_id = '' THEN
+        RAISE EXCEPTION 'imagen_public_id cannot be NULL or empty';
+    END IF;
+
+    IF p_id_proveedor IS NOT NULL THEN
+        IF NOT EXISTS (SELECT 1 FROM proveedor WHERE id_proveedor = p_id_proveedor) THEN
+            RAISE EXCEPTION 'supplier % does not exist', p_id_proveedor;
+        END IF;
+
+        IF NOT EXISTS (
+            SELECT 1 FROM producto_proveedor
+            WHERE id_producto  = p_id_producto
+              AND id_proveedor = p_id_proveedor
+        ) THEN
+            RAISE EXCEPTION 'supplier % has no ownership of product %',
+                p_id_proveedor, p_id_producto;
+        END IF;
+    END IF;
+
+    UPDATE producto
+    SET    imagen_url       = p_imagen_url,
+           imagen_public_id = p_imagen_public_id
+    WHERE  id_producto      = p_id_producto;
+
+    p_actualizado := TRUE;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE;
+END;
+$$;
+
 -- ── sp_checkout_carrito ───────────────────────────────────────
 -- Converts the client's active cart into a completed sale.
 -- id_empleado is NULL for online sales (allowed by DDL).

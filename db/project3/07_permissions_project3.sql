@@ -113,3 +113,5 @@ GRANT EXECUTE ON PROCEDURE sp_crear_venta(INTEGER, INTEGER, VARCHAR, NUMERIC, JS
     TO rs_empleado_ventas, rs_admin;
 GRANT EXECUTE ON PROCEDURE sp_checkout_carrito(INTEGER, VARCHAR)
     TO rs_cliente, rs_empleado_ventas, rs_admin;
+GRANT EXECUTE ON PROCEDURE sp_actualizar_imagen_producto(INTEGER, TEXT, VARCHAR, INTEGER)
+    TO rs_proveedor, rs_empleado_inventario, rs_admin;
