@@ -16,4 +16,9 @@ ALTER TABLE usuario
             'proveedor'
         ));
 
+-- Cloudinary image reference: public URL + asset identifier for replace/delete
+ALTER TABLE producto
+    ADD COLUMN IF NOT EXISTS imagen_url       TEXT,
+    ADD COLUMN IF NOT EXISTS imagen_public_id VARCHAR(255);
+
 COMMIT;
