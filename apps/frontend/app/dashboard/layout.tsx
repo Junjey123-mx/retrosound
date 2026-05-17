@@ -1,5 +1,8 @@
 import { TopNav } from '@/components/layout/top-nav';
-import { AuthGuard } from '@/components/auth/auth-guard';
+import { RoleGuard } from '@/components/guards/role-guard';
+import { ROLES } from '@/lib/auth/roles';
+
+const STAFF_ROLES = [ROLES.ADMIN, ROLES.EMPLEADO_VENTAS, ROLES.EMPLEADO_INVENTARIO];
 
 export default function DashboardLayout({
   children,
@@ -9,7 +12,7 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-background">
       <TopNav />
-      <AuthGuard>{children}</AuthGuard>
+      <RoleGuard allowed={STAFF_ROLES}>{children}</RoleGuard>
     </div>
   );
 }

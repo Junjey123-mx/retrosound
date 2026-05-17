@@ -16,6 +16,16 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     setReady(true);
   }, [router]);
 
-  if (!ready) return null;
+  if (!ready) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div
+          className="h-8 w-8 animate-spin rounded-full border-2"
+          style={{ borderColor: 'rgba(249,115,22,0.2)', borderTopColor: '#F97316' }}
+        />
+      </div>
+    );
+  }
+
   return <>{children}</>;
 }
