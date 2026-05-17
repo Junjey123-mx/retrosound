@@ -34,9 +34,9 @@ services:
       context: ./apps/frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3003}
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3003}
     ports:
-      - "${FRONTEND_PORT:-3002}:3000"
+      - "${FRONTEND_PORT:-3002}:80"
     environment:
       NODE_ENV: production
     depends_on:
