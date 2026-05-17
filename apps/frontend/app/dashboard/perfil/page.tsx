@@ -1,5 +1,0 @@
-import { ProfilePanel } from '@/components/perfil/profile-panel';
-
-export default function PerfilPage() {
-  return <ProfilePanel />;
-}
