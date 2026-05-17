@@ -152,7 +152,6 @@ export interface CreateVentaPayload {
   descuento?: number;
   metodoPago: string;
   idCliente: number;
-  idEmpleado?: number;
   detalles: DetalleVenta[];
 }
 

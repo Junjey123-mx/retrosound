@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Plus, Trash2, ShoppingCart, Receipt } from 'lucide-react';
+import { RoleGuard } from '@/components/guards/role-guard';
 import { useProductos }   from '@/hooks/use-productos';
 import { useClientes }    from '@/hooks/use-clientes';
 import { useCreateVenta } from '@/hooks/use-ventas';
@@ -38,7 +39,7 @@ const FIELD = 'w-full rounded-xl border border-border bg-input-bg px-3.5 py-2.5 
 
 // ─── page ─────────────────────────────────────────────────────────────────────
 
-export default function NuevaVentaPage() {
+function NuevaVentaContent() {
   const router = useRouter();
   const { data: productos }  = useProductos();
   const { data: clientes }   = useClientes();
@@ -485,5 +486,13 @@ export default function NuevaVentaPage() {
       {notify && <NotifyModal {...notify} onClose={() => setNotify(null)} />}
 
     </main>
+  );
+}
+
+export default function NuevaVentaPage() {
+  return (
+    <RoleGuard allowed={['admin', 'empleado_ventas']}>
+      <NuevaVentaContent />
+    </RoleGuard>
   );
 }

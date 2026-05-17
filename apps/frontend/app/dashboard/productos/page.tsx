@@ -18,6 +18,7 @@ import { SearchInput }   from '@/components/ui/search-input';
 import { FilterTabs }    from '@/components/ui/filter-tabs';
 import { FormModal }     from '@/components/ui/form-modal';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { RoleGuard }     from '@/components/guards/role-guard';
 import { NotifyModal }   from '@/components/ui/notify-modal';
 import { LoadingState }  from '@/components/ui/loading-state';
 import { ErrorState }    from '@/components/ui/error-state';
@@ -71,7 +72,7 @@ const FIELD = 'w-full rounded-xl border border-border bg-input-bg px-3.5 py-2.5 
 
 // ─── page ─────────────────────────────────────────────────────────────────────
 
-export default function ProductosPage() {
+function ProductosContent() {
   const { data: productos, isLoading, error: loadError } = useProductos();
   const { data: catalogos } = useCatalogos();
   const createMut = useCreateProducto();
@@ -547,5 +548,13 @@ export default function ProductosPage() {
       </FormModal>
 
     </main>
+  );
+}
+
+export default function ProductosPage() {
+  return (
+    <RoleGuard allowed={['admin', 'empleado_inventario']}>
+      <ProductosContent />
+    </RoleGuard>
   );
 }

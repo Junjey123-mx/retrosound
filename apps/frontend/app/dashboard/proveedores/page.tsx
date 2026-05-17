@@ -18,6 +18,7 @@ import { FilterTabs }    from '@/components/ui/filter-tabs';
 import { FormModal }     from '@/components/ui/form-modal';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { NotifyModal }   from '@/components/ui/notify-modal';
+import { RoleGuard }     from '@/components/guards/role-guard';
 import { LoadingState }  from '@/components/ui/loading-state';
 import { ErrorState }    from '@/components/ui/error-state';
 import { EmptyState }    from '@/components/ui/empty-state';
@@ -45,7 +46,7 @@ const FIELD = 'w-full rounded-xl border border-border bg-input-bg px-3.5 py-2.5 
 
 // ─── page ─────────────────────────────────────────────────────────────────────
 
-export default function ProveedoresPage() {
+function ProveedoresContent() {
   const { data: proveedores, isLoading, error: loadError } = useProveedores();
   const createMut = useCreateProveedor();
   const updateMut = useUpdateProveedor();
@@ -432,5 +433,13 @@ export default function ProveedoresPage() {
       </FormModal>
 
     </main>
+  );
+}
+
+export default function ProveedoresPage() {
+  return (
+    <RoleGuard allowed={['admin', 'empleado_inventario']}>
+      <ProveedoresContent />
+    </RoleGuard>
   );
 }

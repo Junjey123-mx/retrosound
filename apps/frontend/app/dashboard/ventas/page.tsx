@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Eye, Receipt } from 'lucide-react';
+import { RoleGuard } from '@/components/guards/role-guard';
 import { useVentas } from '@/hooks/use-ventas';
 import type { Venta } from '@/types';
 import { PageHeader }   from '@/components/ui/page-header';
@@ -45,7 +46,7 @@ function fmtFecha(raw: string) {
 
 // ─── page ─────────────────────────────────────────────────────────────────────
 
-export default function VentasPage() {
+function VentasContent() {
   const { data: ventas, isLoading, error } = useVentas();
 
   const [search,    setSearch]    = useState('');
@@ -232,5 +233,13 @@ export default function VentasPage() {
       )}
 
     </main>
+  );
+}
+
+export default function VentasPage() {
+  return (
+    <RoleGuard allowed={['admin', 'empleado_ventas']}>
+      <VentasContent />
+    </RoleGuard>
   );
 }

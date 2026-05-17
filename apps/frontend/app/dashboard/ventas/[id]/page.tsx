@@ -11,6 +11,7 @@ import {
   Tag,
   Briefcase,
 } from 'lucide-react';
+import { RoleGuard } from '@/components/guards/role-guard';
 import { useVenta } from '@/hooks/use-ventas';
 import { Badge }        from '@/components/ui/badge';
 import { Button }       from '@/components/ui/button';
@@ -38,7 +39,7 @@ function fmtFecha(raw: string) {
 
 // ─── page ─────────────────────────────────────────────────────────────────────
 
-export default function VentaDetallePage() {
+function VentaDetalleContent() {
   const params = useParams();
   const id = Number(params.id);
 
@@ -215,5 +216,13 @@ function InfoRow({
         </p>
       </div>
     </div>
+  );
+}
+
+export default function VentaDetallePage() {
+  return (
+    <RoleGuard allowed={['admin', 'empleado_ventas']}>
+      <VentaDetalleContent />
+    </RoleGuard>
   );
 }

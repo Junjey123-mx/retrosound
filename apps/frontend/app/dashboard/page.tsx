@@ -15,6 +15,7 @@ import {
   Users,
   XCircle,
 } from 'lucide-react';
+import { RoleGuard } from '@/components/guards/role-guard';
 import { useAdminDashboard } from '@/hooks/use-dashboard';
 import { StatCard } from '@/components/ui/stat-card';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -163,7 +164,7 @@ const VENTAS_COLS = [
   },
 ] satisfies { key: string; header: string; render: (r: DashboardVenta) => React.ReactNode; className?: string }[];
 
-export default function DashboardPage() {
+function DashboardContent() {
   const { data, isLoading, isError, error, refetch } = useAdminDashboard();
   const s = data?.stats;
 
@@ -386,5 +387,13 @@ export default function DashboardPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <RoleGuard allowed={['admin']}>
+      <DashboardContent />
+    </RoleGuard>
   );
 }
