@@ -3,7 +3,7 @@
 export type EstadoGeneral = 'activo' | 'inactivo';
 export type EstadoProducto = 'activo' | 'inactivo' | 'agotado' | 'descontinuado';
 export type EstadoUsuario = 'activo' | 'bloqueado' | 'inactivo';
-export type RolUsuario = 'admin' | 'empleado' | 'cliente' | 'proveedor';
+export type RolUsuario = 'admin' | 'empleado_ventas' | 'empleado_inventario' | 'cliente' | 'proveedor';
 export type EstadoVenta = 'pendiente' | 'completada' | 'cancelada';
 export type EstadoCompra = 'pendiente' | 'recibida' | 'cancelada';
 
@@ -107,6 +107,21 @@ export interface Usuario {
   correo: string;
   rol: RolUsuario;
   estado: EstadoUsuario;
+}
+
+export interface UsuarioAdmin extends Usuario {
+  fechaInactivacion?: string | null;
+  idCliente?: number | null;
+  idEmpleado?: number | null;
+  idProveedor?: number | null;
+  cliente?: { id: number; nombre: string; apellido: string; correo?: string } | null;
+  empleado?: { id: number; nombre: string; apellido: string } | null;
+  proveedor?: { id: number; nombre: string } | null;
+}
+
+export interface EmpleadoAdmin extends Empleado {
+  fechaInactivacion?: string | null;
+  usuario?: { id: number; correo: string; rol: string; estado: string } | null;
 }
 
 // ─── Ventas ───────────────────────────────────────────────────────────────────
