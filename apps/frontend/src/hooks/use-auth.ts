@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router-dom';
 import { useSession } from '@/contexts/session-context';
 
 // Returns { correo, rol } for the authenticated user, or null while loading / unauthenticated.
@@ -12,10 +12,10 @@ export function useCurrentUser() {
 
 // Returns a logout function that clears session and redirects to /login.
 export function useLogout() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const { logout: sessionLogout } = useSession();
   return function logout() {
     sessionLogout();
-    router.push('/login');
+    navigate('/login');
   };
 }

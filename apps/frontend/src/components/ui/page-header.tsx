@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 
 interface PageHeaderProps {
@@ -24,7 +24,7 @@ export function PageHeader({
     <div className="mb-6 space-y-1">
       {backHref && (
         <Link
-          href={backHref as any}
+          to={backHref as any}
           className="rs-back-btn mb-2 inline-flex items-center gap-1.5 text-sm font-medium"
         >
           <ArrowLeft className="h-4 w-4" />

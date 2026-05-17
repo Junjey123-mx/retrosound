@@ -1,10 +1,10 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import { Disc3 } from 'lucide-react';
 import { ThemeSegment } from '@/components/ui/theme-segment';
-import { useTheme } from 'next-themes';
+import { useTheme } from '@/hooks/use-theme';
 import { useEffect, useState } from 'react';
 
 function FloatingPaths({ position }: { position: number }) {
@@ -73,14 +73,14 @@ export function BackgroundPaths({
       {/* Navbar top-right */}
       <nav className="absolute top-0 left-0 right-0 z-20 flex items-center justify-end gap-4 px-6 py-5">
         <Link
-          href="/login"
+          to="/login"
           style={{ color: brandColor }}
           className="text-sm font-medium transition-colors duration-150"
         >
           Iniciar Sesión
         </Link>
         <Link
-          href="/registro"
+          to="/registro"
           style={{ borderColor: brandColor, color: isDark ? '#ffffff' : '#171717' }}
           className="rounded-full border-2 px-5 py-1.5 text-sm font-semibold transition-colors duration-150"
         >

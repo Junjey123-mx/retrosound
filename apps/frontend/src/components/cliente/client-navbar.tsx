@@ -1,9 +1,9 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { Link } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { useTheme } from 'next-themes';
+import { useTheme } from '@/hooks/use-theme';
 import { useCurrentUser, useLogout } from '@/hooks/use-auth';
 import { useCarritoItemCount } from '@/hooks/use-carrito';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
@@ -12,7 +12,7 @@ import { LogOut, Disc3, ShoppingCart } from 'lucide-react';
 export function ClientNavbar() {
   const user = useCurrentUser();
   const logout = useLogout();
-  const pathname = usePathname();
+  const { pathname } = useLocation();
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const cartCount = useCarritoItemCount();
@@ -38,7 +38,7 @@ export function ClientNavbar() {
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
         <Link
-          href={"/tienda" as any}
+          to={"/tienda" as any}
           className="flex items-center gap-2 font-bold text-foreground transition-colors hover:text-brand"
         >
           <div
@@ -59,7 +59,7 @@ export function ClientNavbar() {
             return (
               <Link
                 key={href}
-                href={href as any}
+                to={href as any}
                 className={`relative px-4 py-1.5 text-sm font-medium transition-colors duration-150 ${
                   active ? 'rs-nav-active rounded-xl' : 'rs-nav-item rs-nav-muted rounded-xl'
                 }`}
@@ -74,7 +74,7 @@ export function ClientNavbar() {
           <ThemeToggle />
 
           <Link
-            href={"/carrito" as any}
+            to={"/carrito" as any}
             className={`rs-btn-cart relative ${cartActive ? 'rs-btn-cart-active' : ''}`}
             aria-label="Carrito"
           >
@@ -94,7 +94,7 @@ export function ClientNavbar() {
 
           {user && (
             <Link
-              href={"/perfil" as any}
+              to={"/perfil" as any}
               className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white select-none transition-opacity hover:opacity-80 ${
                 profileActive ? 'ring-2 ring-brand/35 ring-offset-2 ring-offset-background' : ''
               }`}

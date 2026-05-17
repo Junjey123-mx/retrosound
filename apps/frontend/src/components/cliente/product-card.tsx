@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { Disc3, Music2, Radio, ShoppingCart } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -141,7 +141,7 @@ export function ProductCard({ producto }: { producto: Producto }) {
             {isUnavailable ? 'Agotado' : addToCarrito.isPending ? 'Agregando…' : 'Agregar'}
           </button>
 
-          <Link href={`/tienda/${producto.id}` as any} className="rs-card-btn-secondary">
+          <Link to={`/tienda/${producto.id}` as any} className="rs-card-btn-secondary">
             Ver detalle
           </Link>
         </div>

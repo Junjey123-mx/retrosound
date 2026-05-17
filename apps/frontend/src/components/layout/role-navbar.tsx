@@ -1,10 +1,10 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { Link } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useTheme } from 'next-themes';
+import { useTheme } from '@/hooks/use-theme';
 import { useCurrentUser, useLogout } from '@/hooks/use-auth';
 import { useCarritoItemCount } from '@/hooks/use-carrito';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
@@ -31,11 +31,11 @@ function isActiveRoute(pathname: string, href: string): boolean {
 
 function CartBadge({ brandColor, isDark }: { brandColor: string; isDark: boolean }) {
   const cartCount = useCarritoItemCount();
-  const pathname = usePathname();
+  const { pathname } = useLocation();
 
   return (
     <Link
-      href={'/carrito' as any}
+      to={'/carrito' as any}
       className={`rs-btn-cart relative ${pathname.startsWith('/carrito') ? 'rs-btn-cart-active' : ''}`}
       aria-label="Carrito"
     >
@@ -55,7 +55,7 @@ function CartBadge({ brandColor, isDark }: { brandColor: string; isDark: boolean
 export function RoleNavbar() {
   const user     = useCurrentUser();
   const logout   = useLogout();
-  const pathname = usePathname();
+  const { pathname } = useLocation();
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -80,7 +80,7 @@ export function RoleNavbar() {
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
 
         <Link
-          href={homeHref as any}
+          to={homeHref as any}
           className="flex items-center gap-2 font-bold text-foreground transition-colors hover:text-brand"
         >
           <div
@@ -101,7 +101,7 @@ export function RoleNavbar() {
             return (
               <Link
                 key={`${href}-${label}`}
-                href={href as any}
+                to={href as any}
                 className={`relative px-4 py-1.5 text-sm font-medium transition-colors duration-150 ${
                   active ? 'rs-nav-active rounded-xl' : 'rs-nav-item rs-nav-muted rounded-xl'
                 }`}
@@ -129,7 +129,7 @@ export function RoleNavbar() {
           )}
 
           <Link
-            href={profileHref as any}
+            to={profileHref as any}
             className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold select-none transition-opacity hover:opacity-80 ${
               profileActive ? 'ring-2 ring-brand/35 ring-offset-2 ring-offset-background' : ''
             }`}
@@ -170,7 +170,7 @@ export function RoleNavbar() {
               return (
                 <Link
                   key={`mob-${href}-${label}`}
-                  href={href as any}
+                  to={href as any}
                   className={`block rounded-xl px-4 py-2 text-sm font-medium transition-colors duration-150 ${
                     active ? 'rs-nav-active' : 'rs-nav-item rs-nav-muted'
                   }`}

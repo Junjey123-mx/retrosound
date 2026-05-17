@@ -1,15 +1,19 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useTheme } from 'next-themes';
+import { useTheme } from '@/hooks/use-theme';
 import { LogOut, Mail, Shield } from 'lucide-react';
 import { useCurrentUser, useLogout } from '@/hooks/use-auth';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 const roleLabel: Record<string, string> = {
-  admin: 'Administrador',
-  empleado: 'Empleado',
-  cliente: 'Cliente',
-  proveedor: 'Proveedor',
+  admin:               'Administrador',
+  empleado_ventas:     'Emp. Ventas',
+  empleado_inventario: 'Emp. Inventario',
+  empleado:            'Empleado',
+  cliente:             'Cliente',
+  proveedor:           'Proveedor',
 };
 
 export function ProfilePanel() {
@@ -22,7 +26,6 @@ export function ProfilePanel() {
 
   const isDark = mounted ? theme === 'dark' : false;
   const brandColor = isDark ? '#00E676' : '#F97316';
-  const brandBg = isDark ? 'rgba(0,230,118,0.12)' : 'rgba(249,115,22,0.14)';
 
   if (!user) {
     return (
@@ -42,23 +45,18 @@ export function ProfilePanel() {
         <p className="mt-1 text-sm text-muted-foreground">Información de tu cuenta en RetroSound.</p>
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div className="flex items-center gap-4">
           <div
-            style={{ backgroundColor: brandColor }}
-            className="flex h-16 w-16 items-center justify-center rounded-full text-2xl font-bold text-white select-none"
+            style={{ backgroundColor: brandColor, color: isDark ? '#08111F' : '#ffffff' }}
+            className="flex h-16 w-16 items-center justify-center rounded-full text-2xl font-bold select-none"
             aria-hidden="true"
           >
             {initials}
           </div>
           <div className="space-y-1">
             <p className="text-lg font-semibold text-foreground">{user.correo}</p>
-            <span
-              style={{ backgroundColor: brandBg, color: brandColor }}
-              className="inline-flex rounded-full px-3 py-0.5 text-xs font-semibold"
-            >
-              {label}
-            </span>
+            <Badge variant="default">{label}</Badge>
           </div>
         </div>
 
@@ -83,13 +81,10 @@ export function ProfilePanel() {
 
         <hr className="my-6 border-border" />
 
-        <button
-          onClick={logout}
-          className="flex items-center gap-2 rounded-lg border border-destructive/40 px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
-        >
+        <Button variant="destructive" size="sm" onClick={logout}>
           <LogOut className="h-4 w-4" />
           Cerrar sesión
-        </button>
+        </Button>
       </div>
     </main>
   );
