@@ -17,8 +17,8 @@ services:
     ports:
       - "3001:3001"
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/retrosound?schema=public
-      JWT_SECRET: local-dev-secret
+      DATABASE_URL: postgresql://proy2:secret@postgres:5432/retrosound?schema=public
+      JWT_SECRET: change-me-in-production
       PORT: 3001
       NODE_ENV: development
     depends_on:

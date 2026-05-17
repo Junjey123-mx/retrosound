@@ -90,11 +90,11 @@ Todas están en `.env.example` con valores por defecto funcionales:
 
 | Variable | Valor por defecto | Descripción |
 |----------|------------------|-------------|
-| `POSTGRES_USER` | `proy3` | Usuario PostgreSQL usado por el contenedor |
+| `POSTGRES_USER` | `proy2` | Usuario PostgreSQL usado por el contenedor |
 | `POSTGRES_PASSWORD` | `secret` | Contraseña PostgreSQL usada por el contenedor |
 | `POSTGRES_DB` | `retrosound` | Base creada por el contenedor PostgreSQL |
 | `DB_HOST` | `localhost` | Host para conexión local fuera de Docker |
-| `DB_USER` | `proy3` | Usuario PostgreSQL (obligatorio para rúbrica) |
+| `DB_USER` | `proy2` | Usuario PostgreSQL (obligatorio para rúbrica) |
 | `DB_PASSWORD` | `secret` | Contraseña PostgreSQL (obligatorio para rúbrica) |
 | `DB_NAME` | `retrosound` | Nombre de la base de datos |
 | `DB_PORT` | `5433` | Puerto expuesto de Postgres en el host |
@@ -114,7 +114,7 @@ Todas están en `.env.example` con valores por defecto funcionales:
 | **Frontend** | http://localhost:3002 | Ver usuarios de prueba abajo |
 | **Backend API** | http://localhost:3003 | — |
 | **pgAdmin** | http://localhost:5051 | `admin@retrosound.dev` / `admin` |
-| **PostgreSQL** | `localhost:5433` | `proy3` / `secret` / db `retrosound` |
+| **PostgreSQL** | `localhost:5433` | `proy2` / `secret` / db `retrosound` |
 
 ---
 
@@ -144,7 +144,7 @@ Creados con `CREATE ROLE` en `db/project3/03_roles_project3.sql`. Permisos aplic
 | `rs_cliente` | `cliente` |
 | `rs_proveedor` | `proveedor` |
 
-`proy3` es el usuario técnico de conexión (tiene LOGIN). Hereda los 5 roles con `GRANT rs_* TO proy3`. No cuenta como sexto rol funcional.
+`proy2` es el usuario técnico principal de conexión para Proyecto 2. Los scripts de Proyecto 3 mantienen roles DBMS históricos en `db/project3`.
 
 ### Prisma ORM — módulos con CRUD
 
@@ -979,13 +979,13 @@ docker compose up --build
 
 ```bash
 # Tablas
-docker compose exec -T postgres psql -U proy3 -d retrosound -c "\dt"
+docker compose exec -T postgres psql -U proy2 -d retrosound -c "\dt"
 
 # Vista
-docker compose exec -T postgres psql -U proy3 -d retrosound -c "\dv"
+docker compose exec -T postgres psql -U proy2 -d retrosound -c "\dv"
 
 # Conteos
-docker compose exec -T postgres psql -U proy3 -d retrosound -c "
+docker compose exec -T postgres psql -U proy2 -d retrosound -c "
 SELECT 'categoria' AS tabla, COUNT(*) FROM categoria
 UNION ALL SELECT 'producto',  COUNT(*) FROM producto
 UNION ALL SELECT 'usuario',   COUNT(*) FROM usuario

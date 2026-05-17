@@ -11,8 +11,8 @@ services:
     ports:
       - "3001:3001"
     environment:
-      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
-      JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgresql://${DB_USER:-proy2}:${DB_PASSWORD:-secret}@postgres:5432/${DB_NAME:-retrosound}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       PORT: 3001
       NODE_ENV: development
     volumes:

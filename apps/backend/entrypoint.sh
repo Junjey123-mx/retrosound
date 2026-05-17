@@ -3,7 +3,7 @@ set -e
 
 DB_HOST="${DB_HOST:-postgres}"
 DB_PORT="${DB_PORT:-5432}"
-DB_USER="${DB_USER:-proy3}"
+DB_USER="${DB_USER:-proy2}"
 DB_PASSWORD="${DB_PASSWORD:-secret}"
 DB_NAME="${DB_NAME:-retrosound}"
 SQL_DIR="${SQL_DIR:-/app/db}"

@@ -10,10 +10,10 @@ services:
     ports:
       - "${BACKEND_PORT:-3003}:3001"
     environment:
-      DATABASE_URL: postgresql://${DB_USER:-proy3}:${DB_PASSWORD:-secret}@postgres:5432/${DB_NAME:-retrosound}?schema=public
+      DATABASE_URL: postgresql://${DB_USER:-proy2}:${DB_PASSWORD:-secret}@postgres:5432/${DB_NAME:-retrosound}?schema=public
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_USER: ${DB_USER:-proy3}
+      DB_USER: ${DB_USER:-proy2}
       DB_PASSWORD: ${DB_PASSWORD:-secret}
       DB_NAME: ${DB_NAME:-retrosound}
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}

@@ -2,7 +2,7 @@ services:
   postgres:
     image: postgres:17-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-proy3}
+      POSTGRES_USER: ${POSTGRES_USER:-proy2}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
       POSTGRES_DB: ${POSTGRES_DB:-retrosound}
     ports:
@@ -12,7 +12,7 @@ services:
       - ../../db:/sql:ro
       - ../../db/init_all.sh:/docker-entrypoint-initdb.d/00_init_all.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-proy3} -d ${POSTGRES_DB:-retrosound}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-proy2} -d ${POSTGRES_DB:-retrosound}"]
       interval: 10s
       timeout: 5s
       retries: 5
