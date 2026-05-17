@@ -9,6 +9,8 @@ RUN npm install
 FROM deps AS build
 WORKDIR /app
 COPY . .
+# Generate Prisma client with the real schema, then copy it into prod_modules
+RUN npx prisma generate && cp -R node_modules/.prisma /tmp/prod_modules/.prisma
 RUN npm run build && npx tsc -p tsconfig.build.json --incremental false
 
 # ── Stage 3: producción ──────────────────────────────────────────────────────
