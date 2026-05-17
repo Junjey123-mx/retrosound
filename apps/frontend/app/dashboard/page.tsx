@@ -1,300 +1,390 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { reportesService } from '@/lib/services/reportes';
 import {
-  Package, ShoppingCart, TrendingUp, AlertTriangle,
-  XCircle, Clock, Disc3, Truck, BarChart3, Receipt,
+  AlertTriangle,
+  BarChart3,
+  CheckCircle2,
+  Clock,
+  Disc3,
+  Package,
+  Receipt,
+  ShoppingCart,
+  Truck,
+  TrendingUp,
+  Users,
+  XCircle,
 } from 'lucide-react';
+import { useAdminDashboard } from '@/hooks/use-dashboard';
+import { StatCard } from '@/components/ui/stat-card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { DataTable } from '@/components/ui/data-table';
+import { PageHeader } from '@/components/ui/page-header';
+import { LoadingState } from '@/components/ui/loading-state';
+import { ErrorState } from '@/components/ui/error-state';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Button } from '@/components/ui/button';
+import type {
+  DashboardAlertaStock,
+  DashboardCompra,
+  DashboardVenta,
+} from '@/lib/services/dashboard';
 
-interface DashboardStats {
-  productos_activos:       number;
-  productos_agotados:      number;
-  productos_stock_critico: number;
-  ventas_completadas:      number;
-  compras_pendientes:      number;
-  total_vendido_mes:       string;
-}
-interface AlertaStock {
-  id_producto:      number;
-  titulo_producto:  string;
-  codigo_sku:       string;
-  stock_actual:     number;
-  stock_minimo:     number;
-  nombre_categoria: string;
-  nombre_formato:   string;
-}
-interface CompraP {
-  id_compra_proveedor:    number;
-  fecha_compra_proveedor: string;
-  nombre_proveedor:       string;
-  empleado:               string;
-  num_productos:          number;
-}
-interface VentaR {
-  id_venta:     number;
-  fecha_venta:  string;
-  estado_venta: string;
-  metodo_pago:  string;
-  cliente:      string;
-  total_neto:   string;
-}
-interface DashboardData {
-  stats:             DashboardStats;
-  alertasStock:      AlertaStock[];
-  comprasPendientes: CompraP[];
-  ventasRecientes:   VentaR[];
-}
+type StatTone = 'default' | 'success' | 'warning' | 'danger' | 'info' | 'secondary';
 
-const VENTA_BADGE: Record<string, string> = {
-  pendiente:  'rs-badge-pendiente',
-  completada: 'rs-badge-completada',
-  cancelada:  'rs-badge-cancelada',
+const VENTA_BADGE: Record<string, 'success' | 'warning' | 'danger' | 'muted'> = {
+  pendiente:  'warning',
+  completada: 'success',
+  cancelada:  'danger',
 };
 
+function formatQ(value: string | number | undefined) {
+  return `Q${Number(value ?? 0).toFixed(2)}`;
+}
+
+function formatDate(iso: string) {
+  return String(iso).slice(0, 10);
+}
+
+const QUICK_LINKS = [
+  { href: '/dashboard/productos',   Icon: Disc3,        label: 'Productos'   },
+  { href: '/dashboard/proveedores', Icon: Truck,        label: 'Proveedores' },
+  { href: '/dashboard/ventas',      Icon: ShoppingCart, label: 'Ventas'      },
+  { href: '/dashboard/reportes',    Icon: BarChart3,    label: 'Reportes'    },
+  { href: '/dashboard/perfil',      Icon: Users,        label: 'Perfil'      },
+] as const;
+
+const STOCK_COLS = [
+  {
+    key: 'titulo_producto',
+    header: 'Producto',
+    render: (r: DashboardAlertaStock) => (
+      <div>
+        <p className="font-semibold text-foreground leading-tight">{r.titulo_producto}</p>
+        <p className="text-xs text-muted-foreground">{r.codigo_sku}</p>
+      </div>
+    ),
+  },
+  {
+    key: 'nombre_categoria',
+    header: 'Categoría',
+    render: (r: DashboardAlertaStock) => (
+      <span className="text-muted-foreground">{r.nombre_categoria} · {r.nombre_formato}</span>
+    ),
+  },
+  {
+    key: 'stock_actual',
+    header: 'Stock',
+    className: 'text-center',
+    render: (r: DashboardAlertaStock) => (
+      <div className="text-center">
+        <Badge variant="warning">{r.stock_actual} / {r.stock_minimo}</Badge>
+        <p className="mt-0.5 text-xs text-muted-foreground">actual / mín</p>
+      </div>
+    ),
+  },
+] satisfies { key: string; header: string; render: (r: DashboardAlertaStock) => React.ReactNode; className?: string }[];
+
+const COMPRAS_COLS = [
+  {
+    key: 'nombre_proveedor',
+    header: 'Proveedor',
+    render: (r: DashboardCompra) => (
+      <div>
+        <p className="font-semibold text-foreground leading-tight">{r.nombre_proveedor}</p>
+        <p className="text-xs text-muted-foreground">Resp: {r.empleado}</p>
+      </div>
+    ),
+  },
+  {
+    key: 'fecha_compra_proveedor',
+    header: 'Fecha',
+    render: (r: DashboardCompra) => (
+      <span className="text-muted-foreground">{formatDate(r.fecha_compra_proveedor)}</span>
+    ),
+  },
+  {
+    key: 'num_productos',
+    header: 'Productos',
+    className: 'text-center',
+    render: (r: DashboardCompra) => (
+      <Badge variant="info">{r.num_productos}</Badge>
+    ),
+  },
+] satisfies { key: string; header: string; render: (r: DashboardCompra) => React.ReactNode; className?: string }[];
+
+const VENTAS_COLS = [
+  {
+    key: 'id_venta',
+    header: 'ID',
+    render: (r: DashboardVenta) => (
+      <span className="font-mono text-xs text-muted-foreground">#{r.id_venta}</span>
+    ),
+  },
+  {
+    key: 'fecha_venta',
+    header: 'Fecha',
+    render: (r: DashboardVenta) => (
+      <span className="text-muted-foreground">{formatDate(r.fecha_venta)}</span>
+    ),
+  },
+  {
+    key: 'cliente',
+    header: 'Cliente',
+    render: (r: DashboardVenta) => (
+      <span className="font-medium text-foreground">{r.cliente}</span>
+    ),
+  },
+  {
+    key: 'metodo_pago',
+    header: 'Método',
+    render: (r: DashboardVenta) => (
+      <span className="capitalize text-muted-foreground">{r.metodo_pago}</span>
+    ),
+  },
+  {
+    key: 'estado_venta',
+    header: 'Estado',
+    className: 'text-center',
+    render: (r: DashboardVenta) => (
+      <Badge variant={VENTA_BADGE[r.estado_venta] ?? 'muted'} className="capitalize">
+        {r.estado_venta}
+      </Badge>
+    ),
+  },
+  {
+    key: 'total_neto',
+    header: 'Total neto',
+    className: 'text-right',
+    render: (r: DashboardVenta) => (
+      <span className="font-mono font-semibold text-foreground">{formatQ(r.total_neto)}</span>
+    ),
+  },
+] satisfies { key: string; header: string; render: (r: DashboardVenta) => React.ReactNode; className?: string }[];
 
 export default function DashboardPage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) router.push('/login');
-  }, [router]);
-
-  const { data, isLoading, error } = useQuery<DashboardData>({
-    queryKey:  ['dashboard'],
-    queryFn:   reportesService.dashboard,
-    staleTime: 60 * 1000,
-    retry: 1,
-  });
-
+  const { data, isLoading, isError, error, refetch } = useAdminDashboard();
   const s = data?.stats;
 
-  const STAT_CARDS = s ? [
-    {
-      label: 'Productos activos',
-      value: s.productos_activos,
-      icon:  Package,
-      color: 'border-l-violet-400',
-      iconColor: 'text-action-alt',
-    },
-    {
-      label: 'Ventas completadas',
-      value: s.ventas_completadas,
-      icon:  ShoppingCart,
-      color: 'border-l-success',
-      iconColor: 'text-success',
-    },
-    {
-      label: 'Total vendido (mes)',
-      value: `Q${Number(s.total_vendido_mes).toFixed(2)}`,
-      sub:   'ventas completadas',
-      icon:  TrendingUp,
-      color: 'border-l-success',
-      iconColor: 'text-success',
-    },
-    {
-      label: 'Stock crítico',
-      value: s.productos_stock_critico,
-      icon:  AlertTriangle,
-      color: s.productos_stock_critico > 0 ? 'border-l-amber-400' : 'border-l-border',
-      iconColor: s.productos_stock_critico > 0 ? 'text-warning' : 'text-muted-foreground',
-    },
-    {
-      label: 'Productos agotados',
-      value: s.productos_agotados,
-      icon:  XCircle,
-      color: s.productos_agotados > 0 ? 'border-l-red-400' : 'border-l-border',
-      iconColor: s.productos_agotados > 0 ? 'text-danger' : 'text-muted-foreground',
-    },
-    {
-      label: 'Compras pendientes',
-      value: s.compras_pendientes,
-      icon:  Clock,
-      color: s.compras_pendientes > 0 ? 'border-l-orange-400' : 'border-l-border',
-      iconColor: s.compras_pendientes > 0 ? 'text-warning' : 'text-muted-foreground',
-    },
-  ] : [];
+  const statCards: { label: string; value: string | number; tone: StatTone; icon: React.ReactNode; description?: string }[] = s
+    ? [
+        {
+          label: 'Productos activos',
+          value: s.productos_activos ?? 0,
+          tone: 'default',
+          icon: <Package className="h-5 w-5" />,
+        },
+        {
+          label: 'Ventas completadas',
+          value: s.ventas_completadas ?? 0,
+          tone: 'success',
+          icon: <CheckCircle2 className="h-5 w-5" />,
+        },
+        {
+          label: 'Total vendido (mes)',
+          value: formatQ(s.total_vendido_mes),
+          tone: 'success',
+          icon: <TrendingUp className="h-5 w-5" />,
+          description: 'ventas completadas',
+        },
+        {
+          label: 'Stock crítico',
+          value: s.productos_stock_critico ?? 0,
+          tone: (s.productos_stock_critico ?? 0) > 0 ? 'warning' : 'default',
+          icon: <AlertTriangle className="h-5 w-5" />,
+        },
+        {
+          label: 'Productos agotados',
+          value: s.productos_agotados ?? 0,
+          tone: (s.productos_agotados ?? 0) > 0 ? 'danger' : 'default',
+          icon: <XCircle className="h-5 w-5" />,
+        },
+        {
+          label: 'Compras pendientes',
+          value: s.compras_pendientes ?? 0,
+          tone: (s.compras_pendientes ?? 0) > 0 ? 'warning' : 'default',
+          icon: <Clock className="h-5 w-5" />,
+        },
+        ...(s.usuarios_activos !== undefined
+          ? [{
+              label: 'Usuarios activos',
+              value: s.usuarios_activos,
+              tone: 'info' as StatTone,
+              icon: <Users className="h-5 w-5" />,
+            }]
+          : []),
+        ...(s.proveedores_activos !== undefined
+          ? [{
+              label: 'Proveedores activos',
+              value: s.proveedores_activos,
+              tone: 'secondary' as StatTone,
+              icon: <Truck className="h-5 w-5" />,
+            }]
+          : []),
+      ]
+    : [];
 
   return (
-    <main className="p-6 sm:p-8 space-y-6">
+    <main className="min-h-screen px-4 pb-16 pt-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-8">
 
-      {/* Encabezado */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          RetroSound Store — resumen ejecutivo en tiempo real
-        </p>
-      </div>
+        {/* Header */}
+        <PageHeader
+          title="Dashboard"
+          description="Resumen general de RetroSound"
+          icon={<BarChart3 className="h-5 w-5" />}
+          action={
+            <Button asChild size="sm" variant="outline">
+              <Link href={'/dashboard/reportes' as any}>Ver reportes</Link>
+            </Button>
+          }
+        />
 
-      {/* Loading / Error */}
-      {isLoading && (
-        <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
-          Cargando estadísticas…
-        </div>
-      )}
-      {error && (
-        <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
-          No se pudieron cargar las estadísticas. Verifica tu sesión.
-        </div>
-      )}
+        {/* Loading */}
+        {isLoading && <LoadingState label="Cargando estadísticas…" />}
 
-      {/* KPI Cards */}
-      {s && (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-          {STAT_CARDS.map((card) => (
-            <div key={card.label} className="rs-kpi-card rounded-2xl bg-card p-5">
-              <div className="flex items-start justify-between mb-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground leading-tight">
-                  {card.label}
-                </p>
-                <div className="rs-icon-neutral flex h-9 w-9 items-center justify-center rounded-full bg-background-soft border border-border shrink-0">
-                  <card.icon className={`h-4 w-4 ${card.iconColor}`} />
-                </div>
-              </div>
-              <p className="text-2xl font-bold text-foreground">{card.value}</p>
-              {card.sub && <p className="mt-0.5 text-xs text-muted-foreground">{card.sub}</p>}
+        {/* Error */}
+        {isError && (
+          <ErrorState
+            title="No se pudieron cargar las estadísticas"
+            error={error}
+            action={
+              <Button variant="outline" size="sm" onClick={() => refetch()}>
+                Reintentar
+              </Button>
+            }
+          />
+        )}
+
+        {/* Content */}
+        {data && (
+          <>
+            {/* Stat cards */}
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+              {statCards.map((card) => (
+                <StatCard
+                  key={card.label}
+                  label={card.label}
+                  value={card.value}
+                  tone={card.tone}
+                  icon={card.icon}
+                  description={card.description}
+                />
+              ))}
             </div>
-          ))}
-        </div>
-      )}
 
-      {/* Accesos rápidos */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {[
-          { href: '/dashboard/productos',   Icon: Disc3,        label: 'Productos'   },
-          { href: '/dashboard/proveedores', Icon: Truck,        label: 'Proveedores' },
-          { href: '/dashboard/ventas',      Icon: ShoppingCart, label: 'Ventas'      },
-          { href: '/dashboard/reportes',    Icon: BarChart3,    label: 'Reportes SQL'},
-        ].map(({ href, Icon, label }) => (
-          <Link key={href} href={href as any} className="rs-dash-action rs-hover-success flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-sm font-medium text-foreground shadow-sm">
-            <div className="rs-icon-neutral flex h-9 w-9 items-center justify-center rounded-lg bg-background-soft border border-border shrink-0">
-              <Icon className="h-5 w-5 text-muted-foreground" />
+            {/* Accesos rápidos */}
+            <div>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Accesos rápidos
+              </p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                {QUICK_LINKS.map(({ href, Icon, label }) => (
+                  <Link
+                    key={href}
+                    href={href as any}
+                    className="group flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-sm font-semibold text-foreground shadow-sm transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand"
+                  >
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition group-hover:border-brand/30 group-hover:bg-brand/10 group-hover:text-brand">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    {label}
+                  </Link>
+                ))}
+              </div>
             </div>
-            {label}
-          </Link>
-        ))}
+
+            {/* Paneles: Stock crítico + Compras pendientes */}
+            <div className="grid gap-6 lg:grid-cols-2">
+
+              {/* Stock crítico */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base font-bold">
+                    <AlertTriangle className="h-4 w-4 text-warning" />
+                    Stock crítico
+                    {data.alertasStock.length > 0 && (
+                      <Badge variant="warning" className="ml-auto">{data.alertasStock.length}</Badge>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {data.alertasStock.length === 0 ? (
+                    <EmptyState
+                      icon={<CheckCircle2 className="h-6 w-6 text-success" />}
+                      title="Todo en orden"
+                      description="Todos los productos tienen stock suficiente."
+                    />
+                  ) : (
+                    <DataTable<DashboardAlertaStock>
+                      columns={STOCK_COLS}
+                      data={data.alertasStock}
+                      getRowKey={(r) => r.id_producto}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Compras pendientes */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base font-bold">
+                    <Truck className="h-4 w-4 text-warning" />
+                    Compras pendientes
+                    {data.comprasPendientes.length > 0 && (
+                      <Badge variant="warning" className="ml-auto">{data.comprasPendientes.length}</Badge>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {data.comprasPendientes.length === 0 ? (
+                    <EmptyState
+                      icon={<CheckCircle2 className="h-6 w-6 text-success" />}
+                      title="Sin pendientes"
+                      description="No hay compras pendientes de recibir."
+                    />
+                  ) : (
+                    <DataTable<DashboardCompra>
+                      columns={COMPRAS_COLS}
+                      data={data.comprasPendientes}
+                      getRowKey={(r) => r.id_compra_proveedor}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Ventas recientes */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base font-bold">
+                  <Receipt className="h-4 w-4 text-brand" />
+                  Ventas recientes
+                  <span className="ml-auto text-xs font-normal text-muted-foreground">
+                    Últimas {data.ventasRecientes.length}
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {data.ventasRecientes.length === 0 ? (
+                  <EmptyState
+                    icon={<ShoppingCart className="h-6 w-6" />}
+                    title="Sin ventas recientes"
+                    description="Aún no hay ventas registradas."
+                  />
+                ) : (
+                  <DataTable<DashboardVenta>
+                    columns={VENTAS_COLS}
+                    data={data.ventasRecientes}
+                    getRowKey={(r) => r.id_venta}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
-
-      {/* Alertas */}
-      {data && (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-
-          {/* Stock crítico */}
-          <section className="rs-dash-section rounded-xl border border-border bg-card p-5 shadow-sm">
-            <h2 className="mb-4 flex items-center gap-2 text-sm font-bold text-foreground">
-              <AlertTriangle className="h-4 w-4 text-warning" />
-              Stock crítico
-            </h2>
-            {data.alertasStock.length === 0 ? (
-              <p className="rs-empty-ok flex items-center gap-2 text-sm">
-                <span>✓</span> Todos los productos tienen stock suficiente.
-              </p>
-            ) : (
-              <div className="text-sm" style={{ borderColor: 'rgba(148,163,184,0.16)' }}>
-                {data.alertasStock.map((p) => (
-                  <div key={p.id_producto} className="flex items-center justify-between py-2.5 border-b" style={{ borderColor: 'rgba(148,163,184,0.16)' }}>
-                    <div>
-                      <p className="font-medium text-foreground leading-tight">{p.titulo_producto}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {p.nombre_categoria} · {p.nombre_formato} · {p.codigo_sku}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <span className="rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs font-semibold text-warning">
-                        {p.stock_actual} / {p.stock_minimo}
-                      </span>
-                      <p className="mt-0.5 text-xs text-muted-foreground">actual / mínimo</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* Compras pendientes */}
-          <section className="rs-dash-section rounded-xl border border-border bg-card p-5 shadow-sm">
-            <h2 className="mb-4 flex items-center gap-2 text-sm font-bold text-foreground">
-              <Truck className="h-4 w-4 text-warning" />
-              Compras pendientes
-            </h2>
-            {data.comprasPendientes.length === 0 ? (
-              <p className="rs-empty-ok flex items-center gap-2 text-sm">
-                <span>✓</span> No hay compras pendientes de recibir.
-              </p>
-            ) : (
-              <div className="text-sm">
-                {data.comprasPendientes.map((c) => (
-                  <div key={c.id_compra_proveedor} className="flex items-center justify-between py-2.5 border-b" style={{ borderColor: 'rgba(148,163,184,0.16)' }}>
-                    <div>
-                      <p className="font-medium text-foreground leading-tight">{c.nombre_proveedor}</p>
-                      <p className="text-xs text-muted-foreground">Responsable: {c.empleado}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs font-semibold text-muted-foreground">
-                        {c.num_productos} producto{c.num_productos !== 1 ? 's' : ''}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {String(c.fecha_compra_proveedor).slice(0, 10)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
-      )}
-
-      {/* Ventas recientes */}
-      {data && (
-        <section className="rs-dash-section rounded-xl border border-border bg-card p-5 shadow-sm">
-          <h2 className="mb-4 flex items-center gap-2 text-sm font-bold text-foreground">
-            <Receipt className="h-4 w-4 text-info" />
-            Ventas recientes
-            <span className="ml-auto text-xs font-normal text-muted-foreground">
-              Últimas 8
-            </span>
-          </h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr style={{ borderBottom: '1px solid rgba(148,163,184,0.16)' }}>
-                  <th className="pb-3 text-left text-xs font-bold uppercase tracking-wide text-foreground">ID</th>
-                  <th className="pb-3 text-left text-xs font-bold uppercase tracking-wide text-foreground">Fecha</th>
-                  <th className="pb-3 text-left text-xs font-bold uppercase tracking-wide text-foreground">Cliente</th>
-                  <th className="pb-3 text-left text-xs font-bold uppercase tracking-wide text-foreground">Método</th>
-                  <th className="pb-3 text-center text-xs font-bold uppercase tracking-wide text-foreground">Estado</th>
-                  <th className="pb-3 text-right text-xs font-bold uppercase tracking-wide text-foreground">Total Neto</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.ventasRecientes.map((v) => (
-                  <tr key={v.id_venta} className="rs-table-row" style={{ borderBottom: '1px solid rgba(148,163,184,0.10)' }}>
-                    <td className="py-3 font-mono text-xs text-muted-foreground">#{v.id_venta}</td>
-                    <td className="py-3 text-muted-foreground">{String(v.fecha_venta).slice(0, 10)}</td>
-                    <td className="py-3 font-medium text-foreground">{v.cliente}</td>
-                    <td className="py-3 text-muted-foreground capitalize">{v.metodo_pago}</td>
-                    <td className="py-3 text-center">
-                      <span className={`inline-flex rounded-full text-xs ${VENTA_BADGE[v.estado_venta] ?? ''}`}>
-                        {v.estado_venta}
-                      </span>
-                    </td>
-                    <td className="py-3 text-right font-mono font-semibold text-foreground">
-                      Q{Number(v.total_neto).toFixed(2)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
-
     </main>
   );
 }
