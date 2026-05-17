@@ -1,4 +1,8 @@
+'use client';
+
+import { motion } from 'framer-motion';
 import { AlertCircle } from 'lucide-react';
+import { slideUp } from '@/lib/motion';
 
 interface ErrorStateProps {
   title?: string;
@@ -21,7 +25,12 @@ export function ErrorState({
       : undefined;
 
   return (
-    <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-danger/20 bg-danger/5 px-6 py-16 text-center">
+    <motion.div
+      variants={slideUp}
+      initial="initial"
+      animate="animate"
+      className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-danger/20 bg-danger/5 px-6 py-16 text-center"
+    >
       <div className="flex h-14 w-14 items-center justify-center rounded-full bg-danger/10 text-danger">
         <AlertCircle className="h-7 w-7" />
       </div>
@@ -32,6 +41,6 @@ export function ErrorState({
         )}
       </div>
       {action && <div className="mt-1">{action}</div>}
-    </div>
+    </motion.div>
   );
 }

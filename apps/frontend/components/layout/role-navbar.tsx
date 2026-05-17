@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useTheme } from 'next-themes';
 import { useCurrentUser, useLogout } from '@/hooks/use-auth';
 import { useCarritoItemCount } from '@/hooks/use-carrito';
@@ -153,28 +154,34 @@ export function RoleNavbar() {
 
       </div>
 
-      {menuOpen && (
-        <nav
-          id="mobile-nav"
-          aria-label="Navegación móvil"
-          className="md:hidden border-t border-border bg-background px-4 pb-3 pt-2"
-        >
-          {navItems.map(({ href, label }) => {
-            const active = isActiveRoute(pathname, href);
-            return (
-              <Link
-                key={`mob-${href}-${label}`}
-                href={href as any}
-                className={`block rounded-xl px-4 py-2 text-sm font-medium transition-colors duration-150 ${
-                  active ? 'rs-nav-active' : 'rs-nav-item rs-nav-muted'
-                }`}
-              >
-                {label}
-              </Link>
-            );
-          })}
-        </nav>
-      )}
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.nav
+            id="mobile-nav"
+            aria-label="Navegación móvil"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="md:hidden overflow-hidden border-t border-border bg-background px-4 pb-3 pt-2"
+          >
+            {navItems.map(({ href, label }) => {
+              const active = isActiveRoute(pathname, href);
+              return (
+                <Link
+                  key={`mob-${href}-${label}`}
+                  href={href as any}
+                  className={`block rounded-xl px-4 py-2 text-sm font-medium transition-colors duration-150 ${
+                    active ? 'rs-nav-active' : 'rs-nav-item rs-nav-muted'
+                  }`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+          </motion.nav>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { CheckCircle2, XCircle } from 'lucide-react';
 
 interface NotifyModalProps {
@@ -20,8 +21,18 @@ export function NotifyModal({ type, title, message, onClose }: NotifyModalProps)
   }, [isSuccess, onClose]);
 
   return (
-    <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-2xl border border-border bg-card p-10 text-center shadow-2xl">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.15 }}
+      className="fixed inset-0 z-70 flex items-center justify-center bg-black/50 p-4"
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
+        className="w-full max-w-md rounded-2xl border border-border bg-card p-10 text-center shadow-2xl"
+      >
         <div
           className={`mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full border-4 ${
             isSuccess
@@ -41,12 +52,12 @@ export function NotifyModal({ type, title, message, onClose }: NotifyModalProps)
         {!isSuccess && (
           <button
             onClick={onClose}
-            className="mt-6 rounded-xl bg-brand px-8 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-hover"
+            className="mt-6 rounded-xl bg-brand px-8 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-hover active:scale-[0.97]"
           >
             Aceptar
           </button>
         )}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

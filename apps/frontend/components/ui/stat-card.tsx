@@ -33,7 +33,7 @@ export function StatCard({
   const heading = title ?? label ?? '';
 
   return (
-    <div className={`rounded-2xl border border-border bg-card p-5 ${className}`}>
+    <div className={`rounded-2xl border border-border bg-card p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${className}`}>
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <p className="text-sm text-muted-foreground">{heading}</p>

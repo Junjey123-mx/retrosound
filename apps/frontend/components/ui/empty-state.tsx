@@ -1,4 +1,8 @@
+'use client';
+
+import { motion } from 'framer-motion';
 import { Inbox } from 'lucide-react';
+import { slideUp } from '@/lib/motion';
 
 interface EmptyStateProps {
   title?: string;
@@ -14,7 +18,12 @@ export function EmptyState({
   icon,
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-border px-6 py-16 text-center">
+    <motion.div
+      variants={slideUp}
+      initial="initial"
+      animate="animate"
+      className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-border px-6 py-16 text-center"
+    >
       <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
         {icon ?? <Inbox className="h-7 w-7" />}
       </div>
@@ -25,6 +34,6 @@ export function EmptyState({
         )}
       </div>
       {action && <div className="mt-1">{action}</div>}
-    </div>
+    </motion.div>
   );
 }
