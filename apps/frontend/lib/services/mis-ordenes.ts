@@ -18,6 +18,17 @@ export interface Orden {
   items: OrdenItem[];
 }
 
+export interface OrdenDetalle extends Orden {
+  recibo?: {
+    subtotal: number;
+    descuentoVenta: number;
+    totalNeto: number;
+    iva12: number;
+    total: number;
+  };
+}
+
 export const misOrdenesService = {
   getAll: () => apiClient.get<Orden[]>('/mis-ordenes'),
+  getOne: (id: number) => apiClient.get<OrdenDetalle>(`/mis-ordenes/${id}`),
 };

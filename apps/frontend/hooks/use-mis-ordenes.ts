@@ -8,3 +8,12 @@ export function useMisOrdenes() {
     staleTime: 30_000,
   });
 }
+
+export function useMisOrden(id: number) {
+  return useQuery({
+    queryKey: ['mis-ordenes', id],
+    queryFn: () => misOrdenesService.getOne(id),
+    staleTime: 30_000,
+    enabled: !!id,
+  });
+}

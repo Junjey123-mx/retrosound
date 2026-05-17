@@ -9,6 +9,9 @@ import {
 } from 'lucide-react';
 import { useClienteProductos } from '@/hooks/use-productos';
 import { ProductCard } from '@/components/cliente/product-card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
+import { Button } from '@/components/ui/button';
 import type { Producto } from '@/types';
 
 type FilterKey = 'todos' | 'vinilo' | 'cd' | 'casete' | 'disponibles' | 'precio-bajo';
@@ -291,36 +294,30 @@ export default function TiendaPage() {
           )}
 
           {isError && (
-            <div className="rs-store-surface rounded-[16px] border p-10 text-center">
-              <Music2 className="mx-auto h-10 w-10 text-brand" />
-              <p className="mt-4 text-lg font-extrabold text-foreground">No se pudo cargar el catálogo.</p>
-              <button
-                type="button"
-                onClick={() => refetch()}
-                className="mt-5 rounded-xl bg-brand px-6 py-2.5 text-sm font-bold text-white transition hover:bg-brand-hover dark:text-primary-foreground"
-              >
-                Reintentar
-              </button>
-            </div>
+            <ErrorState
+              title="No se pudo cargar el catálogo"
+              action={
+                <Button variant="outline" size="sm" onClick={() => refetch()}>
+                  Reintentar
+                </Button>
+              }
+            />
           )}
 
           {!isLoading && !isError && !hasProducts && (
-            <div className="rs-store-surface rounded-[16px] border p-12 text-center">
-              <Music2 className="mx-auto h-12 w-12 text-brand" />
-              <p className="mt-4 text-lg font-extrabold text-foreground">No hay productos disponibles</p>
-              <p className="mt-2 text-sm font-medium text-muted-foreground">
-                Vuelve más tarde para descubrir nuevas colecciones.
-              </p>
-            </div>
+            <EmptyState
+              icon={<Music2 className="h-7 w-7" />}
+              title="No hay productos disponibles"
+              description="Vuelve más tarde para descubrir nuevas colecciones."
+            />
           )}
 
           {!isLoading && !isError && hasProducts && !hasFilterResults && (
-            <div className="rs-store-surface rounded-[16px] border p-10 text-center">
-              <ListOrdered className="mx-auto h-10 w-10 text-brand" />
-              <p className="mt-4 text-lg font-extrabold text-foreground">
-                No encontramos productos con estos filtros.
-              </p>
-            </div>
+            <EmptyState
+              icon={<ListOrdered className="h-7 w-7" />}
+              title="Sin resultados para estos filtros"
+              description="Prueba cambiando la búsqueda o los filtros activos."
+            />
           )}
 
           {!isLoading && !isError && hasFilterResults && (

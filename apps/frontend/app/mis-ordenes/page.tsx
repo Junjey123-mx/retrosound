@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, PackageSearch, ShoppingBag, Music2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Eye, PackageSearch, ShoppingBag, Music2, RefreshCw } from 'lucide-react';
 import { useMisOrdenes } from '@/hooks/use-mis-ordenes';
 import type { Orden } from '@/lib/services/mis-ordenes';
 
@@ -81,12 +81,21 @@ function OrdenCard({ orden }: { orden: Orden }) {
         ))}
       </ul>
 
-      {/* Total */}
-      <div className="mt-4 flex items-center justify-end gap-2 border-t border-border/60 pt-4">
-        <span className="text-sm font-medium text-muted-foreground">Total</span>
-        <span className="text-lg font-extrabold" style={{ color: 'hsl(var(--brand))' }}>
-          Q{Number(orden.total).toFixed(2)}
-        </span>
+      {/* Footer */}
+      <div className="mt-4 flex items-center justify-between border-t border-border/60 pt-4">
+        <Link
+          href={`/mis-ordenes/${orden.idVenta}` as any}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-foreground transition hover:border-brand/40 hover:text-brand"
+        >
+          <Eye className="h-3.5 w-3.5" />
+          Ver detalle
+        </Link>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground">Total</span>
+          <span className="text-lg font-extrabold" style={{ color: 'hsl(var(--brand))' }}>
+            Q{Number(orden.total).toFixed(2)}
+          </span>
+        </div>
       </div>
     </article>
   );

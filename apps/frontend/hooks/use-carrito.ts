@@ -24,10 +24,27 @@ export function useAddToCarrito() {
   });
 }
 
+export function useUpdateCarritoItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ idCarritoItem, cantidad }: { idCarritoItem: number; cantidad: number }) =>
+      carritoService.updateItem(idCarritoItem, cantidad),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['carrito'] }),
+  });
+}
+
 export function useRemoveFromCarrito() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (idCarritoItem: number) => carritoService.removeItem(idCarritoItem),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['carrito'] }),
+  });
+}
+
+export function useCancelarCarrito() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => carritoService.cancelar(),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['carrito'] }),
   });
 }
