@@ -47,8 +47,8 @@ export function FormModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className={`relative w-full ${widthClass} rounded-2xl border border-border bg-card shadow-xl`}>
-        <div className="flex items-start justify-between border-b border-border px-6 py-4">
+      <div className={`relative flex w-full flex-col ${widthClass} max-h-[90dvh] rounded-2xl border border-border bg-card shadow-xl`}>
+        <div className="flex shrink-0 items-start justify-between border-b border-border px-6 py-4">
           <div>
             <h2 className="text-lg font-semibold text-foreground">{title}</h2>
             {description && (
@@ -63,9 +63,9 @@ export function FormModal({
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="px-6 py-5">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">{children}</div>
         {footer && (
-          <div className="flex items-center justify-end gap-2 border-t border-border px-6 py-4">
+          <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border px-6 py-4">
             {footer}
           </div>
         )}

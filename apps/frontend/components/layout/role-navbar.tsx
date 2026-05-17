@@ -7,7 +7,7 @@ import { useTheme } from 'next-themes';
 import { useCurrentUser, useLogout } from '@/hooks/use-auth';
 import { useCarritoItemCount } from '@/hooks/use-carrito';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { Disc3, LogOut, ShoppingCart } from 'lucide-react';
+import { Disc3, LogOut, Menu, ShoppingCart, X } from 'lucide-react';
 import { getNavItemsForRole } from '@/lib/constants/nav-items';
 import { ROLES } from '@/lib/auth/roles';
 
@@ -57,8 +57,10 @@ export function RoleNavbar() {
   const pathname = usePathname();
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => setMounted(true), []);
+  useEffect(() => { setMenuOpen(false); }, [pathname]);
 
   const isDark      = mounted ? theme === 'dark' : false;
   const brandColor  = isDark ? '#00DC82' : '#F97316';
@@ -110,6 +112,15 @@ export function RoleNavbar() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <button
+            className="md:hidden rs-btn-logout"
+            aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
+            aria-expanded={menuOpen}
+            aria-controls="mobile-nav"
+            onClick={() => setMenuOpen((o) => !o)}
+          >
+            {menuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          </button>
           <ThemeToggle />
 
           {rol === ROLES.CLIENTE && (
@@ -141,6 +152,29 @@ export function RoleNavbar() {
         </div>
 
       </div>
+
+      {menuOpen && (
+        <nav
+          id="mobile-nav"
+          aria-label="Navegación móvil"
+          className="md:hidden border-t border-border bg-background px-4 pb-3 pt-2"
+        >
+          {navItems.map(({ href, label }) => {
+            const active = isActiveRoute(pathname, href);
+            return (
+              <Link
+                key={`mob-${href}-${label}`}
+                href={href as any}
+                className={`block rounded-xl px-4 py-2 text-sm font-medium transition-colors duration-150 ${
+                  active ? 'rs-nav-active' : 'rs-nav-item rs-nav-muted'
+                }`}
+              >
+                {label}
+              </Link>
+            );
+          })}
+        </nav>
+      )}
     </header>
   );
 }

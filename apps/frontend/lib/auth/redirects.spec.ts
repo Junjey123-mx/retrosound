@@ -6,12 +6,12 @@ describe('getDefaultRedirect', () => {
     expect(getDefaultRedirect('admin')).toBe('/dashboard');
   });
 
-  it('returns /dashboard for empleado_ventas', () => {
-    expect(getDefaultRedirect('empleado_ventas')).toBe('/dashboard');
+  it('returns /dashboard/ventas for empleado_ventas', () => {
+    expect(getDefaultRedirect('empleado_ventas')).toBe('/dashboard/ventas');
   });
 
-  it('returns /dashboard for empleado_inventario', () => {
-    expect(getDefaultRedirect('empleado_inventario')).toBe('/dashboard');
+  it('returns /dashboard/inventario for empleado_inventario', () => {
+    expect(getDefaultRedirect('empleado_inventario')).toBe('/dashboard/inventario');
   });
 
   it('returns /tienda for cliente', () => {
