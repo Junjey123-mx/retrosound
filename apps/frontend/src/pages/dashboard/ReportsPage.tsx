@@ -13,7 +13,7 @@ import { FilterTabs }   from '@/components/ui/filter-tabs';
 import { EmptyState }   from '@/components/ui/empty-state';
 import { ErrorState }   from '@/components/ui/error-state';
 import { LoadingState } from '@/components/ui/loading-state';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
