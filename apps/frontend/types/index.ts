@@ -221,3 +221,71 @@ export interface DashboardInventarioResponse {
     productosRecientes: Array<{ idProducto: number; titulo: string; sku: string; stockActual: number; precioVenta: number }>;
   };
 }
+
+// ─── Proveedor Portal ─────────────────────────────────────────────────────────
+
+export interface ProveedorMe {
+  idProveedor: number;
+  nombre: string;
+  telefono: string | null;
+  correo: string | null;
+  direccion: string | null;
+  nombreContacto: string | null;
+  estado: string;
+}
+
+export interface ProveedorDashboard {
+  totalProductos: number;
+  totalEntregas: number;
+  entregasPendientes: number;
+}
+
+export interface ProveedorProducto {
+  idProducto: number;
+  tituloProducto: string;
+  descripcionProducto: string | null;
+  estadoProducto: EstadoProducto;
+  codigoSku: string;
+  precioVenta: number;
+  stockActual: number;
+  stockMinimo: number;
+  imagenUrl: string | null;
+  anioLanzamiento?: number | null;
+}
+
+export interface UpdateProveedorProductoDto {
+  descripcion?: string;
+}
+
+export interface UpdateProveedorProductoImagenDto {
+  imagenUrl: string;
+  imagenPublicId: string;
+}
+
+export interface ProveedorEntregaDetalle {
+  idDetalle: number;
+  producto: { id: number; titulo: string; sku: string };
+  cantidadComprada: number;
+  costoUnitario: number;
+}
+
+export interface ProveedorEntrega {
+  idCompra: number;
+  fecha: string;
+  estado: EstadoCompra;
+  detalles: ProveedorEntregaDetalle[];
+}
+
+export interface RegistrarEntregaProveedorDto {
+  idProducto: number;
+  cantidadReportada: number;
+  costoUnitario: number;
+}
+
+export interface UpdateProveedorPerfilDto {
+  nombreProveedor?: string;
+  telefonoProveedor?: string;
+  correoProveedor?: string;
+  direccionProveedor?: string;
+  nombreContacto?: string;
+}

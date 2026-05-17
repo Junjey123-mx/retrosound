@@ -29,6 +29,7 @@ export const ROUTES = {
     portal: '/proveedor',
     productos: '/proveedor/productos',
     entregas: '/proveedor/entregas',
+    entregasNueva: '/proveedor/entregas/nueva',
     perfil: '/proveedor/perfil',
   },
 } as const;
