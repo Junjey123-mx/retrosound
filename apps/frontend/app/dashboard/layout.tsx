@@ -1,4 +1,4 @@
-import { TopNav } from '@/components/layout/top-nav';
+import { RoleNavbar } from '@/components/layout/role-navbar';
 import { RoleGuard } from '@/components/guards/role-guard';
 import { ROLES } from '@/lib/auth/roles';
 
@@ -11,7 +11,7 @@ export default function DashboardLayout({
 }) {
   return (
     <div className="min-h-screen bg-background">
-      <TopNav />
+      <RoleNavbar />
       <RoleGuard allowed={STAFF_ROLES}>{children}</RoleGuard>
     </div>
   );

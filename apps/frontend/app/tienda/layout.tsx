@@ -1,11 +1,11 @@
-import { ClientNavbar } from '@/components/cliente/client-navbar';
+import { RoleNavbar } from '@/components/layout/role-navbar';
 import { RoleGuard } from '@/components/guards/role-guard';
 import { ROLES } from '@/lib/auth/roles';
 
 export default function TiendaLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
-      <ClientNavbar />
+      <RoleNavbar />
       <RoleGuard allowed={[ROLES.CLIENTE]}>{children}</RoleGuard>
     </div>
   );
