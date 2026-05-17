@@ -1,68 +1,105 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
+import { Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { ReportesService } from './reportes.service';
+import { ReporteQueryDto } from './dto/reporte-query.dto';
+import { ExportReporteDto } from './dto/export-reporte.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin', 'empleado_ventas', 'empleado_inventario')
 @Controller('reportes')
 export class ReportesController {
   constructor(private readonly reportesService: ReportesService) {}
 
-  // JOIN múltiple (1/3): venta → cliente, empleado, detalle_venta → producto
+  // ── Endpoints requeridos Commit 38 ─────────────────────────────────────────
+
+  @Get('resumen-ventas')
+  @Roles('admin', 'empleado_ventas')
+  resumenVentas(@Query() query: ReporteQueryDto) {
+    return this.reportesService.resumenVentas(query.estado);
+  }
+
   @Get('ventas-detalle')
-  ventasDetalle() {
-    return this.reportesService.ventasDetalle();
+  @Roles('admin', 'empleado_ventas')
+  ventasDetalle(@Query() query: ReporteQueryDto) {
+    return this.reportesService.ventasDetalle(query);
   }
 
-  // JOIN múltiple (2/3): producto → categoria, formato, artistas, géneros
-  @Get('productos-catalogo')
-  productosCatalogo() {
-    return this.reportesService.productosCatalogo();
+  @Get('catalogo')
+  @Roles('admin', 'empleado_inventario')
+  catalogo(@Query() query: ReporteQueryDto) {
+    return this.reportesService.productosCatalogo(query);
   }
 
-  // JOIN múltiple (3/3): compra_proveedor → proveedor, empleado → detalle → producto
-  @Get('compras-proveedor')
-  comprasProveedor() {
+  @Get('compras')
+  @Roles('admin', 'empleado_inventario')
+  compras() {
     return this.reportesService.comprasProveedor();
   }
 
-  // Subquery escalar en FROM: productos con stock ≤ promedio general
-  @Get('productos-bajo-stock')
-  productosStockBajo() {
+  @Get('stock-bajo')
+  @Roles('admin', 'empleado_inventario')
+  stockBajo() {
     return this.reportesService.productosStockBajo();
   }
 
-  // Subquery EXISTS + subquery correlacionado: clientes con ventas completadas
   @Get('clientes-frecuentes')
-  clientesFrecuentes() {
-    return this.reportesService.clientesFrecuentes();
+  @Roles('admin', 'empleado_ventas')
+  clientesFrecuentes(@Query() query: ReporteQueryDto) {
+    return this.reportesService.clientesFrecuentes(query);
   }
 
-  // GROUP BY + HAVING + SUM / COUNT / AVG: productos más vendidos
-  // ?min=N → filtra los que tengan ≥ N unidades vendidas (default 1)
-  @Get('productos-mas-vendidos')
-  productosMasVendidos(@Query('min') min?: string) {
-    return this.reportesService.productosMasVendidos(Number(min) || 1);
+  @Get('mas-vendidos')
+  @Roles('admin', 'empleado_ventas', 'empleado_inventario')
+  masVendidos(@Query() query: ReporteQueryDto) {
+    return this.reportesService.productosMasVendidos(query.min ?? 1);
   }
 
-  // CTE (WITH) + DENSE_RANK(): ranking de productos por ingresos
   @Get('ranking-ingresos')
+  @Roles('admin', 'empleado_ventas')
   rankingIngresos() {
     return this.reportesService.rankingIngresos();
   }
 
-  // Resumen ejecutivo para el dashboard (stats + alertas)
-  @Get('dashboard')
-  getDashboard() {
-    return this.reportesService.getDashboard();
+  @Get('export/csv')
+  @Roles('admin', 'empleado_ventas', 'empleado_inventario')
+  async exportCsv(@Query() dto: ExportReporteDto, @Res() res: Response) {
+    const { csv, filename } = await this.reportesService.exportCsv(dto);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
   }
 
-  // VIEW vista_resumen_ventas: resumen de ventas con totales
-  // ?estado=completada|pendiente|cancelada (opcional)
-  @Get('resumen-ventas')
-  resumenVentas(@Query('estado') estado?: string) {
-    return this.reportesService.resumenVentas(estado);
+  // ── Rutas legacy (compatibilidad hacia atrás) ───────────────────────────────
+
+  @Get('productos-catalogo')
+  @Roles('admin', 'empleado_inventario')
+  productosCatalogo(@Query() query: ReporteQueryDto) {
+    return this.reportesService.productosCatalogo(query);
+  }
+
+  @Get('compras-proveedor')
+  @Roles('admin', 'empleado_inventario')
+  comprasProveedor() {
+    return this.reportesService.comprasProveedor();
+  }
+
+  @Get('productos-bajo-stock')
+  @Roles('admin', 'empleado_inventario')
+  productosStockBajo() {
+    return this.reportesService.productosStockBajo();
+  }
+
+  @Get('productos-mas-vendidos')
+  @Roles('admin', 'empleado_ventas', 'empleado_inventario')
+  productosMasVendidos(@Query('min') min?: string) {
+    return this.reportesService.productosMasVendidos(Number(min) || 1);
+  }
+
+  @Get('dashboard')
+  @Roles('admin', 'empleado_ventas', 'empleado_inventario')
+  getDashboard() {
+    return this.reportesService.getDashboard();
   }
 }
