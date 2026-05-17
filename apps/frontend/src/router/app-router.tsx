@@ -1,4 +1,4 @@
-import { Link, Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import type { ReactNode } from 'react';
 
 import { ClienteShell } from '@/components/layout/cliente-shell';
@@ -23,7 +23,12 @@ import { NewSalePage } from '@/pages/dashboard/NewSalePage';
 import { NotFoundPage } from '@/pages/public/NotFoundPage';
 import { OrderDetailPage } from '@/pages/cliente/OrderDetailPage';
 import { ProductDetailPage } from '@/pages/cliente/ProductDetailPage';
+import { NewProviderDeliveryPage } from '@/pages/proveedor/NewProviderDeliveryPage';
 import { ProductsPage } from '@/pages/dashboard/ProductsPage';
+import { ProviderDashboardPage } from '@/pages/proveedor/ProviderDashboardPage';
+import { ProviderDeliveriesPage } from '@/pages/proveedor/ProviderDeliveriesPage';
+import { ProviderProductsPage } from '@/pages/proveedor/ProviderProductsPage';
+import { ProviderProfilePage } from '@/pages/proveedor/ProviderProfilePage';
 import { ProvidersPage } from '@/pages/dashboard/ProvidersPage';
 import { ReceptionsPage } from '@/pages/dashboard/ReceptionsPage';
 import { RegisterPage } from '@/pages/public/RegisterPage';
@@ -43,41 +48,6 @@ const INVENTORY_ROLES: Role[] = [ROLES.ADMIN, ROLES.EMPLEADO_INVENTARIO];
 const ADMIN_ROLES: Role[] = [ROLES.ADMIN];
 const PROVEEDOR_ROLES: Role[] = [ROLES.PROVEEDOR];
 
-function PlaceholderPage({ title }: { title: string }) {
-  return (
-    <section className="min-h-[50vh] bg-background px-6 py-10 text-foreground">
-      <div className="mx-auto flex max-w-3xl flex-col gap-4">
-        <p className="text-sm font-medium text-muted-foreground">React Router shell activo</p>
-        <h1 className="text-3xl font-bold">{title}</h1>
-        <nav className="flex flex-wrap gap-3 text-sm text-brand">
-          <Link to={ROUTE_PATHS.PUBLIC.HOME}>Inicio</Link>
-          <Link to={ROUTE_PATHS.PUBLIC.LOGIN}>Login</Link>
-          <Link to={ROUTE_PATHS.PUBLIC.REGISTER}>Registro</Link>
-          <Link to={ROUTE_PATHS.PUBLIC.ACCESS_DENIED}>403</Link>
-          <Link to={ROUTE_PATHS.CLIENTE.STORE}>Tienda</Link>
-          <Link to={ROUTE_PATHS.DASHBOARD.HOME}>Dashboard</Link>
-          <Link to={ROUTE_PATHS.PROVEEDOR.HOME}>Proveedor</Link>
-        </nav>
-      </div>
-    </section>
-  );
-}
-
-function protectedElement(
-  title: string,
-  allowedRoles: Role[],
-  shell: 'cliente' | 'dashboard' | 'proveedor',
-) {
-  const page = <PlaceholderPage title={title} />;
-  const content = shell === 'cliente'
-    ? <ClienteShell>{page}</ClienteShell>
-    : shell === 'proveedor'
-      ? <ProveedorShell>{page}</ProveedorShell>
-      : <DashboardShell>{page}</DashboardShell>;
-
-  return <ProtectedRoute allowedRoles={allowedRoles}>{content}</ProtectedRoute>;
-}
-
 function clientElement(page: ReactNode) {
   return (
     <ProtectedRoute allowedRoles={CLIENTE_ROLES}>
@@ -90,6 +60,14 @@ function dashboardElement(page: ReactNode, allowedRoles: Role[]) {
   return (
     <ProtectedRoute allowedRoles={allowedRoles}>
       <DashboardShell>{page}</DashboardShell>
+    </ProtectedRoute>
+  );
+}
+
+function proveedorElement(page: ReactNode) {
+  return (
+    <ProtectedRoute allowedRoles={PROVEEDOR_ROLES}>
+      <ProveedorShell>{page}</ProveedorShell>
     </ProtectedRoute>
   );
 }
@@ -127,11 +105,11 @@ export function AppRouter() {
       <Route path={ROUTE_PATHS.DASHBOARD.REPORTS} element={dashboardElement(<ReportsPage />, STAFF_ROLES)} />
       <Route path={ROUTE_PATHS.DASHBOARD.PROFILE} element={dashboardElement(<DashboardProfilePage />, STAFF_ROLES)} />
 
-      <Route path={ROUTE_PATHS.PROVEEDOR.HOME} element={protectedElement('Portal proveedor placeholder', PROVEEDOR_ROLES, 'proveedor')} />
-      <Route path={ROUTE_PATHS.PROVEEDOR.PRODUCTS} element={protectedElement('Productos proveedor placeholder', PROVEEDOR_ROLES, 'proveedor')} />
-      <Route path={ROUTE_PATHS.PROVEEDOR.DELIVERIES} element={protectedElement('Entregas proveedor placeholder', PROVEEDOR_ROLES, 'proveedor')} />
-      <Route path={ROUTE_PATHS.PROVEEDOR.NEW_DELIVERY} element={protectedElement('Nueva entrega placeholder', PROVEEDOR_ROLES, 'proveedor')} />
-      <Route path={ROUTE_PATHS.PROVEEDOR.PROFILE} element={protectedElement('Perfil proveedor placeholder', PROVEEDOR_ROLES, 'proveedor')} />
+      <Route path={ROUTE_PATHS.PROVEEDOR.HOME} element={proveedorElement(<ProviderDashboardPage />)} />
+      <Route path={ROUTE_PATHS.PROVEEDOR.PRODUCTS} element={proveedorElement(<ProviderProductsPage />)} />
+      <Route path={ROUTE_PATHS.PROVEEDOR.DELIVERIES} element={proveedorElement(<ProviderDeliveriesPage />)} />
+      <Route path={ROUTE_PATHS.PROVEEDOR.NEW_DELIVERY} element={proveedorElement(<NewProviderDeliveryPage />)} />
+      <Route path={ROUTE_PATHS.PROVEEDOR.PROFILE} element={proveedorElement(<ProviderProfilePage />)} />
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
