@@ -9,16 +9,30 @@ import { AccessDeniedPage } from '@/pages/public/AccessDeniedPage';
 import { CartPage } from '@/pages/cliente/CartPage';
 import { CheckoutConfirmationPage } from '@/pages/cliente/CheckoutConfirmationPage';
 import { CheckoutPage } from '@/pages/cliente/CheckoutPage';
+import { CriticalStockPage } from '@/pages/dashboard/CriticalStockPage';
+import { CustomersPage } from '@/pages/dashboard/CustomersPage';
 import { CustomerProfilePage } from '@/pages/cliente/CustomerProfilePage';
+import { DashboardPage } from '@/pages/dashboard/DashboardPage';
+import { DashboardProfilePage } from '@/pages/dashboard/DashboardProfilePage';
+import { EmployeesPage } from '@/pages/dashboard/EmployeesPage';
+import { InventoryPage } from '@/pages/dashboard/InventoryPage';
 import { LandingPage } from '@/pages/public/LandingPage';
 import { LoginPage } from '@/pages/public/LoginPage';
 import { MyOrdersPage } from '@/pages/cliente/MyOrdersPage';
+import { NewSalePage } from '@/pages/dashboard/NewSalePage';
 import { NotFoundPage } from '@/pages/public/NotFoundPage';
 import { OrderDetailPage } from '@/pages/cliente/OrderDetailPage';
 import { ProductDetailPage } from '@/pages/cliente/ProductDetailPage';
+import { ProductsPage } from '@/pages/dashboard/ProductsPage';
+import { ProvidersPage } from '@/pages/dashboard/ProvidersPage';
+import { ReceptionsPage } from '@/pages/dashboard/ReceptionsPage';
 import { RegisterPage } from '@/pages/public/RegisterPage';
+import { ReportsPage } from '@/pages/dashboard/ReportsPage';
+import { SaleDetailPage } from '@/pages/dashboard/SaleDetailPage';
+import { SalesPage } from '@/pages/dashboard/SalesPage';
 import { StorePage } from '@/pages/cliente/StorePage';
 import { SystemStatesPage } from '@/pages/public/SystemStatesPage';
+import { UsersPage } from '@/pages/dashboard/UsersPage';
 import { ProtectedRoute } from './protected-route';
 import { ROUTE_PATHS } from './route-paths';
 
@@ -72,6 +86,14 @@ function clientElement(page: ReactNode) {
   );
 }
 
+function dashboardElement(page: ReactNode, allowedRoles: Role[]) {
+  return (
+    <ProtectedRoute allowedRoles={allowedRoles}>
+      <DashboardShell>{page}</DashboardShell>
+    </ProtectedRoute>
+  );
+}
+
 export function AppRouter() {
   return (
     <Routes>
@@ -90,20 +112,20 @@ export function AppRouter() {
       <Route path={ROUTE_PATHS.CLIENTE.ORDER_DETAIL} element={clientElement(<OrderDetailPage />)} />
       <Route path={ROUTE_PATHS.CLIENTE.PROFILE} element={clientElement(<CustomerProfilePage />)} />
 
-      <Route path={ROUTE_PATHS.DASHBOARD.HOME} element={protectedElement('Dashboard placeholder', STAFF_ROLES, 'dashboard')} />
-      <Route path={ROUTE_PATHS.DASHBOARD.PRODUCTS} element={protectedElement('Productos placeholder', STAFF_ROLES, 'dashboard')} />
-      <Route path={ROUTE_PATHS.DASHBOARD.PROVIDERS} element={protectedElement('Proveedores placeholder', STAFF_ROLES, 'dashboard')} />
-      <Route path={ROUTE_PATHS.DASHBOARD.SALES} element={protectedElement('Ventas placeholder', SALES_ROLES, 'dashboard')} />
-      <Route path={ROUTE_PATHS.DASHBOARD.NEW_SALE} element={protectedElement('Nueva venta placeholder', SALES_ROLES, 'dashboard')} />
-      <Route path={ROUTE_PATHS.DASHBOARD.SALE_DETAIL} element={protectedElement('Detalle de venta placeholder', SALES_ROLES, 'dashboard')} />
-      <Route path={ROUTE_PATHS.DASHBOARD.CUSTOMERS} element={protectedElement('Clientes placeholder', SALES_ROLES, 'dashboard')} />
-      <Route path={ROUTE_PATHS.DASHBOARD.USERS} element={protectedElement('Usuarios placeholder', ADMIN_ROLES, 'dashboard')} />
-      <Route path={ROUTE_PATHS.DASHBOARD.EMPLOYEES} element={protectedElement('Empleados placeholder', ADMIN_ROLES, 'dashboard')} />
-      <Route path={ROUTE_PATHS.DASHBOARD.INVENTORY} element={protectedElement('Inventario placeholder', INVENTORY_ROLES, 'dashboard')} />
-      <Route path={ROUTE_PATHS.DASHBOARD.RECEPTIONS} element={protectedElement('Recepciones placeholder', INVENTORY_ROLES, 'dashboard')} />
-      <Route path={ROUTE_PATHS.DASHBOARD.CRITICAL_STOCK} element={protectedElement('Stock crítico placeholder', INVENTORY_ROLES, 'dashboard')} />
-      <Route path={ROUTE_PATHS.DASHBOARD.REPORTS} element={protectedElement('Reportes placeholder', STAFF_ROLES, 'dashboard')} />
-      <Route path={ROUTE_PATHS.DASHBOARD.PROFILE} element={protectedElement('Perfil dashboard placeholder', STAFF_ROLES, 'dashboard')} />
+      <Route path={ROUTE_PATHS.DASHBOARD.HOME} element={dashboardElement(<DashboardPage />, STAFF_ROLES)} />
+      <Route path={ROUTE_PATHS.DASHBOARD.PRODUCTS} element={dashboardElement(<ProductsPage />, INVENTORY_ROLES)} />
+      <Route path={ROUTE_PATHS.DASHBOARD.PROVIDERS} element={dashboardElement(<ProvidersPage />, INVENTORY_ROLES)} />
+      <Route path={ROUTE_PATHS.DASHBOARD.SALES} element={dashboardElement(<SalesPage />, SALES_ROLES)} />
+      <Route path={ROUTE_PATHS.DASHBOARD.NEW_SALE} element={dashboardElement(<NewSalePage />, SALES_ROLES)} />
+      <Route path={ROUTE_PATHS.DASHBOARD.SALE_DETAIL} element={dashboardElement(<SaleDetailPage />, SALES_ROLES)} />
+      <Route path={ROUTE_PATHS.DASHBOARD.CUSTOMERS} element={dashboardElement(<CustomersPage />, SALES_ROLES)} />
+      <Route path={ROUTE_PATHS.DASHBOARD.USERS} element={dashboardElement(<UsersPage />, ADMIN_ROLES)} />
+      <Route path={ROUTE_PATHS.DASHBOARD.EMPLOYEES} element={dashboardElement(<EmployeesPage />, ADMIN_ROLES)} />
+      <Route path={ROUTE_PATHS.DASHBOARD.INVENTORY} element={dashboardElement(<InventoryPage />, INVENTORY_ROLES)} />
+      <Route path={ROUTE_PATHS.DASHBOARD.RECEPTIONS} element={dashboardElement(<ReceptionsPage />, INVENTORY_ROLES)} />
+      <Route path={ROUTE_PATHS.DASHBOARD.CRITICAL_STOCK} element={dashboardElement(<CriticalStockPage />, INVENTORY_ROLES)} />
+      <Route path={ROUTE_PATHS.DASHBOARD.REPORTS} element={dashboardElement(<ReportsPage />, STAFF_ROLES)} />
+      <Route path={ROUTE_PATHS.DASHBOARD.PROFILE} element={dashboardElement(<DashboardProfilePage />, STAFF_ROLES)} />
 
       <Route path={ROUTE_PATHS.PROVEEDOR.HOME} element={protectedElement('Portal proveedor placeholder', PROVEEDOR_ROLES, 'proveedor')} />
       <Route path={ROUTE_PATHS.PROVEEDOR.PRODUCTS} element={protectedElement('Productos proveedor placeholder', PROVEEDOR_ROLES, 'proveedor')} />
