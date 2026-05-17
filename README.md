@@ -780,10 +780,12 @@ Base URL: `http://localhost:3003`
 
 ### Clientes y Empleados
 
-| Método | Ruta | Guard |
-|--------|------|-------|
-| `GET/POST/PATCH/DELETE` | `/clientes` | JWT + admin |
-| `GET/POST/PATCH/DELETE` | `/empleados` | JWT + admin |
+| Método | Ruta | Guard | Descripción |
+|--------|------|-------|-------------|
+| `GET/POST/PATCH/DELETE` | `/clientes` | JWT + admin/empleado_ventas | CRUD administrativo |
+| `GET` | `/clientes/me` | JWT + cliente | Perfil del cliente autenticado |
+| `PATCH` | `/clientes/me` | JWT + cliente | Editar nombre, apellido, teléfono, dirección |
+| `GET/POST/PATCH/DELETE` | `/empleados` | JWT + admin | CRUD administrativo |
 
 ### Catálogos
 
@@ -813,6 +815,7 @@ Base URL: `http://localhost:3003`
 | `DELETE` | `/carrito` | Vaciar carrito |
 | `POST` | `/checkout` | Procesar pago via `sp_checkout_carrito` |
 | `GET` | `/mis-ordenes` | Historial de compras del cliente |
+| `GET` | `/mis-ordenes/:id` | Detalle de una orden del cliente autenticado |
 
 ### Inventario (empleado_inventario / admin)
 

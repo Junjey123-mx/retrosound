@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateClienteDto } from './dto/create-cliente.dto';
 import { FindAllClientesDto } from './dto/find-all-clientes.dto';
 import { UpdateClienteDto } from './dto/update-cliente.dto';
 import { UpdateClienteStatusDto } from './dto/update-cliente-status.dto';
+import { UpdateClienteMeDto } from './dto/update-cliente-me.dto';
 
 const INCLUDE_CLIENTE = {
   usuario: {
@@ -224,6 +225,32 @@ export class ClientesService {
       // fechaRegistro excluido: campo administrativo
     };
     return this.update(usuario.idCliente, safeDto);
+  }
+
+  async getMyProfile(idCliente: number | null) {
+    if (!idCliente) {
+      throw new ForbiddenException('El usuario no tiene un perfil de cliente asociado');
+    }
+    return this.findOne(idCliente);
+  }
+
+  async updateMyProfile(idCliente: number | null, dto: UpdateClienteMeDto) {
+    if (!idCliente) {
+      throw new ForbiddenException('El usuario no tiene un perfil de cliente asociado');
+    }
+    const data: Prisma.ClienteUpdateInput = {};
+    if (dto.nombre !== undefined)    data.nombreCliente    = dto.nombre;
+    if (dto.apellido !== undefined)  data.apellidoCliente  = dto.apellido;
+    if (dto.telefono !== undefined)  data.telefonoCliente  = dto.telefono;
+    if (dto.direccion !== undefined) data.direccionCliente = dto.direccion;
+
+    if (Object.keys(data).length === 0) return this.findOne(idCliente);
+
+    const cliente = await this.prisma.cliente.update({
+      where: { idCliente },
+      data,
+    });
+    return this.mapClienteBase(cliente);
   }
 
   async remove(id: number) {

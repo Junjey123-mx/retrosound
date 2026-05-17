@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database';
 
 type OrdenRow = {
@@ -22,6 +22,7 @@ type OrdenItemRow = {
   cantidad_vendida: number;
   precio_unitario_venta: string | number;
   descuento_detalle: string | number;
+  imagen_url: string | null;
 };
 
 @Injectable()
@@ -166,6 +167,119 @@ export class MisOrdenesService {
         items,
       };
     });
+  }
+
+  async findById(idCliente: number | null, idVenta: number) {
+    if (!idCliente) {
+      throw new ForbiddenException(
+        'El usuario autenticado no tiene un perfil de cliente asociado',
+      );
+    }
+
+    const ventaResult = await this.db.query<OrdenRow>(
+      `
+      SELECT
+        id_venta,
+        fecha_venta,
+        estado_venta,
+        metodo_pago,
+        descuento_venta
+      FROM venta
+      WHERE id_venta = $1
+        AND id_cliente = $2
+      LIMIT 1
+      `,
+      [idVenta, idCliente],
+    );
+
+    const venta = ventaResult.rows[0];
+    if (!venta) {
+      throw new NotFoundException('Orden no encontrada');
+    }
+
+    const itemsResult = await this.db.query<OrdenItemRow>(
+      `
+      SELECT
+        dv.id_detalle_venta,
+        dv.id_producto,
+        p.titulo_producto,
+        p.codigo_sku,
+        f.nombre_formato   AS formato,
+        c.nombre_categoria AS categoria,
+        p.imagen_url,
+        COALESCE(artistas.nombres, ARRAY[]::text[]) AS artistas,
+        COALESCE(generos.nombres,  ARRAY[]::text[]) AS generos,
+        dv.cantidad_vendida,
+        dv.precio_unitario_venta,
+        dv.descuento_detalle
+      FROM detalle_venta dv
+      JOIN producto  p ON p.id_producto  = dv.id_producto
+      JOIN formato   f ON f.id_formato   = p.id_formato
+      JOIN categoria c ON c.id_categoria = p.id_categoria
+      LEFT JOIN LATERAL (
+        SELECT array_agg(a.nombre_artista ORDER BY a.nombre_artista) AS nombres
+        FROM producto_artista pa
+        JOIN artista a ON a.id_artista = pa.id_artista
+        WHERE pa.id_producto = p.id_producto
+      ) artistas ON true
+      LEFT JOIN LATERAL (
+        SELECT array_agg(g.nombre_genero_musical ORDER BY g.nombre_genero_musical) AS nombres
+        FROM producto_genero pg
+        JOIN genero_musical g ON g.id_genero_musical = pg.id_genero_musical
+        WHERE pg.id_producto = p.id_producto
+      ) generos ON true
+      WHERE dv.id_venta = $1
+      ORDER BY dv.id_detalle_venta
+      `,
+      [idVenta],
+    );
+
+    const items = itemsResult.rows.map((detalle) => {
+      const precioUnitario = Number(detalle.precio_unitario_venta);
+      const descuentoDetalle = Number(detalle.descuento_detalle);
+      const subtotalLinea = this.roundMoney(
+        detalle.cantidad_vendida * precioUnitario,
+      );
+      const totalLinea = this.roundMoney(subtotalLinea - descuentoDetalle);
+
+      return {
+        idDetalleVenta: detalle.id_detalle_venta,
+        idProducto: detalle.id_producto,
+        tituloProducto: detalle.titulo_producto,
+        codigoSku: detalle.codigo_sku,
+        formato: detalle.formato,
+        categoria: detalle.categoria,
+        artistas: detalle.artistas,
+        generos: detalle.generos,
+        imagenUrl: detalle.imagen_url ?? null,
+        cantidad: detalle.cantidad_vendida,
+        precioUnitario,
+        descuentoDetalle,
+        subtotalLinea,
+        totalLinea,
+      };
+    });
+
+    const totalBruto = this.roundMoney(
+      items.reduce((acc, item) => acc + item.subtotalLinea, 0),
+    );
+    const descuentoVenta = Number(venta.descuento_venta);
+    const totalNeto = this.roundMoney(totalBruto - descuentoVenta);
+    const iva = this.roundMoney(totalNeto * 0.12);
+    const totalConIva = this.roundMoney(totalNeto * 1.12);
+
+    return {
+      idVenta: venta.id_venta,
+      fechaVenta: venta.fecha_venta,
+      estadoVenta: venta.estado_venta,
+      metodoPago: venta.metodo_pago,
+      descuentoVenta,
+      totalBruto,
+      totalNeto,
+      iva,
+      totalConIva,
+      items,
+    };
   }
 
   private roundMoney(value: number): number {
