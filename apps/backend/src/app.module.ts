@@ -15,6 +15,7 @@ import { CheckoutModule } from './checkout/checkout.module';
 import { MisOrdenesModule } from './mis-ordenes/mis-ordenes.module';
 import { InventarioModule } from './inventario/inventario.module';
 import { ProveedorPortalModule } from './proveedor-portal/proveedor-portal.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { ProveedorPortalModule } from './proveedor-portal/proveedor-portal.modul
     MisOrdenesModule,
     InventarioModule,
     ProveedorPortalModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}
