@@ -1,6 +1,6 @@
 # RetroSound Store — Documentación académica final
 
-Proyecto 2 · Bases de Datos 1 (cc3088) · Universidad del Valle de Guatemala · Ciclo 1 2026
+Proyecto 2 y Proyecto 3 · Bases de Datos 1 (cc3088) · Universidad del Valle de Guatemala · Ciclo 1 2026
 
 ---
 
@@ -10,7 +10,7 @@ RetroSound Store es una tienda especializada en la venta de música en formatos 
 
 Stack tecnológico final:
 
-- Backend: NestJS 11 + TypeScript + pg/node-postgres (sin ORM)
+- Backend: NestJS 11 + TypeScript + Prisma ORM + pg/node-postgres
 - Frontend: Next.js 16 + React 19 + Tailwind CSS
 - Base de datos: PostgreSQL 17
 - Infraestructura: Docker Compose
@@ -536,26 +536,92 @@ Las fuentes oficiales de la base de datos son:
 
 Todos los usuarios tienen contraseña `retro2025` (hash bcrypt almacenado en la DB).
 
-| Correo | Rol | Descripción |
-|--------|-----|-------------|
-| `admin@retrosound.com` | admin | Acceso total a todos los módulos |
-| `angel.sanabria@retrosound.com` | empleado | Puede gestionar ventas y compras |
-| `saul.castillo@retrosound.com` | empleado | — |
-| `paola.hernandez@retrosound.com` | empleado | — |
-| `carlos.mendoza@retrosound.com` | empleado | — |
-| `andrea.garcia@email.com` | cliente | Puede usar carrito y checkout |
-| `mario.lopez@email.com` | cliente | — |
-| `sofia.ramirez@email.com` | cliente | — |
-| `proveedor1@retrosound.com` | proveedor | Acceso básico |
+Usuarios demo Proyecto 3 (uno por rol funcional, contraseña `retro2025`):
+
+| Correo | Rol de aplicación | Descripción |
+|--------|------------------|-------------|
+| `admin@retrosound.com` | `admin` | Acceso total a todos los módulos |
+| `ventas@retrosound.com` | `empleado_ventas` | Ventas, clientes, reportes de ventas |
+| `inventario@retrosound.com` | `empleado_inventario` | Stock, recepciones, reportes de inventario |
+| `cliente@retrosound.com` | `cliente` | Tienda, carrito, checkout, mis órdenes |
+| `proveedor@retrosound.com` | `proveedor` | Portal proveedor: entregas, productos, perfil |
+
+Usuarios adicionales del seed base (contraseña `retro2025`):
+
+| Correo | Rol |
+|--------|-----|
+| `angel.sanabria@retrosound.com` | empleado_ventas |
+| `andrea.garcia@email.com` | cliente |
+| `mario.lopez@email.com` | cliente |
+| `sofia.ramirez@email.com` | cliente |
 
 ---
 
-## 15. Credenciales obligatorias (rúbrica)
+## 15. Credenciales obligatorias
 
 | Variable | Valor |
 |----------|-------|
-| `POSTGRES_USER` | `proy2` |
+| `POSTGRES_USER` | `proy3` |
 | `POSTGRES_PASSWORD` | `secret` |
 | `POSTGRES_DB` | `retrosound` |
+| `DATABASE_URL` (Docker) | `postgresql://proy3:secret@postgres:5432/retrosound?schema=public` |
 
-Estas credenciales son las requeridas por la rúbrica del Proyecto 2. El archivo `.env.example` las define con estos valores exactos.
+El archivo `.env.example` define estos valores exactos. `proy3` es el usuario técnico de conexión; los roles funcionales del DBMS son los `rs_*`.
+
+---
+
+## 16. Proyecto 3 — Resumen técnico
+
+### Rama de entrega
+
+`proyecto-3` — no se evalúa `main`.
+
+### Levantar desde cero
+
+```bash
+docker compose down -v
+docker compose up --build
+```
+
+### Roles DBMS (5 roles de negocio + 1 técnico)
+
+| Rol DBMS | Rol de aplicación |
+|----------|------------------|
+| `rs_admin` | `admin` |
+| `rs_empleado_ventas` | `empleado_ventas` |
+| `rs_empleado_inventario` | `empleado_inventario` |
+| `rs_cliente` | `cliente` |
+| `rs_proveedor` | `proveedor` |
+
+`proy3` tiene LOGIN y hereda los 5 roles. No es un rol funcional.
+
+### Prisma ORM
+
+Configurado en `apps/backend/prisma/schema.prisma`. Mapea las 18 tablas del DDL con `@map` / `@@map`. Usado en CRUD de: productos, proveedores, usuarios, clientes, empleados, carrito, proveedor-portal, inventario, dashboard.
+
+### Stored Procedures invocados desde backend
+
+| SP | Endpoint |
+|----|----------|
+| `sp_crear_venta` | `POST /ventas` |
+| `sp_checkout_carrito` | `POST /checkout` |
+| `sp_registrar_entrega_proveedor` | `POST /proveedor/me/entregas` |
+| `sp_confirmar_recepcion_stock` | `PATCH /inventario/recepciones/:id/confirmar` |
+| `sp_actualizar_imagen_producto` | `PATCH /productos/:id/imagen`, `PATCH /proveedor/me/productos/:id/imagen` |
+
+### Nuevos módulos backend (Proyecto 3)
+
+| Módulo | Ruta base | Roles |
+|--------|-----------|-------|
+| `inventario` | `/inventario` | admin, empleado_inventario |
+| `proveedor-portal` | `/proveedor/me` | proveedor |
+| `dashboard` | `/dashboard` | por endpoint |
+| `reportes` (ampliado) | `/reportes` | por endpoint |
+
+### Tests unitarios
+
+```bash
+cd apps/backend && npm test
+```
+
+28 tests en 4 archivos (auth, productos, proveedores, checkout). Vitest + instanciación directa, sin BD real.

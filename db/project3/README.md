@@ -49,9 +49,11 @@ psql -d retrosound -f db/project3/07_permissions_project3.sql
 | `POSTGRES_USER`      | `proy3`                                                        |
 | `POSTGRES_PASSWORD`  | `secret`                                                       |
 | `POSTGRES_DB`        | `retrosound`                                                   |
-| `DATABASE_URL`       | `postgresql://proy3:secret@db:5432/retrosound?schema=public`   |
+| `DATABASE_URL`       | `postgresql://proy3:secret@postgres:5432/retrosound?schema=public` |
 
-`proy3` es el **usuario técnico de conexión** del ORM y Docker. No es un rol funcional de la aplicación. Hereda los 5 roles DBMS mediante `GRANT <rol> TO proy3`, y el backend usa `SET ROLE` para operar con el rol correcto por request.
+`proy3` es el **usuario técnico de conexión** del ORM y Docker. No es un rol funcional de la aplicación. Hereda los 5 roles DBMS mediante `GRANT rs_* TO proy3`.
+
+> El hostname dentro de Docker es `postgres` (nombre del servicio en `docker-compose.yml`). Para conexión desde el host: `localhost:5433`.
 
 ---
 
@@ -274,28 +276,42 @@ Candidatos identificados:
 
 ## 13. Checklist de cumplimiento de rúbrica
 
+**Base de datos:**
 - [x] 5 roles DBMS creados con `CREATE ROLE` (`03_roles_project3.sql`)
-- [x] Permisos granulares definidos con `GRANT` / `REVOKE` (`07_permissions_project3.sql`)
+- [x] Permisos granulares con `GRANT` / `REVOKE` (`07_permissions_project3.sql`)
 - [x] Usuario demo por cada rol funcional (`02_seed_project3.sql`)
-- [x] 5 stored procedures definidos (`04_procedures_project3.sql`)
-- [x] Procedures con parámetros `IN` / `OUT` y bloque `EXCEPTION`
-- [x] Procedure crítico de stock con rollback por excepción (`sp_confirmar_recepcion_stock`)
-- [x] Prisma schema preparado y mapeado (`apps/backend/prisma/schema.prisma`)
-- [x] Credenciales `proy3` / `secret` documentadas y usadas en `03_roles_project3.sql`
+- [x] 5 stored procedures con parámetros `IN` / `OUT` y bloque `EXCEPTION` (`04_procedures_project3.sql`)
+- [x] SP con lógica transaccional y rollback por excepción (`sp_confirmar_recepcion_stock`)
+- [x] Credenciales `proy3` / `secret` usadas en `03_roles_project3.sql` y `docker-compose.yml`
+- [x] 4 vistas SQL con acceso restringido por rol (`05_views_project3.sql`)
+
+**Backend:**
+- [x] Prisma ORM instalado y configurado (`apps/backend/prisma/schema.prisma`)
+- [x] CRUD con Prisma: productos, proveedores, usuarios, clientes, empleados, carrito
+- [x] 5 SPs invocados desde backend con `prisma.$queryRaw`
+- [x] Guards por rol en todos los módulos nuevos (`JwtAuthGuard` + `RolesGuard`)
+- [x] Módulo `inventario` — recepciones, stock crítico, confirmación de stock
+- [x] Módulo `proveedor-portal` — entregas, productos, perfil
+- [x] Módulo `dashboard` — métricas por rol
+- [x] Módulo `reportes` — 9 endpoints + CSV export
+- [x] `HttpExceptionFilter` registrado globalmente en `main.ts`
+- [x] Tests unitarios: 28 tests, 4 archivos, sin BD real (`npm test`)
 
 ---
 
-## 14. Pendientes técnicos
+## 14. Estado de implementación
 
-| Pendiente                                                              | Prioridad |
-|------------------------------------------------------------------------|-----------|
-| Instalar `prisma` y `@prisma/client` en `apps/backend/`               | Alta      |
-| Ejecutar `npx prisma validate` para verificar el schema                | Alta      |
-| Actualizar `docker-compose` / `.env` si aún usa credenciales de `proy2`| Alta      |
-| Implementar invocación de stored procedures desde backend              | Media     |
-| Usar Prisma en al menos 3 operaciones CRUD reales                      | Media     |
-| Implementar `SET ROLE` por request en el backend                       | Media     |
-| Definir índices en `06_indexes_project3.sql`                           | Baja      |
+Todos los ítems críticos de la rúbrica están implementados. Los puntos pendientes son opcionales o de optimización:
+
+| Ítem | Estado |
+|------|--------|
+| Prisma ORM instalado y en uso | Completo |
+| 5 SPs invocados desde backend | Completo |
+| CRUD con Prisma (≥5 módulos) | Completo |
+| Guards por rol en todos los módulos | Completo |
+| Docker con credenciales `proy3`/`secret` | Completo |
+| Tests unitarios (28 tests) | Completo |
+| Índices en `06_indexes_project3.sql` | Reservado (vacío) |
 
 ---
 
@@ -308,8 +324,7 @@ Esta sección documenta los comandos para verificar manualmente que los scripts 
 ### Conexión a psql desde Docker
 
 ```bash
-# Reemplazar 'db' por el nombre real del servicio en docker-compose.yml si es diferente
-docker compose exec db psql -U proy3 -d retrosound
+docker compose exec postgres psql -U proy3 -d retrosound
 ```
 
 ---
@@ -500,17 +515,77 @@ Una operación bloqueada debe devolver `ERROR: permission denied`. Eso confirma 
 - El seed principal es SQL: `db/retrosound_seed.sql` + `db/project3/02_seed_project3.sql`.
 - Si en el futuro se requiere un seed Prisma (`apps/backend/prisma/seed.ts`), no debe duplicar los datos del seed SQL.
 
-### Comandos Prisma para cuando se instale la dependencia
+### Comandos Prisma
 
 ```bash
 cd apps/backend
 
-# Instalar dependencias
-npm install prisma @prisma/client
-
 # Verificar que el schema es sintácticamente válido
 npx prisma validate
 
-# Generar el cliente Prisma (no ejecuta migraciones)
+# Generar el cliente (no ejecuta migraciones)
 npx prisma generate
+```
+
+> Prisma ya está instalado en `apps/backend/`. No usar `prisma migrate` — el DDL lo controlan los scripts SQL de `db/`.
+
+---
+
+## 16. Comandos de validación rápida (evaluación)
+
+### Levantar desde cero
+
+```bash
+docker compose down -v
+docker compose up --build
+```
+
+### Verificar que el backend levantó
+
+```bash
+curl http://localhost:3003/auth/me
+# Esperado: 401 Unauthorized (el guard está activo)
+```
+
+### Login y probar endpoint protegido
+
+```bash
+TOKEN=$(curl -s -X POST http://localhost:3003/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"correo":"admin@retrosound.com","contrasena":"retro2025"}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+
+curl -s http://localhost:3003/dashboard/admin \
+  -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
+```
+
+### Tests unitarios del backend
+
+```bash
+cd apps/backend && npm test
+# Esperado: 4 test files, 28 tests passed
+```
+
+### Verificar roles DBMS en PostgreSQL
+
+```bash
+docker compose exec postgres psql -U proy3 -d retrosound -c \
+  "SELECT rolname FROM pg_roles WHERE rolname LIKE 'rs_%' OR rolname = 'proy3' ORDER BY rolname;"
+# Esperado: 6 filas (rs_admin, rs_cliente, rs_empleado_inventario, rs_empleado_ventas, rs_proveedor, proy3)
+```
+
+### Verificar stored procedures
+
+```bash
+docker compose exec postgres psql -U proy3 -d retrosound -c \
+  "SELECT proname FROM pg_proc WHERE proname LIKE 'sp_%' ORDER BY proname;"
+# Esperado: 5 filas
+```
+
+### Exportar CSV desde la API
+
+```bash
+curl -s "http://localhost:3003/reportes/export/csv?tipo=resumen-ventas" \
+  -H "Authorization: Bearer $TOKEN" \
+  -o resumen_ventas.csv
 ```

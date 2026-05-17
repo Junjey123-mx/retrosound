@@ -10,12 +10,12 @@ RetroSound Store es una tienda especializada en la venta de música en formatos 
 
 | Capa | Tecnología |
 |------|-----------|
-| **Backend** | NestJS 11 · TypeScript · pg/node-postgres · Passport JWT · bcrypt · class-validator |
+| **Backend** | NestJS 11 · TypeScript · Prisma ORM · pg/node-postgres · Passport JWT · bcrypt · class-validator |
 | **Frontend** | Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS · TanStack Query · Radix UI · Framer Motion · Lucide React |
-| **Base de datos** | PostgreSQL 17 · SQL explícito · DDL manual · Seed SQL · Views · Índices · Transacciones |
+| **Base de datos** | PostgreSQL 17 · DDL manual · Seed SQL · Views · Índices · Transacciones · Stored Procedures |
 | **Infraestructura** | Docker Compose · pgAdmin 4 · Node.js 22 Alpine |
 
-> El backend **no usa ORM**. Toda consulta SQL se ejecuta a través de `DatabaseService.query(sql, params)` con `pg` (node-postgres).
+> El backend usa **Prisma ORM** para CRUD de entidades (productos, proveedores, usuarios, clientes, empleados, carrito). Los reportes SQL avanzados y los stored procedures se invocan con `prisma.$queryRaw` / `$queryRawUnsafe`, o con `DatabaseService` para compatibilidad con el código base de Proyecto 2.
 
 ## Arquitectura de capas
 
@@ -67,7 +67,7 @@ PostgreSQL inicializa la base de datos automáticamente con todos los scripts SQ
 8. `db/project3/06_indexes_project3.sql`
 9. `db/project3/07_permissions_project3.sql`
 
-La inicialización ocurre una sola vez (cuando el volumen `pgdata` está vacío). El backend usa **pg/node-postgres** con SQL explícito — sin ORM. Cuando veas la línea:
+La inicialización ocurre una sola vez (cuando el volumen `pgdata` está vacío). Cuando veas la línea:
 
 ```
 backend-1  | Backend corriendo en http://localhost:3001
@@ -118,17 +118,83 @@ Todas están en `.env.example` con valores por defecto funcionales:
 
 ---
 
+## Proyecto 3 — Requisitos de la rúbrica
+
+> Rama de entrega: **`proyecto-3`** — no se evalúa `main`.
+
+### Roles de aplicación (columna `rol_usuario`)
+
+| Rol | Acceso |
+|-----|--------|
+| `admin` | Control total de todos los módulos |
+| `empleado_ventas` | Ventas, clientes, reportes de ventas |
+| `empleado_inventario` | Stock, recepciones, reportes de inventario |
+| `cliente` | Tienda, carrito, checkout, mis órdenes |
+| `proveedor` | Portal proveedor: entregas, productos, perfil |
+
+### Roles DBMS (PostgreSQL)
+
+Creados con `CREATE ROLE` en `db/project3/03_roles_project3.sql`. Permisos aplicados en `07_permissions_project3.sql`.
+
+| Rol DBMS | Rol de aplicación mapeado |
+|----------|--------------------------|
+| `rs_admin` | `admin` |
+| `rs_empleado_ventas` | `empleado_ventas` |
+| `rs_empleado_inventario` | `empleado_inventario` |
+| `rs_cliente` | `cliente` |
+| `rs_proveedor` | `proveedor` |
+
+`proy3` es el usuario técnico de conexión (tiene LOGIN). Hereda los 5 roles con `GRANT rs_* TO proy3`. No cuenta como sexto rol funcional.
+
+### Prisma ORM — módulos con CRUD
+
+Prisma ORM (schema en `apps/backend/prisma/schema.prisma`) se usa en:
+- `productos` — findMany, findUnique, create, update
+- `proveedores` — findMany, findUnique, create, update
+- `usuarios` — findUnique, create, update
+- `clientes` — findMany, findUnique, create, update
+- `empleados` — findMany, findUnique, create, update
+- `carrito` / `carrito_item` — findFirst, create, update, delete
+- `proveedor-portal` — consultas con include/where anidados
+- `inventario` — recepciones, stock crítico con `$queryRaw`
+- `dashboard` — métricas mixtas con Prisma + `$queryRaw`
+
+### Stored procedures invocados desde el backend
+
+| Stored Procedure | Endpoint que lo invoca | Módulo |
+|-----------------|----------------------|--------|
+| `sp_crear_venta` | `POST /ventas` | ventas |
+| `sp_checkout_carrito` | `POST /checkout` | checkout |
+| `sp_registrar_entrega_proveedor` | `POST /proveedor/me/entregas` | proveedor-portal |
+| `sp_confirmar_recepcion_stock` | `PATCH /inventario/recepciones/:id/confirmar` | inventario |
+| `sp_actualizar_imagen_producto` | `PATCH /productos/:id/imagen`, `PATCH /proveedor/me/productos/:id/imagen` | productos / proveedor-portal |
+
+Todos los SPs se invocan con `prisma.$queryRaw` usando tagged template literals.
+
+---
+
 ## Usuarios de prueba (seed)
 
 Todos los usuarios usan la misma contraseña: **`retro2025`**
 
+### Usuarios demo Proyecto 3 (uno por rol)
+
+| Correo | Rol de aplicación | Descripción |
+|--------|------------------|-------------|
+| `admin@retrosound.com` | `admin` | Acceso total a todos los módulos |
+| `ventas@retrosound.com` | `empleado_ventas` | Gestión de ventas y atención al cliente |
+| `inventario@retrosound.com` | `empleado_inventario` | Control de stock y recepciones |
+| `cliente@retrosound.com` | `cliente` | Compra en tienda y portal web |
+| `proveedor@retrosound.com` | `proveedor` | Registro de entregas y actualización de imagen |
+
+### Usuarios adicionales del seed base
+
 | Correo | Rol |
 |--------|-----|
-| `admin@retrosound.com` | admin |
-| `angel.sanabria@retrosound.com` | empleado |
-| `saul.castillo@retrosound.com` | empleado |
-| `paola.hernandez@retrosound.com` | empleado |
-| `carlos.mendoza@retrosound.com` | empleado |
+| `angel.sanabria@retrosound.com` | empleado_ventas |
+| `saul.castillo@retrosound.com` | empleado_ventas |
+| `paola.hernandez@retrosound.com` | empleado_ventas |
+| `carlos.mendoza@retrosound.com` | empleado_ventas |
 | `andrea.garcia@email.com` | cliente |
 | `mario.lopez@email.com` | cliente |
 | `sofia.ramirez@email.com` | cliente |
@@ -497,7 +563,7 @@ Lo mismo aplica para **Proveedores** (enlace en la barra de navegación).
 
 ## Cómo probar una venta (transacción explícita)
 
-La venta usa una transacción PostgreSQL explícita (`BEGIN / COMMIT / ROLLBACK`) implementada directamente con `pg` (sin ORM).
+La venta se procesa mediante el stored procedure `sp_crear_venta`, que encapsula la transacción completa en PostgreSQL.
 
 ### Desde la UI
 
@@ -562,21 +628,27 @@ Incluye: entidades, modelo relacional, dependencias funcionales, normalización 
 ```
 retrosound/
 ├── apps/
-│   ├── backend/                ← NestJS 11 + pg/node-postgres (sin ORM)
+│   ├── backend/                ← NestJS 11 + Prisma ORM + pg/node-postgres
+│   │   ├── prisma/             ← schema.prisma (mapeo de 18 tablas)
 │   │   ├── src/
-│   │   │   ├── database/       ← DatabaseService (pg Pool global)
-│   │   │   ├── auth/           ← login, register (transacción), JWT
+│   │   │   ├── prisma/         ← PrismaService (global)
+│   │   │   ├── database/       ← DatabaseService (pg Pool, compatibilidad P2)
+│   │   │   ├── auth/           ← login, register, JWT, guards, decoradores
+│   │   │   ├── common/         ← HttpExceptionFilter, PaginationQueryDto, utils
 │   │   │   ├── usuarios/       ← CRUD admin de usuarios
-│   │   │   ├── productos/      ← CRUD productos
-│   │   │   ├── proveedores/    ← CRUD proveedores
-│   │   │   ├── clientes/       ← CRUD clientes
-│   │   │   ├── empleados/      ← CRUD empleados
+│   │   │   ├── productos/      ← CRUD productos (Prisma)
+│   │   │   ├── proveedores/    ← CRUD proveedores (Prisma)
+│   │   │   ├── clientes/       ← CRUD clientes (Prisma)
+│   │   │   ├── empleados/      ← CRUD empleados (Prisma)
 │   │   │   ├── catalogs/       ← catálogos: categorías, formatos, géneros, artistas
-│   │   │   ├── ventas/         ← CRUD ventas (transacción explícita)
-│   │   │   ├── carrito/        ← carrito de compras del cliente
-│   │   │   ├── checkout/       ← pago del carrito (transacción explícita)
+│   │   │   ├── ventas/         ← ventas via sp_crear_venta
+│   │   │   ├── carrito/        ← carrito de compras (Prisma)
+│   │   │   ├── checkout/       ← checkout via sp_checkout_carrito
 │   │   │   ├── mis-ordenes/    ← historial de compras del cliente
-│   │   │   └── reportes/       ← 8 endpoints SQL avanzados
+│   │   │   ├── inventario/     ← recepciones, stock crítico, sp_confirmar_recepcion_stock
+│   │   │   ├── proveedor-portal/ ← portal proveedor: entregas, productos, perfil
+│   │   │   ├── dashboard/      ← métricas en tiempo real por rol
+│   │   │   └── reportes/       ← 9 endpoints SQL + exportación CSV
 │   │   └── Dockerfile
 │   └── frontend/               ← Next.js 16 App Router
 │       ├── app/
@@ -739,22 +811,59 @@ Base URL: `http://localhost:3003`
 | `PATCH` | `/carrito/items/:id` | Actualizar cantidad |
 | `DELETE` | `/carrito/items/:id` | Eliminar ítem del carrito |
 | `DELETE` | `/carrito` | Vaciar carrito |
-| `POST` | `/checkout` | Procesar pago (transacción) |
+| `POST` | `/checkout` | Procesar pago via `sp_checkout_carrito` |
 | `GET` | `/mis-ordenes` | Historial de compras del cliente |
+
+### Inventario (empleado_inventario / admin)
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `GET` | `/inventario/recepciones` | Lista recepciones de proveedor |
+| `GET` | `/inventario/recepciones/:id` | Detalle de recepción |
+| `PATCH` | `/inventario/recepciones/:id/confirmar` | Confirma stock via `sp_confirmar_recepcion_stock` |
+| `GET` | `/inventario/stock-critico` | Productos con stock ≤ mínimo |
+| `GET` | `/inventario/stock-resumen` | Resumen de estado del inventario |
+
+### Portal proveedor (proveedor autenticado)
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `GET` | `/proveedor/me` | Perfil del proveedor autenticado |
+| `GET` | `/proveedor/me/dashboard` | Dashboard del proveedor |
+| `GET` | `/proveedor/me/productos` | Productos asociados al proveedor |
+| `GET` | `/proveedor/me/productos/:id` | Detalle de producto del proveedor |
+| `PATCH` | `/proveedor/me/productos/:id` | Actualizar descripción del producto |
+| `PATCH` | `/proveedor/me/productos/:id/imagen` | Actualizar imagen via `sp_actualizar_imagen_producto` |
+| `GET` | `/proveedor/me/entregas` | Historial de entregas registradas |
+| `GET` | `/proveedor/me/entregas/:id` | Detalle de una entrega |
+| `POST` | `/proveedor/me/entregas` | Registrar entrega via `sp_registrar_entrega_proveedor` |
+| `GET` | `/proveedor/me/perfil` | Datos de perfil |
+| `PATCH` | `/proveedor/me/perfil` | Actualizar datos de contacto |
+
+### Dashboard (métricas en tiempo real)
+
+| Método | Ruta | Roles |
+|--------|------|-------|
+| `GET` | `/dashboard/admin` | admin |
+| `GET` | `/dashboard/ventas` | admin, empleado_ventas |
+| `GET` | `/dashboard/inventario` | admin, empleado_inventario |
+| `GET` | `/dashboard/proveedor` | proveedor |
 
 ### Reportes (JWT requerido)
 
-| Método | Ruta | Técnica SQL |
-|--------|------|-------------|
-| `GET` | `/reportes/dashboard` | Subqueries escalares + JOINs |
-| `GET` | `/reportes/resumen-ventas` | VIEW `vista_resumen_ventas` |
-| `GET` | `/reportes/ventas-detalle` | JOIN múltiple (5 tablas) |
-| `GET` | `/reportes/productos-catalogo` | JOIN + STRING_AGG |
-| `GET` | `/reportes/compras-proveedor` | JOIN en cadena (4 tablas) |
-| `GET` | `/reportes/productos-bajo-stock` | Subquery en FROM |
-| `GET` | `/reportes/clientes-frecuentes` | EXISTS + subquery correlacionado |
-| `GET` | `/reportes/productos-mas-vendidos?min=N` | GROUP BY + HAVING |
-| `GET` | `/reportes/ranking-ingresos` | CTE WITH + DENSE_RANK() |
+| Método | Ruta | Roles | Técnica SQL |
+|--------|------|-------|-------------|
+| `GET` | `/reportes/resumen-ventas` | admin, empleado_ventas | VIEW `vista_resumen_ventas` |
+| `GET` | `/reportes/ventas-detalle` | admin, empleado_ventas | JOIN múltiple (5 tablas) |
+| `GET` | `/reportes/catalogo` | admin, empleado_inventario | JOIN + STRING_AGG |
+| `GET` | `/reportes/compras` | admin, empleado_inventario | JOIN en cadena (4 tablas) |
+| `GET` | `/reportes/stock-bajo` | admin, empleado_inventario | Subquery en FROM |
+| `GET` | `/reportes/clientes-frecuentes` | admin, empleado_ventas | EXISTS + subquery correlacionado |
+| `GET` | `/reportes/mas-vendidos` | admin, empleado_ventas, empleado_inventario | GROUP BY + HAVING |
+| `GET` | `/reportes/ranking-ingresos` | admin, empleado_ventas | CTE WITH + DENSE_RANK() |
+| `GET` | `/reportes/export/csv` | admin, empleado_ventas, empleado_inventario | CSV generado en backend |
+
+> Las rutas legacy (`/reportes/productos-catalogo`, `/reportes/compras-proveedor`, `/reportes/productos-bajo-stock`, `/reportes/productos-mas-vendidos`, `/reportes/dashboard`) siguen activas para compatibilidad con el frontend de Proyecto 2.
 
 ### Usuarios (solo admin)
 
@@ -787,7 +896,9 @@ Docker aplica automáticamente todos estos archivos al iniciar si el volumen `pg
 
 ## Transacciones explícitas
 
-El proyecto implementa tres transacciones PostgreSQL explícitas con `BEGIN / COMMIT / ROLLBACK` usando `pg` directamente (sin ORM):
+El proyecto implementa transacciones PostgreSQL tanto en stored procedures como directamente vía `pg`:
+
+> **Proyecto 3:** las transacciones de ventas y checkout están encapsuladas en `sp_crear_venta` y `sp_checkout_carrito` respectivamente, invocados con `prisma.$queryRaw`. El registro de cliente en `POST /auth/register` sigue usando una transacción `prisma.$transaction`. La descripción a continuación refleja la lógica interna de cada SP.
 
 ### 1. `POST /ventas`
 
@@ -843,6 +954,16 @@ cd apps/backend
 npm install
 npm run build
 ```
+
+### Tests unitarios del backend
+
+```bash
+cd apps/backend
+npm test
+# o: npx vitest run
+```
+
+28 tests, 4 archivos spec (auth, productos, proveedores, checkout). Sin conexión a BD real.
 
 ### Docker desde cero
 
