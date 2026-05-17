@@ -1,21 +1,38 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useTheme } from 'next-themes';
 import { authService } from '@/lib/services/auth';
 import { PasswordInput } from '@/components/ui/password-input';
-import { Disc3, CheckCircle2, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { ThemeSegment } from '@/components/ui/theme-segment';
+import {
+  Disc3, AlertCircle, ArrowLeft,
+  Music2, Radio, ShoppingCart, Star,
+} from 'lucide-react';
 
 export default function RegistroPage() {
   const router = useRouter();
-  const [nombre,    setNombre]    = useState('');
-  const [apellido,  setApellido]  = useState('');
-  const [correo,    setCorreo]    = useState('');
+  const [nombre,     setNombre]     = useState('');
+  const [apellido,   setApellido]   = useState('');
+  const [correo,     setCorreo]     = useState('');
   const [contrasena, setContrasena] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error,     setError]     = useState('');
+  const [isLoading,  setIsLoading]  = useState(false);
+  const [error,      setError]      = useState('');
+
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const d = mounted ? theme === 'dark' : false;
+
+  const brand         = d ? '#00E676' : '#F97316';
+  const subtitleColor = d ? 'rgba(248,250,252,0.55)' : 'rgba(255,255,255,0.65)';
+  const checkColor    = d ? '#00E676' : '#F97316';
+  const glowA         = d ? 'rgba(0,230,118,0.10)' : 'rgba(249,115,22,0.08)';
+  const glowB         = d ? 'rgba(139,92,246,0.10)' : 'rgba(139,92,246,0.08)';
 
   async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
@@ -33,52 +50,76 @@ export default function RegistroPage() {
   }
 
   const PERKS = [
-    'Explora vinilos, CDs y casetes de colección',
-    'Agrega productos a tu carrito y realiza compras',
-    'Consulta el estado de tus órdenes en tiempo real',
-    'Descubre ediciones limitadas y clásicos imperdibles',
+    { icon: <ShoppingCart className="h-4 w-4" />, text: 'Explora vinilos, CDs y casetes de colección' },
+    { icon: <Star         className="h-4 w-4" />, text: 'Agrega productos a tu carrito y realiza compras' },
+    { icon: <Music2       className="h-4 w-4" />, text: 'Consulta el estado de tus órdenes en tiempo real' },
+    { icon: <Radio        className="h-4 w-4" />, text: 'Descubre ediciones limitadas y clásicos imperdibles' },
   ];
 
   return (
     <main className="flex min-h-screen">
 
       {/* ── Panel izquierdo visual ─────────────────────────────────────── */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-[#0F172A] p-12 text-white relative overflow-hidden">
-
-        {/* Decoración */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 -right-24 h-80 w-80 rounded-full bg-violet-500/10 blur-3xl" />
-          <div className="absolute bottom-0 left-0 h-96 w-96 rounded-full bg-green-500/10 blur-3xl" />
-        </div>
+      <div
+        className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden"
+        style={{
+          background: d
+            ? 'linear-gradient(150deg, #080F1A 0%, #031508 45%, #080F1A 100%)'
+            : 'linear-gradient(150deg, #1E1B4B 0%, #312E81 45%, #1E1B4B 100%)',
+        }}
+      >
+        <div className="pointer-events-none absolute -top-24 -right-24 h-80 w-80 rounded-full blur-3xl" style={{ backgroundColor: glowB }} />
+        <div className="pointer-events-none absolute bottom-0 left-0 h-96 w-96 rounded-full blur-3xl" style={{ backgroundColor: glowA }} />
 
         {/* Logo */}
-        <div className="relative flex items-center gap-2">
-          <Disc3 className="rs-logo-mark h-6 w-6" />
-          <span className="text-lg font-bold">RetroSound</span>
+        <div className="relative flex items-center gap-2.5">
+          <div
+            className="flex h-9 w-9 items-center justify-center rounded-full border-2"
+            style={{ borderColor: brand, backgroundColor: d ? 'rgba(0,230,118,0.10)' : 'rgba(249,115,22,0.12)' }}
+          >
+            <Disc3 className="h-5 w-5" style={{ color: brand }} />
+          </div>
+          <span className="text-lg font-bold text-white">RetroSound</span>
         </div>
 
         {/* Contenido central */}
         <div className="relative space-y-6">
-          <h1 className="text-4xl font-bold leading-tight">
-            Música física,<br />para coleccionistas.
-          </h1>
-          <p className="text-lg text-white/60 leading-relaxed max-w-sm">
+          {/* Badges decorativos */}
+          <div className="flex gap-3">
+            {[
+              { icon: <Disc3  className="h-5 w-5" />, color: brand, bg: d ? 'rgba(0,230,118,0.12)' : 'rgba(249,115,22,0.14)' },
+              { icon: <Music2 className="h-5 w-5" />, color: '#a78bfa', bg: 'rgba(139,92,246,0.14)' },
+              { icon: <Radio  className="h-5 w-5" />, color: '#60a5fa', bg: 'rgba(59,130,246,0.14)' },
+            ].map((b, i) => (
+              <div key={i} className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: b.bg, border: `1px solid ${b.color}35` }}>
+                <span style={{ color: b.color }}>{b.icon}</span>
+              </div>
+            ))}
+          </div>
+
+          <div>
+            <h1 className="text-4xl font-bold leading-tight text-white">Música física,</h1>
+            <h1 className="text-4xl font-bold leading-tight" style={{ color: brand }}>para coleccionistas.</h1>
+          </div>
+
+          <p className="text-base leading-relaxed max-w-sm" style={{ color: subtitleColor }}>
             Crea tu cuenta y empieza a explorar nuestro catálogo de vinilos, CDs y casetes.
           </p>
 
           <ul className="space-y-3 pt-2">
             {PERKS.map((p) => (
-              <li key={p} className="flex items-start gap-3 text-sm text-white/70">
-                <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-brand" />
-                {p}
+              <li key={p.text} className="flex items-start gap-3 text-sm" style={{ color: subtitleColor }}>
+                <span className="mt-0.5 shrink-0" style={{ color: checkColor }}>{p.icon}</span>
+                {p.text}
               </li>
             ))}
           </ul>
         </div>
 
-        <p className="relative text-xs text-white/30">
-          RetroSound Store · Proyecto 2 — Bases de Datos 1
-        </p>
+        <div className="relative flex items-center gap-4">
+          <ThemeSegment />
+          <p className="text-xs text-white/30">RetroSound Store · BD1</p>
+        </div>
       </div>
 
       {/* ── Panel derecho — formulario ─────────────────────────────────── */}
@@ -95,50 +136,39 @@ export default function RegistroPage() {
             <span className="font-bold text-foreground">RetroSound</span>
           </div>
 
-          {/* Encabezado */}
           <div className="space-y-1">
             <h1 className="text-2xl font-bold text-foreground">Crear cuenta</h1>
             <p className="text-sm text-muted-foreground">Completa los campos para registrarte.</p>
           </div>
 
-          {/* Formulario */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Nombre</label>
-                <input
-                  type="text"
-                  value={nombre}
-                  onChange={(e) => setNombre(e.target.value)}
-                  required
-                  placeholder="Juan"
-                  className="w-full rounded-xl border border-input bg-input-bg px-4 py-2.5 text-sm text-foreground shadow-sm placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25 transition"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Apellido</label>
-                <input
-                  type="text"
-                  value={apellido}
-                  onChange={(e) => setApellido(e.target.value)}
-                  required
-                  placeholder="García"
-                  className="w-full rounded-xl border border-input bg-input-bg px-4 py-2.5 text-sm text-foreground shadow-sm placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25 transition"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Correo electrónico</label>
-              <input
-                type="email"
-                value={correo}
-                onChange={(e) => setCorreo(e.target.value)}
+              <Input
+                label="Nombre"
+                type="text"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
                 required
-                placeholder="juan@email.com"
-                className="w-full rounded-xl border border-input bg-input-bg px-4 py-2.5 text-sm text-foreground shadow-sm placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25 transition"
+                placeholder="Juan"
+              />
+              <Input
+                label="Apellido"
+                type="text"
+                value={apellido}
+                onChange={(e) => setApellido(e.target.value)}
+                required
+                placeholder="García"
               />
             </div>
+
+            <Input
+              label="Correo electrónico"
+              type="email"
+              value={correo}
+              onChange={(e) => setCorreo(e.target.value)}
+              required
+              placeholder="juan@email.com"
+            />
 
             <PasswordInput
               label="Contraseña"
@@ -150,19 +180,19 @@ export default function RegistroPage() {
             />
 
             {error && (
-              <div className="flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              <div className="flex items-center gap-2 rounded-xl border border-danger/35 bg-danger/10 px-4 py-3 text-sm text-danger">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 {error}
               </div>
             )}
 
-            <button
+            <Button
               type="submit"
-              disabled={isLoading}
-              className="w-full rounded-xl bg-brand py-3 text-sm font-semibold text-brand-foreground shadow-sm transition-all duration-150 hover:bg-brand-hover hover:shadow-md active:scale-[0.98] disabled:opacity-50"
+              loading={isLoading}
+              className="w-full py-3 text-sm font-semibold"
             >
-              {isLoading ? 'Creando cuenta…' : 'Crear cuenta'}
-            </button>
+              {!isLoading && 'Crear cuenta'}
+            </Button>
           </form>
 
           <p className="text-center text-sm text-muted-foreground">
@@ -173,9 +203,7 @@ export default function RegistroPage() {
           </p>
         </div>
       </div>
-      <div className="fixed bottom-6 left-6 z-50">
-        <ThemeSegment />
-      </div>
+
     </main>
   );
 }
