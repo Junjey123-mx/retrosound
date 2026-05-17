@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   useProveedores,
   useCreateProveedor,
@@ -8,13 +8,21 @@ import {
   useDeactivateProveedor,
 } from '@/hooks/use-proveedores';
 import type { Proveedor } from '@/types';
-import { Pencil, Trash2 } from 'lucide-react';
-import { NotifyModal } from '@/components/ui/notify-modal';
+import { Pencil, PowerOff, Truck } from 'lucide-react';
+import { PageHeader }    from '@/components/ui/page-header';
+import { DataTable }     from '@/components/ui/data-table';
+import { Badge }         from '@/components/ui/badge';
+import { Button }        from '@/components/ui/button';
+import { SearchInput }   from '@/components/ui/search-input';
+import { FilterTabs }    from '@/components/ui/filter-tabs';
+import { FormModal }     from '@/components/ui/form-modal';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { NotifyModal }   from '@/components/ui/notify-modal';
+import { LoadingState }  from '@/components/ui/loading-state';
+import { ErrorState }    from '@/components/ui/error-state';
+import { EmptyState }    from '@/components/ui/empty-state';
 
-const ESTADO_BADGE: Record<string, string> = {
-  activo:   'rs-badge-completada',
-  inactivo: 'rs-badge-cancelada',
-};
+// ─── form ─────────────────────────────────────────────────────────────────────
 
 const EMPTY_FORM = {
   nombre:         '',
@@ -33,7 +41,9 @@ function validate(f: FormState): string | null {
   return null;
 }
 
-const INPUT = 'w-full rounded-xl border border-input bg-input-bg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25';
+const FIELD = 'w-full rounded-xl border border-border bg-input-bg px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25 transition disabled:opacity-50';
+
+// ─── page ─────────────────────────────────────────────────────────────────────
 
 export default function ProveedoresPage() {
   const { data: proveedores, isLoading, error: loadError } = useProveedores();
@@ -41,18 +51,23 @@ export default function ProveedoresPage() {
   const updateMut = useUpdateProveedor();
   const deactMut  = useDeactivateProveedor();
 
-  const [dialogOpen,          setDialogOpen]          = useState(false);
-  const [editing,             setEditing]             = useState<Proveedor | null>(null);
-  const [form,                setForm]                = useState<FormState>(EMPTY_FORM);
-  const [formError,           setFormError]           = useState<string | null>(null);
-  const [notify,              setNotify]              = useState<{ type: 'success'|'error'; title: string; message: string } | null>(null);
-  const [recentlyModifiedIds, setRecentlyModifiedIds] = useState<number[]>([]);
+  const [search,    setSearch]    = useState('');
+  const [filterTab, setFilterTab] = useState('todos');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing,   setEditing]   = useState<Proveedor | null>(null);
+  const [form,      setForm]      = useState<FormState>(EMPTY_FORM);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [confirmId, setConfirmId] = useState<number | null>(null);
+  const [notify,    setNotify]    = useState<{ type: 'success' | 'error'; title: string; message: string } | null>(null);
+  const [recentIds, setRecentIds] = useState<number[]>([]);
+
+  const confirmTarget = proveedores?.find((p) => p.id === confirmId) ?? null;
 
   function openCreate() {
     setEditing(null);
     setForm(EMPTY_FORM);
     setFormError(null);
-    setDialogOpen(true);
+    setModalOpen(true);
   }
 
   function openEdit(p: Proveedor) {
@@ -65,11 +80,11 @@ export default function ProveedoresPage() {
       nombreContacto: p.nombreContacto ?? '',
     });
     setFormError(null);
-    setDialogOpen(true);
+    setModalOpen(true);
   }
 
-  function closeDialog() {
-    setDialogOpen(false);
+  function closeModal() {
+    setModalOpen(false);
     setEditing(null);
     setForm(EMPTY_FORM);
     setFormError(null);
@@ -96,208 +111,325 @@ export default function ProveedoresPage() {
     try {
       if (editing) {
         await updateMut.mutateAsync({ id: editing.id, data: payload });
-        setRecentlyModifiedIds((prev) => [editing.id, ...prev.filter((x) => x !== editing.id)]);
-        setNotify({ type: 'success', title: '¡Actualizado!', message: 'Proveedor actualizado correctamente.' });
+        setRecentIds((prev) => [editing.id, ...prev.filter((x) => x !== editing.id)]);
+        closeModal();
+        setNotify({ type: 'success', title: 'Proveedor actualizado', message: 'Los cambios se guardaron correctamente.' });
       } else {
         const created = await createMut.mutateAsync(payload);
-        if (created?.id) setRecentlyModifiedIds((prev) => [created.id, ...prev]);
-        setNotify({ type: 'success', title: '¡Creado!', message: 'Proveedor creado correctamente.' });
+        if (created?.id) setRecentIds((prev) => [created.id, ...prev]);
+        closeModal();
+        setNotify({ type: 'success', title: 'Proveedor creado', message: 'El proveedor se registró correctamente.' });
       }
-      closeDialog();
     } catch (err: unknown) {
       setFormError((err as Error).message ?? 'Error al guardar el proveedor.');
     }
   }
 
-  async function handleDeactivate(p: Proveedor) {
-    if (!confirm(`¿Desactivar al proveedor "${p.nombre}"?\nEl proveedor pasará a estado inactivo.`)) return;
+  async function handleDeactivateConfirm() {
+    if (!confirmTarget) return;
     try {
-      await deactMut.mutateAsync(p.id);
-      setRecentlyModifiedIds((prev) => [p.id, ...prev.filter((x) => x !== p.id)]);
-      setNotify({ type: 'success', title: '¡Desactivado!', message: `Proveedor "${p.nombre}" desactivado.` });
+      await deactMut.mutateAsync(confirmTarget.id);
+      setRecentIds((prev) => [confirmTarget.id, ...prev.filter((x) => x !== confirmTarget.id)]);
+      setConfirmId(null);
+      setNotify({ type: 'success', title: 'Proveedor desactivado', message: `"${confirmTarget.nombre}" pasó a estado inactivo.` });
     } catch (err: unknown) {
-      setNotify({ type: 'error', title: 'Error', message: (err as Error).message ?? 'Error al desactivar el proveedor.' });
+      setConfirmId(null);
+      setNotify({ type: 'error', title: 'Error al desactivar', message: (err as Error).message ?? 'No se pudo completar la operación.' });
     }
   }
 
   const isSaving = createMut.isPending || updateMut.isPending;
 
-  if (isLoading) return <p className="p-8 text-muted-foreground">Cargando proveedores…</p>;
-  if (loadError)  return <p className="p-8 text-destructive">Error al cargar proveedores.</p>;
+  const sorted = useMemo(() => {
+    return [...(proveedores ?? [])].sort((a, b) => {
+      const ai = recentIds.indexOf(a.id);
+      const bi = recentIds.indexOf(b.id);
+      if (ai === -1 && bi === -1) return 0;
+      if (ai === -1) return 1;
+      if (bi === -1) return -1;
+      return ai - bi;
+    });
+  }, [proveedores, recentIds]);
 
-  const activos   = proveedores?.filter((p) => p.estado === 'activo').length ?? 0;
-  const inactivos = proveedores?.filter((p) => p.estado !== 'activo').length ?? 0;
+  const filtered = useMemo(() => {
+    let list = sorted;
+    if (filterTab !== 'todos') list = list.filter((p) => p.estado === filterTab);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (p) =>
+          p.nombre.toLowerCase().includes(q) ||
+          (p.nombreContacto ?? '').toLowerCase().includes(q) ||
+          (p.correo ?? '').toLowerCase().includes(q) ||
+          (p.telefono ?? '').toLowerCase().includes(q),
+      );
+    }
+    return list;
+  }, [sorted, filterTab, search]);
 
-  const sorted = [...(proveedores ?? [])].sort((a, b) => {
-    const ai = recentlyModifiedIds.indexOf(a.id);
-    const bi = recentlyModifiedIds.indexOf(b.id);
-    if (ai === -1 && bi === -1) return 0;
-    if (ai === -1) return 1;
-    if (bi === -1) return -1;
-    return ai - bi;
-  });
+  const tabCounts = useMemo(() => {
+    const all = proveedores ?? [];
+    return {
+      todos:    all.length,
+      activo:   all.filter((p) => p.estado === 'activo').length,
+      inactivo: all.filter((p) => p.estado === 'inactivo').length,
+    };
+  }, [proveedores]);
+
+  const columns = [
+    {
+      key: 'nombre',
+      header: 'Nombre',
+      render: (p: Proveedor) => (
+        <span className="font-medium text-foreground">{p.nombre}</span>
+      ),
+    },
+    {
+      key: 'nombreContacto',
+      header: 'Contacto',
+      render: (p: Proveedor) => (
+        <span className="text-muted-foreground">{p.nombreContacto ?? '—'}</span>
+      ),
+    },
+    {
+      key: 'correo',
+      header: 'Correo',
+      render: (p: Proveedor) => (
+        <span className="text-muted-foreground">{p.correo ?? '—'}</span>
+      ),
+    },
+    {
+      key: 'telefono',
+      header: 'Teléfono',
+      render: (p: Proveedor) => (
+        <span className="text-muted-foreground">{p.telefono ?? '—'}</span>
+      ),
+    },
+    {
+      key: 'direccion',
+      header: 'Dirección',
+      render: (p: Proveedor) => (
+        <span className="max-w-50 truncate text-muted-foreground" title={p.direccion ?? ''}>
+          {p.direccion ?? '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'estado',
+      header: 'Estado',
+      className: 'text-center',
+      render: (p: Proveedor) => (
+        <Badge variant={p.estado === 'activo' ? 'success' : 'muted'}>
+          {p.estado}
+        </Badge>
+      ),
+    },
+    {
+      key: 'acciones',
+      header: 'Acciones',
+      className: 'text-center',
+      render: (p: Proveedor) => (
+        <div className="flex items-center justify-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => openEdit(p)}
+            className="gap-1.5 text-xs"
+          >
+            <Pencil className="h-3 w-3" />
+            Editar
+          </Button>
+          {p.estado === 'activo' && (
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => setConfirmId(p.id)}
+              disabled={deactMut.isPending}
+              className="gap-1.5 text-xs"
+            >
+              <PowerOff className="h-3 w-3" />
+              Desactivar
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
+  if (isLoading) return <div className="p-8"><LoadingState variant="table" label="Cargando proveedores…" /></div>;
+  if (loadError)  return <div className="p-8"><ErrorState title="Error al cargar proveedores" error={loadError} /></div>;
 
   return (
-    <main className="p-6 sm:p-8 space-y-6">
+    <main className="space-y-6 p-6 sm:p-8">
 
-      {/* Encabezado */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Proveedores</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{activos} activos · {inactivos} inactivos</p>
+      <PageHeader
+        title="Proveedores"
+        description="Gestiona proveedores y contactos comerciales"
+        icon={<Truck className="h-5 w-5" />}
+        action={
+          <Button onClick={openCreate} size="sm">
+            + Nuevo proveedor
+          </Button>
+        }
+      />
+
+      {/* Toolbar */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <FilterTabs
+          tabs={[
+            { value: 'todos',    label: 'Todos',    count: tabCounts.todos    },
+            { value: 'activo',   label: 'Activos',  count: tabCounts.activo   },
+            { value: 'inactivo', label: 'Inactivos', count: tabCounts.inactivo },
+          ]}
+          value={filterTab}
+          onChange={setFilterTab}
+        />
+        <div className="flex items-center gap-3">
+          <SearchInput
+            placeholder="Buscar por nombre, contacto, correo…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onClear={() => setSearch('')}
+            containerClassName="w-64"
+          />
+          <span className="shrink-0 text-xs text-muted-foreground">
+            {filtered.length} registro{filtered.length !== 1 ? 's' : ''}
+          </span>
         </div>
-        <button
-          onClick={openCreate}
-          className="rs-btn-new"
-        >
-          + Nuevo Proveedor
-        </button>
       </div>
-
-      {notify && <NotifyModal {...notify} onClose={() => setNotify(null)} />}
 
       {/* Tabla */}
-      <div className="rs-dash-section overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
-        <table className="w-full text-sm">
-          <thead className="border-b border-border bg-background-soft">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Nombre</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Contacto</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Correo</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Teléfono</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Dirección</th>
-              <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">Estado</th>
-              <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {sorted.map((p) => (
-              <tr key={p.id} className="rs-table-row">
-                <td className="px-4 py-3 font-medium text-foreground">{p.nombre}</td>
-                <td className="px-4 py-3 text-muted-foreground">{p.nombreContacto ?? '—'}</td>
-                <td className="px-4 py-3 text-muted-foreground">{p.correo ?? '—'}</td>
-                <td className="px-4 py-3 text-muted-foreground">{p.telefono ?? '—'}</td>
-                <td className="px-4 py-3 text-muted-foreground">{p.direccion ?? '—'}</td>
-                <td className="px-4 py-3 text-center">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${ESTADO_BADGE[p.estado] ?? ''}`}>
-                    {p.estado}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center justify-center gap-2">
-                    <button
-                      onClick={() => openEdit(p)}
-                      className="rs-btn-edit inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-medium"
-                    >
-                      <Pencil className="h-3 w-3" /> Editar
-                    </button>
-                    {p.estado === 'activo' && (
-                      <button
-                        onClick={() => handleDeactivate(p)}
-                        disabled={deactMut.isPending}
-                        className="rs-btn-danger inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-medium disabled:opacity-50"
-                      >
-                        <Trash2 className="h-3 w-3" /> Desactivar
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {proveedores?.length === 0 && (
-          <p className="py-10 text-center text-sm text-muted-foreground">No hay proveedores registrados.</p>
-        )}
-      </div>
-
-      {/* Modal crear / editar */}
-      {dialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-lg rounded-xl shadow-xl border border-border" style={{ backgroundColor: 'hsl(var(--card))' }}>
-
-            <div className="flex items-center justify-between border-b border-border px-6 py-4">
-              <h2 className="text-lg font-semibold text-foreground">
-                {editing ? 'Editar Proveedor' : 'Nuevo Proveedor'}
-              </h2>
-              <button
-                type="button"
-                onClick={closeDialog}
-                aria-label="Cerrar"
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit}>
-              <div className="px-6 py-4 space-y-4">
-
-                {formError && (
-                  <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                    {formError}
-                  </div>
-                )}
-
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-foreground">
-                    Nombre <span className="text-destructive">*</span>
-                  </label>
-                  <input name="nombre" value={form.nombre} onChange={handleChange}
-                    placeholder="Ej: Distribuidora Musical S.A." className={INPUT} />
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-foreground">Nombre de contacto</label>
-                  <input name="nombreContacto" value={form.nombreContacto} onChange={handleChange}
-                    placeholder="Ej: Juan Pérez" className={INPUT} />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-foreground">Correo</label>
-                    <input name="correo" type="email" value={form.correo} onChange={handleChange}
-                      placeholder="proveedor@email.com" className={INPUT} />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-foreground">Teléfono</label>
-                    <input name="telefono" value={form.telefono} onChange={handleChange}
-                      placeholder="Ej: 5555-1234" className={INPUT} />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-foreground">Dirección</label>
-                  <textarea name="direccion" value={form.direccion} onChange={handleChange}
-                    rows={2} placeholder="Ej: 6a Av. 1-22, Zona 1, Ciudad de Guatemala"
-                    className={INPUT} />
-                </div>
-
-              </div>
-
-              <div className="flex justify-end gap-3 border-t border-border px-6 py-4">
-                <button
-                  type="button"
-                  onClick={closeDialog}
-                  className="rs-btn-cancel rounded-xl px-4 py-2 text-sm font-medium"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="rs-btn-primary rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground shadow-sm disabled:opacity-50"
-                  style={{ backgroundColor: 'hsl(var(--brand))', color: '#ffffff' }}
-                >
-                  {isSaving ? 'Guardando…' : 'Guardar'}
-                </button>
-              </div>
-            </form>
-
-          </div>
-        </div>
+      {filtered.length === 0 && !isLoading ? (
+        <EmptyState
+          icon={<Truck className="h-7 w-7" />}
+          title={search || filterTab !== 'todos' ? 'Sin resultados' : 'No hay proveedores'}
+          description={
+            search || filterTab !== 'todos'
+              ? 'Intenta ajustar la búsqueda o los filtros.'
+              : 'Agrega el primer proveedor al sistema.'
+          }
+          action={
+            !search && filterTab === 'todos' ? (
+              <Button size="sm" onClick={openCreate}>+ Nuevo proveedor</Button>
+            ) : undefined
+          }
+        />
+      ) : (
+        <DataTable
+          columns={columns as any}
+          data={filtered}
+          getRowKey={(p) => (p as Proveedor).id}
+        />
       )}
+
+      {/* Notify */}
+      {notify && <NotifyModal {...notify} onClose={() => setNotify(null)} />}
+
+      {/* ConfirmDialog */}
+      <ConfirmDialog
+        open={!!confirmId}
+        title="¿Desactivar proveedor?"
+        description={confirmTarget ? `"${confirmTarget.nombre}" pasará a estado inactivo.` : undefined}
+        confirmLabel="Desactivar"
+        variant="danger"
+        loading={deactMut.isPending}
+        onConfirm={handleDeactivateConfirm}
+        onCancel={() => setConfirmId(null)}
+      />
+
+      {/* Modal crear/editar */}
+      <FormModal
+        open={modalOpen}
+        onClose={closeModal}
+        title={editing ? 'Editar proveedor' : 'Nuevo proveedor'}
+        description={editing ? `Editando: ${editing.nombre}` : 'Completa los datos del nuevo proveedor.'}
+        size="md"
+        footer={
+          <>
+            <Button variant="outline" onClick={closeModal} disabled={isSaving}>
+              Cancelar
+            </Button>
+            <Button
+              form="proveedor-form"
+              type="submit"
+              loading={isSaving}
+              disabled={isSaving}
+            >
+              {isSaving ? 'Guardando…' : 'Guardar'}
+            </Button>
+          </>
+        }
+      >
+        <form id="proveedor-form" onSubmit={handleSubmit} className="space-y-4">
+
+          {formError && (
+            <div className="rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
+              {formError}
+            </div>
+          )}
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-foreground">
+              Nombre <span className="text-danger">*</span>
+            </label>
+            <input
+              name="nombre"
+              value={form.nombre}
+              onChange={handleChange}
+              placeholder="Ej: Distribuidora Musical S.A."
+              className={FIELD}
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-foreground">Nombre de contacto</label>
+            <input
+              name="nombreContacto"
+              value={form.nombreContacto}
+              onChange={handleChange}
+              placeholder="Ej: Juan Pérez"
+              className={FIELD}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-foreground">Correo</label>
+              <input
+                name="correo"
+                type="email"
+                value={form.correo}
+                onChange={handleChange}
+                placeholder="proveedor@email.com"
+                className={FIELD}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-foreground">Teléfono</label>
+              <input
+                name="telefono"
+                value={form.telefono}
+                onChange={handleChange}
+                placeholder="Ej: 5555-1234"
+                className={FIELD}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-foreground">Dirección</label>
+            <textarea
+              name="direccion"
+              value={form.direccion}
+              onChange={handleChange}
+              rows={2}
+              placeholder="Ej: 6a Av. 1-22, Zona 1, Ciudad de Guatemala"
+              className={FIELD}
+            />
+          </div>
+
+        </form>
+      </FormModal>
 
     </main>
   );
