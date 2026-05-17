@@ -5,7 +5,7 @@ export type EstadoProducto = 'activo' | 'inactivo' | 'agotado' | 'descontinuado'
 export type EstadoUsuario = 'activo' | 'bloqueado' | 'inactivo';
 export type RolUsuario = 'admin' | 'empleado_ventas' | 'empleado_inventario' | 'cliente' | 'proveedor';
 export type EstadoVenta = 'pendiente' | 'completada' | 'cancelada';
-export type EstadoCompra = 'pendiente' | 'recibida' | 'cancelada';
+export type EstadoCompra = 'pendiente' | 'recibida' | 'parcial' | 'cancelada';
 
 // ─── Catálogos ────────────────────────────────────────────────────────────────
 
@@ -154,4 +154,70 @@ export interface CreateVentaPayload {
   idCliente: number;
   idEmpleado?: number;
   detalles: DetalleVenta[];
+}
+
+// ─── Inventario ───────────────────────────────────────────────────────────────
+
+export interface RecepcionDetalle {
+  id: number;
+  cantidadComprada: number;
+  cantidadRecibida: number | null;
+  costoUnitario: number;
+  producto: {
+    id: number;
+    titulo: string;
+    sku: string;
+    stockActual: number;
+    stockMinimo: number;
+  } | null;
+}
+
+export interface RecepcionInventario {
+  id: number;
+  fecha: string;
+  estado: EstadoCompra;
+  proveedor: { id: number; nombre: string } | null;
+  empleado: { id: number; nombre: string } | null;
+  detalles: RecepcionDetalle[];
+}
+
+export interface ConfirmarRecepcionDto {
+  cantidadRecibida: number;
+}
+
+export interface StockCriticoItem {
+  id: number;
+  titulo: string;
+  sku: string;
+  stockActual: number;
+  stockMinimo: number;
+  estado: string;
+  categoria: string;
+  formato: string;
+  proveedorPrincipal: { id: number; nombre: string | null } | null;
+}
+
+export interface StockResumen {
+  totalProductos: number;
+  stockCritico: number;
+  agotados: number;
+  stockSuficiente: number;
+  proveedoresPrincipales: number;
+}
+
+export interface DashboardInventarioStats {
+  productosActivos: number;
+  stockCritico: number;
+  productosAgotados: number;
+  proveedoresActivos: number;
+  recepcionesPendientes: number;
+}
+
+export interface DashboardInventarioResponse {
+  stats: DashboardInventarioStats;
+  recentItems: {
+    stockCriticoItems: Array<{ idProducto: number; titulo: string; stockActual: number; stockMinimo: number }>;
+    recepcionesRecientes: Array<{ idCompra: number; fecha: string; estado: string; proveedor: string | null }>;
+    productosRecientes: Array<{ idProducto: number; titulo: string; sku: string; stockActual: number; precioVenta: number }>;
+  };
 }
