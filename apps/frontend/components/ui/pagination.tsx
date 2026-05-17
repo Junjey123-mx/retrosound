@@ -1,38 +1,99 @@
 interface PaginationProps {
   page: number;
-  total: number;
-  pageSize: number;
+  totalPages?: number;
+  total?: number;
+  pageSize?: number;
   onPageChange: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
+  pageSizeOptions?: number[];
+  label?: string;
+  className?: string;
 }
 
-export function Pagination({ page, total, pageSize, onPageChange }: PaginationProps) {
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  if (totalPages <= 1) return null;
+function getPageButtons(page: number, total: number): (number | '...')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  if (page <= 4) return [1, 2, 3, 4, 5, '...', total];
+  if (page >= total - 3) return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+  return [1, '...', page - 1, page, page + 1, '...', total];
+}
+
+export function Pagination({
+  page,
+  totalPages: totalPagesProp,
+  total,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
+  pageSizeOptions = [10, 25, 50, 100],
+  label,
+  className = '',
+}: PaginationProps) {
+  const totalPages =
+    totalPagesProp ??
+    (total != null && pageSize ? Math.max(1, Math.ceil(total / pageSize)) : 1);
+
+  if (totalPages <= 1 && !onPageSizeChange) return null;
+
+  const pageButtons = getPageButtons(page, totalPages);
+
+  const autoLabel =
+    total != null && pageSize != null
+      ? `Mostrando ${Math.min((page - 1) * pageSize + 1, total)}–${Math.min(page * pageSize, total)} de ${total}`
+      : `Página ${page} de ${totalPages}`;
 
   return (
-    <div className="flex items-center justify-between gap-2 py-3 text-sm text-muted-foreground">
-      <span>
-        {total} resultado{total !== 1 ? 's' : ''}
-      </span>
+    <div className={`flex flex-wrap items-center justify-between gap-3 py-3 text-sm ${className}`}>
+      <span className="text-muted-foreground">{label ?? autoLabel}</span>
+
       <div className="flex items-center gap-1">
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
           className="rounded-lg px-3 py-1.5 transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
+          aria-label="Página anterior"
         >
           ←
         </button>
-        <span className="px-2 font-medium text-foreground">
-          {page} / {totalPages}
-        </span>
+
+        {pageButtons.map((p, i) =>
+          p === '...' ? (
+            <span key={`el-${i}`} className="px-2 text-muted-foreground">…</span>
+          ) : (
+            <button
+              key={p}
+              onClick={() => onPageChange(p as number)}
+              className={`min-w-8 rounded-lg px-2 py-1.5 font-medium transition-colors ${
+                p === page
+                  ? 'bg-brand text-white'
+                  : 'text-foreground hover:bg-muted'
+              }`}
+            >
+              {p}
+            </button>
+          )
+        )}
+
         <button
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
           className="rounded-lg px-3 py-1.5 transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
+          aria-label="Página siguiente"
         >
           →
         </button>
       </div>
+
+      {onPageSizeChange && (
+        <select
+          value={pageSize}
+          onChange={(e) => onPageSizeChange(Number(e.target.value))}
+          className="rounded-lg border border-border bg-input-bg px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/25"
+        >
+          {pageSizeOptions.map((s) => (
+            <option key={s} value={s}>{s} / página</option>
+          ))}
+        </select>
+      )}
     </div>
   );
 }

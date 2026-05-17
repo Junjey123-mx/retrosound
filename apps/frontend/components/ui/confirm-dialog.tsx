@@ -1,40 +1,56 @@
 'use client';
 
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
+
+type Variant = 'danger' | 'warning' | 'default';
+
+const iconClass: Record<Variant, string> = {
+  default: 'bg-brand/10 text-brand',
+  danger:  'bg-danger/10 text-danger',
+  warning: 'bg-warning/10 text-warning',
+};
+
+const btnClass: Record<Variant, string> = {
+  default: 'bg-brand hover:bg-brand-hover',
+  danger:  'bg-danger hover:bg-danger/90',
+  warning: 'bg-warning hover:bg-warning/90',
+};
 
 interface ConfirmDialogProps {
   open: boolean;
-  onClose: () => void;
+  onClose?: () => void;
+  onCancel?: () => void;
   onConfirm: () => void;
   title: string;
   description?: string;
   confirmLabel?: string;
   cancelLabel?: string;
-  variant?: 'danger' | 'default';
+  variant?: Variant;
+  loading?: boolean;
 }
 
 export function ConfirmDialog({
   open,
   onClose,
+  onCancel,
   onConfirm,
   title,
   description,
   confirmLabel = 'Confirmar',
   cancelLabel = 'Cancelar',
   variant = 'default',
+  loading = false,
 }: ConfirmDialogProps) {
   if (!open) return null;
 
+  const handleCancel = onCancel ?? onClose ?? (() => {});
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal>
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={handleCancel} />
       <div className="relative w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-xl">
         <div className="mb-4 flex items-start gap-3">
-          <div
-            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-              variant === 'danger' ? 'bg-danger/10 text-danger' : 'bg-brand/10 text-brand'
-            }`}
-          >
+          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${iconClass[variant]}`}>
             <AlertTriangle className="h-5 w-5" />
           </div>
           <div>
@@ -46,19 +62,18 @@ export function ConfirmDialog({
         </div>
         <div className="flex items-center justify-end gap-2">
           <button
-            onClick={onClose}
-            className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            onClick={handleCancel}
+            disabled={loading}
+            className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
           >
             {cancelLabel}
           </button>
           <button
-            onClick={() => { onConfirm(); onClose(); }}
-            className={`rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors ${
-              variant === 'danger'
-                ? 'bg-danger hover:bg-danger/90'
-                : 'bg-brand hover:bg-brand-hover'
-            }`}
+            onClick={onConfirm}
+            disabled={loading}
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-70 ${btnClass[variant]}`}
           >
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             {confirmLabel}
           </button>
         </div>

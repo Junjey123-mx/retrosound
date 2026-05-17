@@ -3,12 +3,21 @@
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
 
+const sizeMap = {
+  sm: 'max-w-sm',
+  md: 'max-w-lg',
+  lg: 'max-w-2xl',
+  xl: 'max-w-4xl',
+} as const;
+
 interface FormModalProps {
   open: boolean;
   onClose: () => void;
   title: string;
+  description?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  size?: keyof typeof sizeMap;
   maxWidth?: string;
 }
 
@@ -16,9 +25,11 @@ export function FormModal({
   open,
   onClose,
   title,
+  description,
   children,
   footer,
-  maxWidth = 'max-w-lg',
+  size,
+  maxWidth,
 }: FormModalProps) {
   useEffect(() => {
     if (!open) return;
@@ -31,15 +42,23 @@ export function FormModal({
 
   if (!open) return null;
 
+  const widthClass = maxWidth ?? sizeMap[size ?? 'md'];
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className={`relative w-full ${maxWidth} rounded-2xl border border-border bg-card shadow-xl`}>
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+      <div className={`relative w-full ${widthClass} rounded-2xl border border-border bg-card shadow-xl`}>
+        <div className="flex items-start justify-between border-b border-border px-6 py-4">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+            {description && (
+              <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+            )}
+          </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="ml-4 mt-0.5 shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label="Cerrar"
           >
             <X className="h-4 w-4" />
           </button>
