@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useLogin } from '@/hooks/use-login';
 import { getDefaultRedirect } from '@/lib/auth/redirects';
+import { useSession } from '@/contexts/session-context';
 import { ThemeSegment } from '@/components/ui/theme-segment';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
@@ -57,6 +58,7 @@ function DotEqualizer({ color, light }: { color: string; light: boolean }) {
 export default function LoginPage() {
   const router = useRouter();
   const { login, isLoading, error } = useLogin();
+  const { loginWithToken } = useSession();
   const [correo,     setCorreo]     = useState('');
   const [contrasena, setContrasena] = useState('');
 
@@ -79,6 +81,7 @@ export default function LoginPage() {
     if (!ok) return;
     try {
       const token = localStorage.getItem('token') ?? '';
+      loginWithToken(token);
       const part  = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
       const { rol } = JSON.parse(atob(part)) as { rol: string };
       router.push(getDefaultRedirect(rol) as any);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useReducer } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Plus, Trash2, ShoppingCart, Receipt } from 'lucide-react';
@@ -37,6 +37,76 @@ function formatQ(n: number) {
 
 const FIELD = 'w-full rounded-xl border border-border bg-input-bg px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25 transition disabled:opacity-50';
 
+// ─── sale reducer ─────────────────────────────────────────────────────────────
+// Centralizes manual sale form + cart state to avoid scattered useState.
+
+type SaleState = {
+  idCliente:  number | '';
+  metodoPago: string;
+  fechaVenta: string;
+  descuento:  number;
+  items:      CartItem[];
+};
+
+type SaleAction =
+  | { type: 'set_customer';       idCliente:  number | '' }
+  | { type: 'set_payment_method'; metodoPago: string }
+  | { type: 'set_date';           fechaVenta: string }
+  | { type: 'set_discount';       descuento:  number }
+  | { type: 'add_item';           item:       CartItem }
+  | { type: 'update_quantity';    idProducto: number; qty: number }
+  | { type: 'remove_item';        idProducto: number }
+  | { type: 'clear_items' };
+
+function saleReducer(state: SaleState, action: SaleAction): SaleState {
+  switch (action.type) {
+    case 'set_customer':
+      return { ...state, idCliente: action.idCliente };
+    case 'set_payment_method':
+      return { ...state, metodoPago: action.metodoPago };
+    case 'set_date':
+      return { ...state, fechaVenta: action.fechaVenta };
+    case 'set_discount':
+      return { ...state, descuento: action.descuento };
+    case 'add_item': {
+      const existing = state.items.find((i) => i.idProducto === action.item.idProducto);
+      if (existing) {
+        return {
+          ...state,
+          items: state.items.map((i) =>
+            i.idProducto === action.item.idProducto
+              ? { ...i, cantidadVendida: i.cantidadVendida + action.item.cantidadVendida }
+              : i,
+          ),
+        };
+      }
+      return { ...state, items: [...state.items, action.item] };
+    }
+    case 'update_quantity':
+      if (action.qty < 1) return state;
+      return {
+        ...state,
+        items: state.items.map((i) =>
+          i.idProducto === action.idProducto ? { ...i, cantidadVendida: action.qty } : i,
+        ),
+      };
+    case 'remove_item':
+      return { ...state, items: state.items.filter((i) => i.idProducto !== action.idProducto) };
+    case 'clear_items':
+      return { ...state, items: [] };
+    default:
+      return state;
+  }
+}
+
+const INITIAL_SALE_STATE: SaleState = {
+  idCliente:  '',
+  metodoPago: 'efectivo',
+  fechaVenta: today(),
+  descuento:  0,
+  items:      [],
+};
+
 // ─── page ─────────────────────────────────────────────────────────────────────
 
 function NuevaVentaContent() {
@@ -45,14 +115,9 @@ function NuevaVentaContent() {
   const { data: clientes }   = useClientes();
   const createVenta          = useCreateVenta();
 
-  // form state
-  const [idCliente,   setIdCliente]   = useState<number | ''>('');
-  const [metodoPago,  setMetodoPago]  = useState('efectivo');
-  const [fechaVenta,  setFechaVenta]  = useState(today);
-  const [descuento,   setDescuento]   = useState(0);
-
-  // cart
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [sale, dispatch] = useReducer(saleReducer, INITIAL_SALE_STATE);
+  const { idCliente, metodoPago, fechaVenta, descuento } = sale;
+  const cartItems = sale.items;
 
   // product search / add panel
   const [productoSearch,    setProductoSearch]    = useState('');
@@ -90,26 +155,15 @@ function NuevaVentaContent() {
     if (!selectedProduct) { setFormError('Selecciona un producto.'); return; }
     if (cantidadInput < 1) { setFormError('La cantidad debe ser mayor a 0.'); return; }
     setFormError(null);
-
-    setCartItems((prev) => {
-      const existing = prev.find((i) => i.idProducto === selectedProduct.id);
-      if (existing) {
-        return prev.map((i) =>
-          i.idProducto === selectedProduct.id
-            ? { ...i, cantidadVendida: i.cantidadVendida + cantidadInput }
-            : i,
-        );
-      }
-      return [
-        ...prev,
-        {
-          idProducto:      selectedProduct.id,
-          titulo:          selectedProduct.titulo,
-          precioUnitario:  Number(selectedProduct.precioVenta),
-          stockActual:     selectedProduct.stockActual,
-          cantidadVendida: cantidadInput,
-        },
-      ];
+    dispatch({
+      type: 'add_item',
+      item: {
+        idProducto:      selectedProduct.id,
+        titulo:          selectedProduct.titulo,
+        precioUnitario:  Number(selectedProduct.precioVenta),
+        stockActual:     selectedProduct.stockActual,
+        cantidadVendida: cantidadInput,
+      },
     });
     setSelectedProductId('');
     setProductoSearch('');
@@ -117,14 +171,11 @@ function NuevaVentaContent() {
   }
 
   function updateQty(id: number, qty: number) {
-    if (qty < 1) return;
-    setCartItems((prev) =>
-      prev.map((i) => (i.idProducto === id ? { ...i, cantidadVendida: qty } : i)),
-    );
+    dispatch({ type: 'update_quantity', idProducto: id, qty });
   }
 
   function removeItem(id: number) {
-    setCartItems((prev) => prev.filter((i) => i.idProducto !== id));
+    dispatch({ type: 'remove_item', idProducto: id });
   }
 
   // ── submit ────────────────────────────────────────────────────────────────────
@@ -221,7 +272,7 @@ function NuevaVentaContent() {
                   </label>
                   <select
                     value={idCliente}
-                    onChange={(e) => setIdCliente(e.target.value ? Number(e.target.value) : '')}
+                    onChange={(e) => dispatch({ type: 'set_customer', idCliente: e.target.value ? Number(e.target.value) : '' })}
                     className={FIELD}
                   >
                     <option value="">Seleccionar cliente…</option>
@@ -239,7 +290,7 @@ function NuevaVentaContent() {
                   </label>
                   <select
                     value={metodoPago}
-                    onChange={(e) => setMetodoPago(e.target.value)}
+                    onChange={(e) => dispatch({ type: 'set_payment_method', metodoPago: e.target.value })}
                     className={FIELD}
                   >
                     {METODOS.map((m) => (
@@ -255,7 +306,7 @@ function NuevaVentaContent() {
                   <input
                     type="date"
                     value={fechaVenta}
-                    onChange={(e) => setFechaVenta(e.target.value)}
+                    onChange={(e) => dispatch({ type: 'set_date', fechaVenta: e.target.value })}
                     className={FIELD}
                   />
                 </div>
@@ -270,7 +321,7 @@ function NuevaVentaContent() {
                     max="100"
                     step="0.01"
                     value={descuento}
-                    onChange={(e) => setDescuento(Number(e.target.value))}
+                    onChange={(e) => dispatch({ type: 'set_discount', descuento: Number(e.target.value) })}
                     className={FIELD}
                   />
                 </div>

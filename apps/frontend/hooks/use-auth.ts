@@ -1,48 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from '@/contexts/session-context';
 
-interface JwtPayload {
-  sub:    number;
-  correo: string;
-  rol:    string;
-  exp:    number;
-}
-
-function decodeToken(token: string): JwtPayload | null {
-  try {
-    const part = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-    return JSON.parse(atob(part)) as JwtPayload;
-  } catch {
-    return null;
-  }
-}
-
-// Devuelve el usuario actual decodificando el JWT almacenado en localStorage.
-// Retorna null si no hay sesión o si el token está expirado.
+// Returns { correo, rol } for the authenticated user, or null while loading / unauthenticated.
 export function useCurrentUser() {
-  const [user, setUser] = useState<{ correo: string; rol: string } | null>(null);
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-    const payload = decodeToken(token);
-    if (payload && payload.exp > Date.now() / 1000) {
-      setUser({ correo: payload.correo, rol: payload.rol });
-    } else {
-      localStorage.removeItem('token');
-    }
-  }, []);
-
-  return user;
+  const { user, hydrated } = useSession();
+  if (!hydrated) return null;
+  return user ? { correo: user.correo, rol: user.rol } : null;
 }
 
-// Hook de logout: limpia el token y redirige a /login.
+// Returns a logout function that clears session and redirects to /login.
 export function useLogout() {
   const router = useRouter();
+  const { logout: sessionLogout } = useSession();
   return function logout() {
-    localStorage.removeItem('token');
+    sessionLogout();
     router.push('/login');
   };
 }
