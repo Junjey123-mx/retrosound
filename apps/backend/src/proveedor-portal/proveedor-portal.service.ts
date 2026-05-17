@@ -4,31 +4,244 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegistrarEntregaProveedorDto } from './dto/registrar-entrega-proveedor.dto';
 import { UpdateProductoImagenDto } from '../productos/dto/update-producto-imagen.dto';
+import { FindProveedorProductosDto } from './dto/find-proveedor-productos.dto';
+import { FindProveedorEntregasDto } from './dto/find-proveedor-entregas.dto';
+import { UpdateProveedorProductoDto } from './dto/update-proveedor-producto.dto';
+import { UpdateProveedorPerfilDto } from './dto/update-proveedor-perfil.dto';
+
+const INCLUDE_ENTREGA = {
+  detalles: {
+    include: {
+      producto: {
+        select: { idProducto: true, tituloProducto: true, codigoSku: true },
+      },
+    },
+  },
+} satisfies Prisma.CompraProveedorInclude;
+
+type EntregaConDetalles = Prisma.CompraProveedorGetPayload<{
+  include: typeof INCLUDE_ENTREGA;
+}>;
 
 @Injectable()
 export class ProveedorPortalService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getMe(idProveedor: number | null) {
+    this.requireProveedorId(idProveedor);
+    const proveedor = await this.prisma.proveedor.findUnique({
+      where: { idProveedor },
+    });
+    if (!proveedor) throw new NotFoundException('Proveedor no encontrado');
+    return this.mapProveedor(proveedor);
+  }
+
+  async getDashboard(idProveedor: number | null) {
+    this.requireProveedorId(idProveedor);
+    const [totalProductos, totalEntregas, entregasPendientes] =
+      await Promise.all([
+        this.prisma.productoProveedor.count({ where: { idProveedor } }),
+        this.prisma.compraProveedor.count({ where: { idProveedor } }),
+        this.prisma.compraProveedor.count({
+          where: { idProveedor, estadoCompra: 'pendiente' },
+        }),
+      ]);
+    return { totalProductos, totalEntregas, entregasPendientes };
+  }
+
+  async getProductos(
+    idProveedor: number | null,
+    dto: FindProveedorProductosDto,
+  ) {
+    this.requireProveedorId(idProveedor);
+    const page = dto.page ?? 1;
+    const limit = dto.limit ?? 10;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.ProductoWhereInput = {
+      productosProveedor: { some: { idProveedor } },
+      ...(dto.estado ? { estadoProducto: dto.estado } : {}),
+      ...(dto.search
+        ? {
+            OR: [
+              {
+                tituloProducto: {
+                  contains: dto.search,
+                  mode: 'insensitive' as const,
+                },
+              },
+              {
+                codigoSku: {
+                  contains: dto.search,
+                  mode: 'insensitive' as const,
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+
+    const [total, items] = await Promise.all([
+      this.prisma.producto.count({ where }),
+      this.prisma.producto.findMany({
+        where,
+        select: {
+          idProducto: true,
+          tituloProducto: true,
+          descripcionProducto: true,
+          estadoProducto: true,
+          codigoSku: true,
+          precioVenta: true,
+          stockActual: true,
+          stockMinimo: true,
+          imagenUrl: true,
+        },
+        skip,
+        take: limit,
+        orderBy: { tituloProducto: 'asc' },
+      }),
+    ]);
+
+    return {
+      data: items.map((p) => ({ ...p, precioVenta: Number(p.precioVenta) })),
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
+  }
+
+  async getProducto(idProveedor: number | null, idProducto: number) {
+    this.requireProveedorId(idProveedor);
+    await this.assertProductoBelongsToProveedor(idProducto, idProveedor);
+    const producto = await this.prisma.producto.findUnique({
+      where: { idProducto },
+      select: {
+        idProducto: true,
+        tituloProducto: true,
+        descripcionProducto: true,
+        estadoProducto: true,
+        codigoSku: true,
+        precioVenta: true,
+        stockActual: true,
+        stockMinimo: true,
+        imagenUrl: true,
+        anioLanzamiento: true,
+      },
+    });
+    if (!producto) throw new NotFoundException('Producto no encontrado');
+    return { ...producto, precioVenta: Number(producto.precioVenta) };
+  }
+
+  async updateProducto(
+    idProveedor: number | null,
+    idProducto: number,
+    dto: UpdateProveedorProductoDto,
+  ) {
+    this.requireProveedorId(idProveedor);
+    await this.assertProductoBelongsToProveedor(idProducto, idProveedor);
+    const producto = await this.prisma.producto.update({
+      where: { idProducto },
+      data: { descripcionProducto: dto.descripcion },
+      select: {
+        idProducto: true,
+        tituloProducto: true,
+        descripcionProducto: true,
+        codigoSku: true,
+      },
+    });
+    return { ...producto, mensaje: 'Producto actualizado correctamente' };
+  }
+
+  async getEntregas(idProveedor: number | null, dto: FindProveedorEntregasDto) {
+    this.requireProveedorId(idProveedor);
+    const page = dto.page ?? 1;
+    const limit = dto.limit ?? 10;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.CompraProveedorWhereInput = {
+      idProveedor,
+      ...(dto.estado ? { estadoCompra: dto.estado } : {}),
+    };
+
+    const [total, items] = await Promise.all([
+      this.prisma.compraProveedor.count({ where }),
+      this.prisma.compraProveedor.findMany({
+        where,
+        include: INCLUDE_ENTREGA,
+        skip,
+        take: limit,
+        orderBy: { fechaCompraProveedor: 'desc' },
+      }),
+    ]);
+
+    return {
+      data: items.map((e) => this.mapEntrega(e)),
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
+  }
+
+  async getEntrega(idProveedor: number | null, idCompra: number) {
+    this.requireProveedorId(idProveedor);
+    const entrega = await this.assertEntregaBelongsToProveedor(
+      idCompra,
+      idProveedor,
+    );
+    return this.mapEntrega(entrega);
+  }
+
+  async getPerfil(idProveedor: number | null) {
+    this.requireProveedorId(idProveedor);
+    const proveedor = await this.prisma.proveedor.findUnique({
+      where: { idProveedor },
+    });
+    if (!proveedor) throw new NotFoundException('Proveedor no encontrado');
+    return this.mapProveedor(proveedor);
+  }
+
+  async updatePerfil(
+    idProveedor: number | null,
+    dto: UpdateProveedorPerfilDto,
+  ) {
+    this.requireProveedorId(idProveedor);
+    const existe = await this.prisma.proveedor.findUnique({
+      where: { idProveedor },
+    });
+    if (!existe) throw new NotFoundException('Proveedor no encontrado');
+
+    const updated = await this.prisma.proveedor.update({
+      where: { idProveedor },
+      data: {
+        ...(dto.nombreProveedor !== undefined
+          ? { nombreProveedor: dto.nombreProveedor }
+          : {}),
+        ...(dto.telefonoProveedor !== undefined
+          ? { telefonoProveedor: dto.telefonoProveedor }
+          : {}),
+        ...(dto.correoProveedor !== undefined
+          ? { correoProveedor: dto.correoProveedor }
+          : {}),
+        ...(dto.direccionProveedor !== undefined
+          ? { direccionProveedor: dto.direccionProveedor }
+          : {}),
+        ...(dto.nombreContacto !== undefined
+          ? { nombreContactoProveedor: dto.nombreContacto }
+          : {}),
+      },
+    });
+    return { ...this.mapProveedor(updated), mensaje: 'Perfil actualizado correctamente' };
+  }
+
   async registrarEntrega(
     dto: RegistrarEntregaProveedorDto,
     idProveedor: number | null,
   ) {
-    if (!idProveedor) {
-      throw new BadRequestException(
-        'El usuario autenticado no tiene un proveedor asociado',
-      );
-    }
+    this.requireProveedorId(idProveedor);
 
-    // Validate ownership before reaching the SP, so we return a clean HTTP error.
     const relacion = await this.prisma.productoProveedor.findUnique({
       where: {
-        idProducto_idProveedor: {
-          idProducto: dto.idProducto,
-          idProveedor,
-        },
+        idProducto_idProveedor: { idProducto: dto.idProducto, idProveedor },
       },
       include: {
         producto: {
@@ -47,8 +260,6 @@ export class ProveedorPortalService {
       );
     }
 
-    // sp_registrar_entrega_proveedor(p_id_proveedor, p_id_producto,
-    //   p_cantidad_reportada, p_costo_unitario, OUT p_id_compra_generada)
     const [row] = await this.prisma.$queryRaw<
       Array<{ p_id_compra_generada: number }>
     >`
@@ -79,25 +290,9 @@ export class ProveedorPortalService {
     dto: UpdateProductoImagenDto,
     idProveedor: number | null,
   ) {
-    if (!idProveedor) {
-      throw new BadRequestException(
-        'El usuario autenticado no tiene un proveedor asociado',
-      );
-    }
+    this.requireProveedorId(idProveedor);
+    await this.assertProductoBelongsToProveedor(idProducto, idProveedor);
 
-    // Ownership check before SP for clean ForbiddenException
-    const relacion = await this.prisma.productoProveedor.findUnique({
-      where: { idProducto_idProveedor: { idProducto, idProveedor } },
-      select: { idProducto: true },
-    });
-    if (!relacion) {
-      throw new ForbiddenException(
-        `El producto ${idProducto} no está asociado a su cuenta de proveedor`,
-      );
-    }
-
-    // sp_actualizar_imagen_producto(p_id_producto, p_imagen_url, p_imagen_public_id,
-    //   p_id_proveedor, OUT p_actualizado) — SP enforces ownership at DB level too
     await this.prisma
       .$queryRaw<Array<{ p_actualizado: boolean }>>`
         CALL sp_actualizar_imagen_producto(
@@ -128,6 +323,84 @@ export class ProveedorPortalService {
       imagenUrl: producto.imagenUrl,
       imagenPublicId: producto.imagenPublicId,
       mensaje: 'Imagen actualizada correctamente',
+    };
+  }
+
+  private requireProveedorId(
+    idProveedor: number | null,
+  ): asserts idProveedor is number {
+    if (!idProveedor) {
+      throw new BadRequestException(
+        'El usuario autenticado no tiene un proveedor asociado',
+      );
+    }
+  }
+
+  private async assertProductoBelongsToProveedor(
+    idProducto: number,
+    idProveedor: number,
+  ) {
+    const relacion = await this.prisma.productoProveedor.findUnique({
+      where: { idProducto_idProveedor: { idProducto, idProveedor } },
+      select: { idProducto: true },
+    });
+    if (!relacion) {
+      throw new ForbiddenException(
+        `El producto ${idProducto} no está asociado a su cuenta de proveedor`,
+      );
+    }
+  }
+
+  private async assertEntregaBelongsToProveedor(
+    idCompra: number,
+    idProveedor: number,
+  ): Promise<EntregaConDetalles> {
+    const entrega = await this.prisma.compraProveedor.findUnique({
+      where: { idCompraProveedor: idCompra },
+      include: INCLUDE_ENTREGA,
+    });
+    if (!entrega) throw new NotFoundException('Entrega no encontrada');
+    if (entrega.idProveedor !== idProveedor) {
+      throw new ForbiddenException('No tiene acceso a esta entrega');
+    }
+    return entrega;
+  }
+
+  private mapProveedor(p: {
+    idProveedor: number;
+    nombreProveedor: string;
+    telefonoProveedor: string | null;
+    correoProveedor: string | null;
+    direccionProveedor: string | null;
+    nombreContactoProveedor: string | null;
+    estadoProveedor: string;
+  }) {
+    return {
+      idProveedor: p.idProveedor,
+      nombre: p.nombreProveedor,
+      telefono: p.telefonoProveedor,
+      correo: p.correoProveedor,
+      direccion: p.direccionProveedor,
+      nombreContacto: p.nombreContactoProveedor,
+      estado: p.estadoProveedor,
+    };
+  }
+
+  private mapEntrega(e: EntregaConDetalles) {
+    return {
+      idCompra: e.idCompraProveedor,
+      fecha: e.fechaCompraProveedor,
+      estado: e.estadoCompra,
+      detalles: e.detalles.map((d) => ({
+        idDetalle: d.idDetalleCompraProveedor,
+        producto: {
+          id: d.producto.idProducto,
+          titulo: d.producto.tituloProducto,
+          sku: d.producto.codigoSku,
+        },
+        cantidadComprada: d.cantidadComprada,
+        costoUnitario: Number(d.costoUnitarioCompra),
+      })),
     };
   }
 
