@@ -23,7 +23,7 @@ export function SystemStatesPage() {
               title="Sin resultados"
               description="No se encontraron registros con esos filtros."
               action={
-                <button className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted">
+                <button type="button" disabled className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-foreground opacity-50 cursor-not-allowed">
                   Limpiar filtros
                 </button>
               }
@@ -33,7 +33,7 @@ export function SystemStatesPage() {
               title="Sin productos"
               description="Agrega tu primer producto para comenzar."
               action={
-                <button className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover">
+                <button type="button" disabled className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white opacity-50 cursor-not-allowed">
                   Agregar producto
                 </button>
               }
@@ -49,7 +49,7 @@ export function SystemStatesPage() {
               title="No se pudo cargar"
               description="Ocurrió un error al obtener los datos del servidor."
               action={
-                <button className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-2 text-sm font-medium text-danger hover:bg-danger/15">
+                <button type="button" disabled className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-2 text-sm font-medium text-danger opacity-50 cursor-not-allowed">
                   Reintentar
                 </button>
               }
