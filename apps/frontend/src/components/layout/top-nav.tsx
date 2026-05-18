@@ -2,8 +2,6 @@
 
 import { Link } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { useTheme } from '@/hooks/use-theme';
 import { useCurrentUser, useLogout } from '@/hooks/use-auth';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { LogOut, Disc3 } from 'lucide-react';
@@ -13,12 +11,6 @@ export function TopNav() {
   const user     = useCurrentUser();
   const logout   = useLogout();
   const { pathname } = useLocation();
-  const { theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
-  const isDark      = mounted ? theme === 'dark' : false;
-  const brandColor  = isDark ? '#00E676' : '#F97316';
   const initials    = user ? user.correo.slice(0, 1).toUpperCase() : '?';
 
   const isActive = (href: string) =>
@@ -41,8 +33,8 @@ export function TopNav() {
         {/* Logo */}
         <Link to="/dashboard" className="flex items-center gap-2 font-bold text-foreground transition-colors hover:text-brand">
           <div
-            className="flex h-8 w-8 items-center justify-center rounded-full border-2"
-            style={{ borderColor: brandColor, backgroundColor: isDark ? 'rgba(0,230,118,0.10)' : 'rgba(249,115,22,0.08)' }}
+            className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-brand"
+            style={{ backgroundColor: 'var(--brand-soft)' }}
           >
             <Disc3 className="rs-logo-mark h-4 w-4" />
           </div>
@@ -72,8 +64,7 @@ export function TopNav() {
           {user && (
             <Link
               to="/dashboard/perfil"
-              className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white select-none transition-opacity hover:opacity-80"
-              style={{ backgroundColor: brandColor, color: isDark ? '#080F1A' : '#ffffff' }}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold select-none transition-opacity hover:opacity-80 bg-brand text-brand-foreground"
               aria-label="Ver mi perfil"
             >
               {initials}

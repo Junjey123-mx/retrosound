@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useTheme } from '@/hooks/use-theme';
 import { useCurrentUser, useLogout } from '@/hooks/use-auth';
 import { useCarritoItemCount } from '@/hooks/use-carrito';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
@@ -29,7 +28,7 @@ function isActiveRoute(pathname: string, href: string): boolean {
   return pathname.startsWith(href);
 }
 
-function CartBadge({ brandColor, isDark }: { brandColor: string; isDark: boolean }) {
+function CartBadge() {
   const cartCount = useCarritoItemCount();
   const { pathname } = useLocation();
 
@@ -43,7 +42,7 @@ function CartBadge({ brandColor, isDark }: { brandColor: string; isDark: boolean
       {cartCount > 0 && (
         <span
           className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold"
-          style={{ backgroundColor: brandColor, color: isDark ? '#08111F' : '#ffffff' }}
+          style={{ backgroundColor: 'hsl(var(--brand))', color: 'var(--rs-bg)' }}
         >
           {cartCount > 9 ? '9+' : cartCount}
         </span>
@@ -56,15 +55,9 @@ export function RoleNavbar() {
   const user     = useCurrentUser();
   const logout   = useLogout();
   const { pathname } = useLocation();
-  const { theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  useEffect(() => setMounted(true), []);
   useEffect(() => { setMenuOpen(false); }, [pathname]);
-
-  const isDark      = mounted ? theme === 'dark' : false;
-  const brandColor  = isDark ? '#00DC82' : '#F97316';
 
   if (!user) return null;
 
@@ -84,11 +77,8 @@ export function RoleNavbar() {
           className="flex items-center gap-2 font-bold text-foreground transition-colors hover:text-brand"
         >
           <div
-            className="flex h-8 w-8 items-center justify-center rounded-full border-2"
-            style={{
-              borderColor: brandColor,
-              backgroundColor: isDark ? 'rgba(0,220,130,0.10)' : 'rgba(249,115,22,0.08)',
-            }}
+            className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-brand"
+            style={{ backgroundColor: 'var(--brand-soft)' }}
           >
             <Disc3 className="rs-logo-mark h-4 w-4" />
           </div>
@@ -125,18 +115,14 @@ export function RoleNavbar() {
           <ThemeToggle />
 
           {rol === ROLES.CLIENTE && (
-            <CartBadge brandColor={brandColor} isDark={isDark} />
+            <CartBadge />
           )}
 
           <Link
             to={profileHref as any}
-            className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold select-none transition-opacity hover:opacity-80 ${
+            className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold select-none transition-opacity hover:opacity-80 bg-brand text-brand-foreground ${
               profileActive ? 'ring-2 ring-brand/35 ring-offset-2 ring-offset-background' : ''
             }`}
-            style={{
-              backgroundColor: brandColor,
-              color: isDark ? '#080F1A' : '#ffffff',
-            }}
             aria-label="Ver mi perfil"
           >
             {initial}

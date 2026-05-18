@@ -12,49 +12,70 @@
   --font-sans: 'Inter', system-ui, sans-serif;
 
   /* ── Shadcn/Tailwind tokens — Modo Claro ─────────────────────────────────── */
-  --background:             216 38% 97%;   /* #F6F8FB — fondo principal       */
-  --background-soft:        213 36% 95%;   /* #EEF2F7                          */
+  --background:              43 49% 96%;   /* #FAF7F0 — fondo principal cálido */
+  --background-soft:         43 36% 94%;   /* #F3EFE6                          */
   --surface:                  0  0% 100%;  /* #FFFFFF                          */
   --surface-elevated:         0  0% 100%;  /* #FFFFFF                          */
-  --text-primary:           222 47% 11%;   /* #0F172A                          */
-  --text-secondary:         215 19% 35%;   /* #475569                          */
+  --text-primary:           215 28% 17%;   /* #1F2937                          */
+  --text-secondary:         215 16% 47%;   /* #64748B                          */
   --text-muted:             215 16% 47%;   /* #64748B                          */
 
-  --foreground:             222 47% 11%;
+  --foreground:             215 28% 17%;   /* #1F2937                          */
   --card:                     0  0% 100%;
-  --card-foreground:        222 47% 11%;
+  --card-foreground:        215 28% 17%;
   --popover:                  0  0% 100%;
-  --popover-foreground:     222 47% 11%;
+  --popover-foreground:     215 28% 17%;
   --primary:                 24 95% 53%;   /* #F97316 — marca / acción activa  */
-  --primary-foreground:     222 47% 11%;
-  --secondary:              213 36% 95%;
-  --secondary-foreground:   222 47% 11%;
-  --muted:                  213 36% 95%;
-  --muted-foreground:       215 16% 47%;
-  --accent:                 213 36% 95%;
-  --accent-foreground:      222 47% 11%;
+  --primary-foreground:       0  0% 100%;  /* #FFFFFF — texto sobre naranja    */
+  --secondary:              220 14% 91%;   /* #E5E7EB — superficie neutra      */
+  --secondary-foreground:   215 28% 17%;
+  --muted:                  220 14% 91%;   /* #E5E7EB                          */
+  --muted-foreground:       215 16% 47%;   /* #64748B                          */
+  --accent:                 220 14% 91%;
+  --accent-foreground:      215 28% 17%;
   --destructive:              0 84% 60%;   /* #EF4444                          */
   --destructive-foreground:   0  0% 100%;
-  --border:                 213 30% 88%;   /* #D8E0EA                          */
-  --input:                  213 30% 88%;
+  --border:                 220 13% 91%;   /* #E5E7EB                          */
+  --input:                  220 13% 91%;
   --ring:                    24 95% 53%;
   --radius:                 0.75rem;
 
   /* ── Tokens RS exclusivos — Modo Claro ───────────────────────────────────── */
   --brand:                   24 95% 53%;   /* #F97316                          */
   --brand-hover:             21 90% 48%;   /* #EA580C                          */
-  --brand-soft:             rgba(249, 115, 22, 0.14);
-  --brand-foreground:       222 47% 11%;   /* texto sobre verde sólido          */
+  --brand-soft:             rgba(249, 115, 22, 0.12);
+  --brand-foreground:         0  0% 100%;  /* #FFFFFF — texto sobre naranja    */
   --brand-shadow:           rgba(249, 115, 22, 0.22);
   --brand-shadow-rgb:       249, 115, 22;
-  --action-alt:             263 70% 50%;   /* #6D28D9                          */
-  --action-alt-hover:       263 70% 42%;   /* #5B21B6                          */
+  --action-alt:             258 90% 66%;   /* #8B5CF6                          */
+  --action-alt-hover:       262 83% 58%;   /* #7C3AED                          */
   --input-bg:                 0  0% 100%;
-  --success:                145 100% 39%;
-  --success-shadow-rgb:       0, 200, 83;
-  --info:                   221 83% 54%;   /* #2563EB                          */
+  --success:                160 84% 39%;   /* #10B981                          */
+  --success-shadow-rgb:      16, 185, 129;
+  --info:                   217 91% 60%;   /* #3B82F6                          */
   --warning:                 38 92% 50%;   /* #F59E0B                          */
   --danger:                   0 84% 60%;   /* #EF4444                          */
+
+  /* ── Tokens RS canónicos — Modo Claro ────────────────────────────────────── */
+  --rs-bg:              #FAF7F0;
+  --rs-surface:         #FFFFFF;
+  --rs-text:            #1F2937;
+  --rs-muted:           #64748B;
+  --rs-border:          #E5E7EB;
+  --rs-primary:         #F97316;
+  --rs-primary-hover:   #EA580C;
+  --rs-primary-soft:    #FFEDD5;
+  --rs-secondary:       #8B5CF6;
+  --rs-secondary-hover: #7C3AED;
+  --rs-secondary-soft:  #F3E8FF;
+  --rs-success:         #10B981;
+  --rs-success-soft:    #D1FAE5;
+  --rs-info:            #3B82F6;
+  --rs-info-soft:       #DBEAFE;
+  --rs-warning:         #F59E0B;
+  --rs-warning-soft:    #FEF3C7;
+  --rs-error:           #EF4444;
+  --rs-error-soft:      #FEE2E2;
 }
 
 .dark {
@@ -101,6 +122,27 @@
   --info:                   213 93% 68%;   /* #60A5FA                          */
   --warning:                 43 96% 56%;   /* #FBBF24                          */
   --danger:                   0 91% 71%;   /* #F87171                          */
+
+  /* ── Tokens RS canónicos — Modo Oscuro ───────────────────────────────────── */
+  --rs-bg:              #08111F;
+  --rs-surface:         #0F172A;
+  --rs-text:            #F8FAFC;
+  --rs-muted:           #94A3B8;
+  --rs-border:          #22324A;
+  --rs-primary:         #00E676;
+  --rs-primary-hover:   #00C853;
+  --rs-primary-soft:    rgba(0, 230, 118, 0.12);
+  --rs-secondary:       #A78BFA;
+  --rs-secondary-hover: #8B5CF6;
+  --rs-secondary-soft:  rgba(167, 139, 250, 0.12);
+  --rs-success:         #00E676;
+  --rs-success-soft:    rgba(0, 230, 118, 0.12);
+  --rs-info:            #60A5FA;
+  --rs-info-soft:       rgba(96, 165, 250, 0.12);
+  --rs-warning:         #FBBF24;
+  --rs-warning-soft:    rgba(251, 191, 36, 0.12);
+  --rs-error:           #F87171;
+  --rs-error-soft:      rgba(248, 113, 113, 0.12);
 }
 
 /* ── Reset base ────────────────────────────────────────────────────────────── */
@@ -294,7 +336,7 @@ body {
 }
 
 .rs-table-row:hover {
-  background-color: hsl(215 20% 93%);
+  background-color: hsl(var(--muted));
 }
 
 .dark .rs-table-row:hover {
@@ -303,9 +345,9 @@ body {
 
 /* ── Badges de estado ─────────────────────────────────────────────────────── */
 /* Modo claro: solo texto, sin borde ni fondo */
-.rs-badge-pendiente  { color: #EF4444; }
-.rs-badge-completada { color: #16A34A; }
-.rs-badge-cancelada  { color: #64748B; }
+.rs-badge-pendiente  { color: hsl(var(--danger)); }
+.rs-badge-completada { color: hsl(var(--success)); }
+.rs-badge-cancelada  { color: hsl(var(--muted-foreground)); }
 
 /* Modo oscuro: borde + fondo tintado */
 .dark .rs-badge-pendiente {
@@ -437,12 +479,8 @@ body {
 
 /* ── Botón "Volver" ────────────────────────────────────────────────────────── */
 .rs-back-btn {
-  color: hsl(222 47% 11%);
+  color: hsl(var(--foreground));
   transition: color 150ms ease;
-}
-
-.dark .rs-back-btn {
-  color: hsl(210 40% 98%);
 }
 
 .rs-back-btn:hover {
@@ -454,7 +492,7 @@ input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px hsl(215 20% 93%) inset !important;
+  -webkit-box-shadow: 0 0 0 1000px hsl(var(--input-bg)) inset !important;
   -webkit-text-fill-color: hsl(var(--foreground)) !important;
   caret-color: hsl(var(--foreground));
 }
@@ -524,10 +562,7 @@ input:-webkit-autofill:active {
 
 /* ── Texto de éxito en secciones vacías ───────────────────────────────────── */
 .rs-empty-ok {
-  color: #F97316;
-}
-.dark .rs-empty-ok {
-  color: #00E083;
+  color: hsl(var(--brand));
 }
 
 /* ── Cliente tienda: surfaces premium ─────────────────────────────────────── */

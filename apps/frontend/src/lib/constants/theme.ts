@@ -1,7 +1,7 @@
 export const BRAND = {
   orange:       '#F97316',
   orangeHover:  '#EA580C',
-  orangeSoft:   'rgba(249,115,22,0.08)',
+  orangeSoft:   '#FFEDD5',
   orangeRing:   'rgba(249,115,22,0.30)',
 
   green:        '#00E676',
@@ -9,17 +9,17 @@ export const BRAND = {
   greenSoft:    'rgba(0,230,118,0.08)',
   greenRing:    'rgba(0,230,118,0.30)',
 
-  bgLight:      '#F6F8FB',
+  bgLight:      '#FAF7F0',
   bgDark:       '#08111F',
 
-  textPrimary:   '#0F172A',
-  textSecondary: '#475569',
+  textPrimary:   '#1F2937',
+  textSecondary: '#64748B',
   textMuted:     '#94A3B8',
 
-  borderLight:   '#E8EDF4',
+  borderLight:   '#E5E7EB',
   borderDark:    'rgba(255,255,255,0.06)',
 
-  success:  '#16A34A',
+  success:  '#10B981',
   warning:  '#F59E0B',
   danger:   '#EF4444',
   info:     '#3B82F6',
