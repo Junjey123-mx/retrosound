@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "db:seed": "echo 'Use db/retrosound_seed.sql via Docker or psql'"
+    "db:seed": "echo 'Use db/retrosound_seed.sql via Docker or psql'",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
