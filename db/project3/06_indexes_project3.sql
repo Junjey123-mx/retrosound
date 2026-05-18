@@ -1,19 +1,6 @@
 -- ============================================================
 -- RetroSound Store - Proyecto 3
 -- File: 06_indexes_project3.sql
--- Todos los índices usan CREATE INDEX IF NOT EXISTS para
--- ser re-ejecutables sin error.
---
--- Índices base (DDL original) ya existentes — NO se duplican:
---   idx_producto_titulo, idx_venta_fecha, idx_cliente_correo,
---   idx_carrito_cliente_estado, uq_carrito_activo_por_cliente
---
--- Índices implícitos por UNIQUE/PK — NO se duplican:
---   producto.codigo_sku, usuario.correo_usuario,
---   detalle_venta(id_venta, id_producto) [cubre id_venta],
---   detalle_compra_proveedor(id_compra_proveedor, id_producto) [cubre id_compra_proveedor],
---   carrito_item(id_carrito, id_producto) [cubre id_carrito],
---   producto_proveedor PK(id_producto, id_proveedor) [cubre id_producto]
 -- ============================================================
 
 BEGIN;

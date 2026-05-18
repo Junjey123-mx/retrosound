@@ -16,7 +16,7 @@ export function TopNav() {
   const isActive = (href: string) =>
     href === '/dashboard'
       ? pathname === '/dashboard'
-      : pathname.startsWith(href);
+      : pathname === href || pathname.startsWith(`${href}/`);
 
   const NAV_LINKS = [
     { href: '/dashboard',             label: 'Inicio'      },
@@ -72,6 +72,7 @@ export function TopNav() {
           )}
 
           <button
+            type="button"
             onClick={logout}
             aria-label="Cerrar sesión"
             className="rs-btn-logout"

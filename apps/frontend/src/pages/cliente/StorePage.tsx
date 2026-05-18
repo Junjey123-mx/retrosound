@@ -183,8 +183,7 @@ export function StorePage() {
   const hasFilterResults = filteredProducts.length > 0;
 
   return (
-    <main className="rs-store-bg relative min-h-screen overflow-hidden font-sans">
-      <StoreDecor />
+    <main className="relative min-h-screen overflow-hidden font-sans">
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:pt-14">
         <section className="grid items-center gap-8 lg:grid-cols-[1fr_520px]">

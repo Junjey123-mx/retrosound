@@ -47,6 +47,7 @@ export function Pagination({
 
       <div className="flex items-center gap-1">
         <button
+          type="button"
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
           className="rounded-lg px-3 py-1.5 transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
@@ -61,10 +62,11 @@ export function Pagination({
           ) : (
             <button
               key={p}
+              type="button"
               onClick={() => onPageChange(p as number)}
               className={`min-w-8 rounded-lg px-2 py-1.5 font-medium transition-colors ${
                 p === page
-                  ? 'bg-brand text-white'
+                  ? 'border border-orange-300 bg-rs-primary-soft text-orange-700'
                   : 'text-foreground hover:bg-muted'
               }`}
             >
@@ -74,6 +76,7 @@ export function Pagination({
         )}
 
         <button
+          type="button"
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
           className="rounded-lg px-3 py-1.5 transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
@@ -87,7 +90,7 @@ export function Pagination({
         <select
           value={pageSize}
           onChange={(e) => onPageSizeChange(Number(e.target.value))}
-          className="rounded-lg border border-border bg-input-bg px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/25"
+          className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 focus:border-rs-primary focus:outline-none focus:ring-2 focus:ring-rs-primary/25 dark:border-border dark:bg-input-bg dark:text-foreground"
         >
           {pageSizeOptions.map((s) => (
             <option key={s} value={s}>{s} / página</option>

@@ -13,14 +13,14 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   ({ label, error, helperText, options, placeholder, children, className = '', id, ...props }, ref) => (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label htmlFor={id} className="text-sm font-medium text-foreground">
+        <label htmlFor={id} className="text-sm font-medium text-slate-700 dark:text-foreground">
           {label}
         </label>
       )}
       <select
         ref={ref}
         id={id}
-        className={`rounded-xl border border-border bg-input-bg px-3.5 py-2.5 text-sm text-foreground focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25 disabled:cursor-not-allowed disabled:opacity-50 transition ${error ? 'border-danger' : ''} ${className}`}
+        className={`rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 focus:border-rs-primary focus:outline-none focus:ring-2 focus:ring-rs-primary/25 disabled:cursor-not-allowed disabled:bg-rs-bg-soft disabled:text-slate-400 dark:border-border dark:bg-input-bg dark:text-foreground transition ${error ? 'border-rs-error' : ''} ${className}`}
         {...props}
       >
         {placeholder && <option value="">{placeholder}</option>}

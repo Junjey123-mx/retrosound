@@ -6,7 +6,6 @@ import {
   BarChart3,
   CheckCircle2,
   Clock,
-  Disc3,
   Package,
   Receipt,
   ShoppingCart,
@@ -49,7 +48,7 @@ function formatDate(iso: string) {
 }
 
 const QUICK_LINKS = [
-  { href: '/dashboard/productos',   Icon: Disc3,        label: 'Productos'   },
+  { href: '/dashboard/productos',   Icon: Package,      label: 'Productos'   },
   { href: '/dashboard/proveedores', Icon: Truck,        label: 'Proveedores' },
   { href: '/dashboard/ventas',      Icon: ShoppingCart, label: 'Ventas'      },
   { href: '/dashboard/reportes',    Icon: BarChart3,    label: 'Reportes'    },
@@ -285,9 +284,9 @@ function DashboardContent() {
                   <Link
                     key={href}
                     to={href as any}
-                    className="group flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-sm font-semibold text-foreground shadow-sm transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand"
+                    className="group flex items-center gap-3 rounded-xl border border-rs-border bg-white p-4 text-sm font-semibold text-rs-text shadow-sm transition hover:border-rs-primary hover:bg-orange-50 hover:text-rs-primary-hover hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rs-primary/30 dark:border-border dark:bg-card dark:text-foreground"
                   >
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition group-hover:border-brand/30 group-hover:bg-brand/10 group-hover:text-brand">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-orange-200 bg-rs-primary-soft text-rs-primary transition group-hover:border-rs-primary group-hover:bg-white group-hover:text-rs-primary-hover dark:border-border dark:bg-background dark:text-muted-foreground">
                       <Icon className="h-5 w-5" />
                     </div>
                     {label}

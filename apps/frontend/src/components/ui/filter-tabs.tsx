@@ -4,6 +4,7 @@ interface Tab {
   value: string;
   label: string;
   count?: number;
+  disabled?: boolean;
 }
 
 interface FilterTabsProps {
@@ -24,18 +25,20 @@ export function FilterTabs({ tabs, value, active, onChange, className = '' }: Fi
         return (
           <button
             key={tab.value}
+            type="button"
+            disabled={tab.disabled}
             onClick={() => onChange(tab.value)}
-            className={`rounded-xl px-4 py-1.5 text-sm font-medium transition-colors ${
+            className={`rounded-xl border px-4 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rs-primary/30 disabled:cursor-not-allowed disabled:border-rs-border disabled:bg-rs-bg-soft disabled:text-slate-400 ${
               isActive
-                ? 'bg-brand text-white shadow-sm'
-                : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+                ? 'border-orange-300 bg-rs-primary-soft text-orange-700 shadow-sm'
+                : 'border-rs-border bg-white text-rs-text hover:border-orange-300 hover:bg-orange-50 hover:text-rs-primary-hover'
             }`}
           >
             {tab.label}
             {tab.count !== undefined && (
               <span
-                className={`ml-1.5 rounded-full px-1.5 py-0.5 text-xs ${
-                  isActive ? 'bg-white/20' : 'bg-muted text-muted-foreground'
+                className={`ml-1.5 rounded-full border px-1.5 py-0.5 text-xs ${
+                  isActive ? 'border-orange-200 bg-white text-orange-700' : 'border-rs-border bg-rs-bg-soft text-rs-muted'
                 }`}
               >
                 {tab.count}

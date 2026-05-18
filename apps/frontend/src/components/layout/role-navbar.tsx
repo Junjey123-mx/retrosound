@@ -2,13 +2,11 @@
 
 import { Link } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { useCurrentUser, useLogout } from '@/hooks/use-auth';
 import { useCarritoItemCount } from '@/hooks/use-carrito';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { Disc3, LogOut, Menu, ShoppingCart, X } from 'lucide-react';
-import { getNavItemsForRole } from '@/lib/constants/nav-items';
+import { Disc3, LogOut, ShoppingCart } from 'lucide-react';
+import { getNavItemsForRole, type NavItem } from '@/lib/constants/nav-items';
 import { ROLES } from '@/lib/auth/roles';
 
 function getHomeHref(rol: string): string {
@@ -23,9 +21,25 @@ function getProfileHref(rol: string): string {
   return '/dashboard/perfil';
 }
 
-function isActiveRoute(pathname: string, href: string): boolean {
-  if (href === '/dashboard' || href === '/proveedor') return pathname === href;
-  return pathname.startsWith(href);
+export function isNavItemActive(pathname: string, itemPath: string, options?: { exact?: boolean }): boolean {
+  if (options?.exact) return pathname === itemPath;
+  return pathname === itemPath || pathname.startsWith(`${itemPath}/`);
+}
+
+function getActiveNavKey(pathname: string, items: NavItem[]): string | null {
+  const activeItems = items
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => isNavItemActive(pathname, item.href, { exact: item.exact }));
+
+  if (activeItems.length === 0) return null;
+
+  activeItems.sort((a, b) => {
+    const pathDiff = b.item.href.length - a.item.href.length;
+    return pathDiff || a.index - b.index;
+  });
+
+  const { item, index } = activeItems[0];
+  return `${item.href}-${item.label}-${index}`;
 }
 
 function CartBadge() {
@@ -35,7 +49,7 @@ function CartBadge() {
   return (
     <Link
       to={'/carrito' as any}
-      className={`rs-btn-cart relative ${pathname.startsWith('/carrito') ? 'rs-btn-cart-active' : ''}`}
+      className={`rs-btn-cart relative ${pathname === '/carrito' || pathname.startsWith('/carrito/') ? 'rs-btn-cart-active' : ''}`}
       aria-label="Carrito"
     >
       <ShoppingCart className="h-4 w-4" />
@@ -55,18 +69,14 @@ export function RoleNavbar() {
   const user     = useCurrentUser();
   const logout   = useLogout();
   const { pathname } = useLocation();
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  useEffect(() => { setMenuOpen(false); }, [pathname]);
-
   if (!user) return null;
 
   const { rol, correo } = user;
   const initial      = correo.slice(0, 1).toUpperCase();
   const navItems     = getNavItemsForRole(rol);
+  const activeNavKey = getActiveNavKey(pathname, navItems);
   const homeHref     = getHomeHref(rol);
   const profileHref  = getProfileHref(rol);
-  const profileActive = pathname.startsWith(profileHref);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
@@ -86,8 +96,8 @@ export function RoleNavbar() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-1" aria-label="Navegación principal">
-          {navItems.map(({ href, label }) => {
-            const active = isActiveRoute(pathname, href);
+          {navItems.map(({ href, label }, index) => {
+            const active = activeNavKey === `${href}-${label}-${index}`;
             return (
               <Link
                 key={`${href}-${label}`}
@@ -103,15 +113,6 @@ export function RoleNavbar() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <button
-            className="md:hidden rs-btn-logout"
-            aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
-            aria-expanded={menuOpen}
-            aria-controls="mobile-nav"
-            onClick={() => setMenuOpen((o) => !o)}
-          >
-            {menuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-          </button>
           <ThemeToggle />
 
           {rol === ROLES.CLIENTE && (
@@ -120,15 +121,15 @@ export function RoleNavbar() {
 
           <Link
             to={profileHref as any}
-            className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold select-none transition-opacity hover:opacity-80 bg-brand text-brand-foreground ${
-              profileActive ? 'ring-2 ring-brand/35 ring-offset-2 ring-offset-background' : ''
-            }`}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold select-none transition-opacity hover:opacity-80"
+            style={{ backgroundColor: 'hsl(var(--brand))', color: 'hsl(var(--brand-foreground))' }}
             aria-label="Ver mi perfil"
           >
             {initial}
           </Link>
 
           <button
+            type="button"
             onClick={logout}
             aria-label="Cerrar sesión"
             className="rs-btn-logout"
@@ -140,34 +141,6 @@ export function RoleNavbar() {
 
       </div>
 
-      <AnimatePresence>
-        {menuOpen && (
-          <motion.nav
-            id="mobile-nav"
-            aria-label="Navegación móvil"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="md:hidden overflow-hidden border-t border-border bg-background px-4 pb-3 pt-2"
-          >
-            {navItems.map(({ href, label }) => {
-              const active = isActiveRoute(pathname, href);
-              return (
-                <Link
-                  key={`mob-${href}-${label}`}
-                  to={href as any}
-                  className={`block rounded-xl px-4 py-2 text-sm font-medium transition-colors duration-150 ${
-                    active ? 'rs-nav-active' : 'rs-nav-item rs-nav-muted'
-                  }`}
-                >
-                  {label}
-                </Link>
-              );
-            })}
-          </motion.nav>
-        )}
-      </AnimatePresence>
     </header>
   );
 }

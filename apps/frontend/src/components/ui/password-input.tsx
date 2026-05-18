@@ -13,13 +13,13 @@ export function PasswordInput({ label, className, ...props }: PasswordInputProps
   return (
     <div className="space-y-1.5">
       {label && (
-        <label className="text-sm font-medium text-foreground">{label}</label>
+        <label className="text-sm font-medium text-slate-700 dark:text-foreground">{label}</label>
       )}
       <div className="relative">
         <input
           {...props}
           type={show ? 'text' : 'password'}
-          className={`w-full rounded-xl border border-input bg-input-bg px-4 py-2.5 pr-11 text-sm text-foreground shadow-sm placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25 transition ${className ?? ''}`}
+          className={`w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 pr-11 text-sm text-slate-800 shadow-sm placeholder:text-slate-400 focus:border-rs-primary focus:outline-none focus:ring-2 focus:ring-rs-primary/25 dark:border-border dark:bg-input-bg dark:text-foreground transition ${className ?? ''}`}
         />
         <button
           type="button"

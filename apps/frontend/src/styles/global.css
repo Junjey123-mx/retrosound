@@ -12,8 +12,8 @@
   --font-sans: 'Inter', system-ui, sans-serif;
 
   /* ── Shadcn/Tailwind tokens — Modo Claro ─────────────────────────────────── */
-  --background:              43 49% 96%;   /* #FAF7F0 — fondo principal cálido */
-  --background-soft:         43 36% 94%;   /* #F3EFE6                          */
+  --background:             210 40% 98%;   /* #F8FAFC — fondo principal neutro */
+  --background-soft:        210 20% 98%;   /* #F9FAFB                          */
   --surface:                  0  0% 100%;  /* #FFFFFF                          */
   --surface-elevated:         0  0% 100%;  /* #FFFFFF                          */
   --text-primary:           215 28% 17%;   /* #1F2937                          */
@@ -57,7 +57,8 @@
   --danger:                   0 84% 60%;   /* #EF4444                          */
 
   /* ── Tokens RS canónicos — Modo Claro ────────────────────────────────────── */
-  --rs-bg:              #FAF7F0;
+  --rs-bg:              #F8FAFC;
+  --rs-bg-soft:         #F9FAFB;
   --rs-surface:         #FFFFFF;
   --rs-text:            #1F2937;
   --rs-muted:           #64748B;
@@ -434,12 +435,25 @@ body {
   box-shadow: 0 0 10px rgba(0,230,118,0.12) !important;
 }
 
-/* ── Botones de modal ─────────────────────────────────────────────────────── */
+/* ── Botones de modal / acción principal ──────────────────────────────────── */
 .rs-btn-primary {
-  transition: box-shadow 180ms ease, background-color 150ms ease;
+  background: hsl(var(--brand));
+  color: #ffffff;
+  transition: background 150ms ease, box-shadow 180ms ease, transform 150ms ease;
 }
 .rs-btn-primary:hover:not(:disabled) {
+  background: hsl(var(--brand-hover));
   box-shadow: 0 8px 24px -8px rgba(var(--brand-shadow-rgb), 0.75);
+  transform: translateY(-1px);
+}
+.rs-btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+.rs-btn-primary:disabled {
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  cursor: not-allowed;
+  transform: none;
 }
 
 .rs-btn-cancel {
@@ -479,13 +493,33 @@ body {
 
 /* ── Botón "Volver" ────────────────────────────────────────────────────────── */
 .rs-back-btn {
-  color: hsl(var(--foreground));
+  color: hsl(var(--brand));
   transition: color 150ms ease;
 }
 
 .rs-back-btn:hover {
-  color: hsl(var(--brand));
+  color: hsl(var(--brand-hover));
 }
+
+/* ── Botón cerrar sesión: outline rojo ────────────────────────────────────── */
+.rs-btn-outline-danger {
+  background: transparent !important;
+  border: 1.5px solid #ef4444 !important;
+  color: #ef4444 !important;
+  transition: background 150ms ease, color 150ms ease, box-shadow 180ms ease !important;
+  box-shadow: none !important;
+}
+.rs-btn-outline-danger:hover:not(:disabled) {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 20px -6px rgba(239, 68, 68, 0.55) !important;
+}
+.rs-btn-outline-danger:active:not(:disabled) {
+  transform: translateY(0) !important;
+}
+
+/* ── Compat: bg-card (Tailwind v4 no genera esta utilidad) ────────────────── */
+.bg-card { background-color: hsl(var(--card)); }
 
 /* ── Autofill: neutraliza el amarillo del navegador ───────────────────────── */
 input:-webkit-autofill,
@@ -567,17 +601,11 @@ input:-webkit-autofill:active {
 
 /* ── Cliente tienda: surfaces premium ─────────────────────────────────────── */
 .rs-store-bg {
-  background:
-    radial-gradient(circle at 0% 58%, rgba(var(--brand-shadow-rgb), 0.045), transparent 18rem),
-    radial-gradient(circle at 100% 58%, rgba(var(--brand-shadow-rgb), 0.04), transparent 18rem),
-    hsl(var(--background));
+  background: linear-gradient(150deg, #FFFFFF 0%, #F0FBF5 40%, #EFF6FF 75%, #F8FAFC 100%);
 }
 
 .dark .rs-store-bg {
-  background:
-    radial-gradient(circle at 0% 56%, rgba(var(--brand-shadow-rgb), 0.10), transparent 20rem),
-    radial-gradient(circle at 100% 58%, rgba(var(--brand-shadow-rgb), 0.09), transparent 20rem),
-    linear-gradient(180deg, #08111F 0%, #091426 48%, #08111F 100%);
+  background: linear-gradient(150deg, #06090E 0%, #070C17 40%, #060A13 70%, #050810 100%);
 }
 
 .rs-store-surface {
@@ -911,6 +939,15 @@ input:-webkit-autofill:active {
   background-color: rgba(79,156,249,0.12);
   box-shadow: 0 0 16px rgba(79,156,249,0.15);
 }
+
+/* ── Utilitarios de color (Tailwind v4 compat — tailwind.config.ts no genera estas) */
+.bg-brand               { background-color: hsl(var(--brand)); }
+.text-brand             { color: hsl(var(--brand)); }
+.text-brand-foreground  { color: hsl(var(--brand-foreground)); }
+.border-brand           { border-color: hsl(var(--brand)); }
+.text-foreground        { color: hsl(var(--foreground)); }
+.text-muted-foreground  { color: hsl(var(--muted-foreground)); }
+.hover\:text-brand-hover:hover { color: hsl(var(--brand-hover)); }
 
 /* ── Scrollbar sutil ───────────────────────────────────────────────────────── */
 ::-webkit-scrollbar            { width: 6px; height: 6px; }

@@ -22,11 +22,11 @@ export function ClientNavbar() {
   const isDark = mounted ? theme === 'dark' : false;
   const brandColor = isDark ? '#00E676' : '#F97316';
   const initials = user ? user.correo.slice(0, 1).toUpperCase() : '?';
-  const cartActive = pathname.startsWith('/carrito');
-  const profileActive = pathname.startsWith('/perfil');
+  const cartActive = pathname === '/carrito' || pathname.startsWith('/carrito/');
+  const profileActive = pathname === '/perfil' || pathname.startsWith('/perfil/');
 
   const isActive = (href: string) => {
-    return pathname.startsWith(href);
+    return pathname === href || pathname.startsWith(`${href}/`);
   };
 
   const NAV_LINKS = [
@@ -95,9 +95,7 @@ export function ClientNavbar() {
           {user && (
             <Link
               to={"/perfil" as any}
-              className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white select-none transition-opacity hover:opacity-80 ${
-                profileActive ? 'ring-2 ring-brand/35 ring-offset-2 ring-offset-background' : ''
-              }`}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold select-none transition-opacity hover:opacity-80"
               style={{
                 backgroundColor: brandColor,
                 color: isDark ? '#080F1A' : '#ffffff',
@@ -109,6 +107,7 @@ export function ClientNavbar() {
           )}
 
           <button
+            type="button"
             onClick={logout}
             aria-label="Cerrar sesión"
             className="rs-btn-logout"

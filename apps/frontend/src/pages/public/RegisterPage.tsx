@@ -29,10 +29,11 @@ export function RegisterPage() {
   const d = mounted ? theme === 'dark' : false;
 
   const brand         = d ? '#00E676' : '#F97316';
-  const subtitleColor = d ? 'rgba(248,250,252,0.55)' : 'rgba(255,255,255,0.65)';
+  const titleColor    = d ? '#FFFFFF' : '#0F172A';
+  const subtitleColor = d ? 'rgba(255,255,255,0.50)' : '#64748B';
   const checkColor    = d ? '#00E676' : '#F97316';
-  const glowA         = d ? 'rgba(0,230,118,0.10)' : 'rgba(249,115,22,0.08)';
-  const glowB         = d ? 'rgba(139,92,246,0.10)' : 'rgba(139,92,246,0.08)';
+  const glowA         = d ? 'rgba(0,230,118,0.10)' : 'rgba(249,115,22,0.06)';
+  const glowB         = d ? 'rgba(139,92,246,0.10)' : 'rgba(99,102,241,0.06)';
 
   async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
@@ -64,8 +65,8 @@ export function RegisterPage() {
         className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden"
         style={{
           background: d
-            ? 'linear-gradient(150deg, #080F1A 0%, #031508 45%, #080F1A 100%)'
-            : 'linear-gradient(150deg, #1E1B4B 0%, #312E81 45%, #1E1B4B 100%)',
+            ? 'linear-gradient(150deg, #080F1A 0%, #031508 35%, #05111A 65%, #080F1A 100%)'
+            : 'linear-gradient(150deg, #FFFFFF 0%, #F0FBF5 40%, #EFF6FF 75%, #F8FAFC 100%)',
         }}
       >
         <div className="pointer-events-none absolute -top-24 -right-24 h-80 w-80 rounded-full blur-3xl" style={{ backgroundColor: glowB }} />
@@ -79,7 +80,7 @@ export function RegisterPage() {
           >
             <Disc3 className="h-5 w-5" style={{ color: brand }} />
           </div>
-          <span className="text-lg font-bold text-white">RetroSound</span>
+          <span className="text-lg font-bold" style={{ color: titleColor }}>RetroSound</span>
         </div>
 
         {/* Contenido central */}
@@ -98,7 +99,7 @@ export function RegisterPage() {
           </div>
 
           <div>
-            <h1 className="text-4xl font-bold leading-tight text-white">Música física,</h1>
+            <h1 className="text-4xl font-bold leading-tight" style={{ color: titleColor }}>Música física,</h1>
             <h1 className="text-4xl font-bold leading-tight" style={{ color: brand }}>para coleccionistas.</h1>
           </div>
 
@@ -118,15 +119,15 @@ export function RegisterPage() {
 
         <div className="relative flex items-center gap-4">
           <ThemeSegment />
-          <p className="text-xs text-white/30">RetroSound · BD1</p>
+          <p className="text-xs" style={{ color: d ? 'rgba(255,255,255,0.30)' : '#94A3B8' }}>RetroSound · BD1</p>
         </div>
       </div>
 
       {/* ── Panel derecho — formulario ─────────────────────────────────── */}
       <div className="flex flex-1 flex-col items-center justify-center bg-background px-6 py-12">
         <div className="w-full max-w-sm space-y-8">
-          <Link to="/" className="rs-back-btn inline-flex items-center gap-1.5 text-sm font-medium">
-            <ArrowLeft className="h-4 w-4" />
+          <Link to="/" className="rs-back-btn group inline-flex items-center gap-1.5 text-sm font-medium">
+            <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1" />
             Volver
           </Link>
 
@@ -189,7 +190,7 @@ export function RegisterPage() {
             <Button
               type="submit"
               loading={isLoading}
-              className="w-full py-3 text-sm font-semibold"
+              className="w-full py-3 text-sm font-semibold rs-btn-primary"
             >
               {!isLoading && 'Crear cuenta'}
             </Button>

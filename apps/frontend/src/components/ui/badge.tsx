@@ -11,14 +11,14 @@ type BadgeVariant =
   | 'outline';
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default:   'bg-brand/10 text-brand border-brand/20',
-  success:   'bg-success/10 text-success border-success/20',
-  warning:   'bg-warning/10 text-warning border-warning/20',
-  danger:    'bg-danger/10 text-danger border-danger/20',
-  info:      'bg-info/10 text-info border-info/20',
-  muted:     'bg-muted text-muted-foreground border-transparent',
-  secondary: 'bg-action/10 text-action border-action/20',
-  outline:   'bg-transparent text-foreground border-border',
+  default:   'bg-rs-primary-soft text-orange-700 border-orange-200',
+  success:   'bg-rs-success-soft text-emerald-700 border-emerald-200',
+  warning:   'bg-rs-warning-soft text-amber-700 border-amber-200',
+  danger:    'bg-rs-error-soft text-red-700 border-red-200',
+  info:      'bg-rs-info-soft text-blue-700 border-blue-200',
+  muted:     'bg-rs-bg-soft text-rs-muted border-rs-border',
+  secondary: 'bg-rs-secondary-soft text-violet-700 border-violet-200',
+  outline:   'bg-white text-rs-text border-rs-border',
 };
 
 interface BadgeProps {
@@ -30,7 +30,7 @@ interface BadgeProps {
 export function Badge({ children, variant = 'default', className = '' }: BadgeProps) {
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${variantClasses[variant]} ${className}`}
+      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold leading-5 ${variantClasses[variant]} ${className}`}
     >
       {children}
     </span>

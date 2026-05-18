@@ -226,6 +226,7 @@ function PerfilContent() {
                   type="submit"
                   loading={updatePerfil.isPending}
                   disabled={disabled}
+                  className="rs-btn-primary"
                 >
                   {dirty ? 'Guardar cambios' : 'Sin cambios'}
                 </Button>

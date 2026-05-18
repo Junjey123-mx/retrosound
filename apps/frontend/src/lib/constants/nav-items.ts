@@ -4,10 +4,11 @@ import { ROLES } from '../auth/roles';
 export interface NavItem {
   href: string;
   label: string;
+  exact?: boolean;
 }
 
 export const ADMIN_NAV: NavItem[] = [
-  { href: ROUTES.dashboard.root,               label: 'Inicio'      },
+  { href: ROUTES.dashboard.root,               label: 'Inicio', exact: true },
   { href: ROUTES.dashboard.productos,          label: 'Productos'   },
   { href: ROUTES.dashboard.ventas,             label: 'Ventas'      },
   { href: ROUTES.dashboard.clientes,           label: 'Clientes'    },
@@ -19,19 +20,19 @@ export const ADMIN_NAV: NavItem[] = [
 ];
 
 export const EMPLEADO_VENTAS_NAV: NavItem[] = [
-  { href: ROUTES.dashboard.ventas,             label: 'Inicio'      },
+  { href: ROUTES.dashboard.root,               label: 'Inicio', exact: true },
   { href: ROUTES.dashboard.ventas,             label: 'Ventas'      },
-  { href: ROUTES.dashboard.ventasNueva,        label: 'Nueva venta' },
+  { href: ROUTES.dashboard.ventasNueva,        label: 'Nueva venta', exact: true },
   { href: ROUTES.dashboard.clientes,           label: 'Clientes'    },
   { href: ROUTES.dashboard.reportes,           label: 'Reportes'    },
 ];
 
 export const EMPLEADO_INVENTARIO_NAV: NavItem[] = [
-  { href: ROUTES.dashboard.inventario,             label: 'Inicio'      },
+  { href: ROUTES.dashboard.inventario,             label: 'Inicio', exact: true },
   { href: ROUTES.dashboard.productos,              label: 'Productos'   },
   { href: ROUTES.dashboard.proveedores,            label: 'Proveedores' },
-  { href: ROUTES.dashboard.inventarioRecepciones,  label: 'Recepciones' },
-  { href: ROUTES.dashboard.inventarioStock,        label: 'Stock'       },
+  { href: ROUTES.dashboard.inventarioRecepciones,  label: 'Recepciones', exact: true },
+  { href: ROUTES.dashboard.inventarioStock,        label: 'Stock', exact: true },
   { href: ROUTES.dashboard.reportes,               label: 'Reportes'    },
 ];
 
@@ -42,7 +43,7 @@ export const CLIENTE_NAV: NavItem[] = [
 ];
 
 export const PROVEEDOR_NAV: NavItem[] = [
-  { href: ROUTES.proveedor.portal,    label: 'Inicio'        },
+  { href: ROUTES.proveedor.portal,    label: 'Inicio', exact: true },
   { href: ROUTES.proveedor.productos, label: 'Mis productos' },
   { href: ROUTES.proveedor.entregas,  label: 'Entregas'      },
   { href: ROUTES.proveedor.perfil,    label: 'Perfil'        },

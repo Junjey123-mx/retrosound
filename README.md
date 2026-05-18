@@ -1,8 +1,10 @@
 # RetroSound Store
 
-Proyecto 3 — Bases de Datos 1 (cc3088) · Universidad del Valle de Guatemala · Ciclo 1 2026
+Proyecto 2 Web — Bases de Datos 1 (cc3088) · Universidad del Valle de Guatemala · Ciclo 1 2026
 
 RetroSound Store es una tienda especializada en la venta de música en formatos físicos: vinilos, CDs y casetes. Permite gestionar productos, proveedores, ventas con transacciones explícitas y generar reportes SQL avanzados.
+
+> **Rama de evaluación:** `proyecto-3` (contiene el trabajo completo de Proyecto 2 Web + scripts de Proyecto 3 DB).
 
 ---
 
@@ -11,7 +13,7 @@ RetroSound Store es una tienda especializada en la venta de música en formatos 
 | Capa | Tecnología |
 |------|-----------|
 | **Backend** | NestJS 11 · TypeScript · Prisma ORM · pg/node-postgres · Passport JWT · bcrypt · class-validator |
-| **Frontend** | Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS · TanStack Query · Radix UI · Framer Motion · Lucide React |
+| **Frontend** | React 19 · Vite · TypeScript · Tailwind CSS · TanStack Query · Radix UI · Framer Motion · Lucide React |
 | **Base de datos** | PostgreSQL 17 · DDL manual · Seed SQL · Views · Índices · Transacciones · Stored Procedures |
 | **Infraestructura** | Docker Compose · pgAdmin 4 · Node.js 22 Alpine |
 
@@ -21,7 +23,7 @@ RetroSound Store es una tienda especializada en la venta de música en formatos 
 
 ```
 Navegador
-  └─► Next.js 16 (puerto 3002)
+  └─► React + Vite (puerto 3002, servido por nginx en Docker)
         └─► NestJS 11 (puerto 3003)
               └─► DatabaseService
                     └─► pg.Pool
@@ -101,7 +103,7 @@ Todas están en `.env.example` con valores por defecto funcionales:
 | `BACKEND_PORT` | `3003` | Puerto del backend en el host |
 | `FRONTEND_PORT` | `3002` | Puerto del frontend en el host |
 | `JWT_SECRET` | `change-me-in-production` | Secreto para firmar JWT |
-| `NEXT_PUBLIC_API_URL` | `http://localhost:3003` | URL del backend que usa el frontend |
+| `VITE_API_URL` | `http://localhost:3003` | URL del backend que usa el frontend (inyectada en build de Vite) |
 | `PGADMIN_EMAIL` | `admin@retrosound.dev` | Correo de acceso a pgAdmin |
 | `PGADMIN_PASSWORD` | `admin` | Contraseña de pgAdmin |
 
@@ -650,7 +652,7 @@ retrosound/
 │   │   │   ├── dashboard/      ← métricas en tiempo real por rol
 │   │   │   └── reportes/       ← 9 endpoints SQL + exportación CSV
 │   │   └── Dockerfile
-│   └── frontend/               ← Next.js 16 App Router
+│   └── frontend/               ← React 19 + Vite
 │       ├── app/
 │       │   └── dashboard/
 │       │       ├── productos/
@@ -706,13 +708,13 @@ docker compose down -v && docker compose up --build
 
 ### El frontend muestra error de red / no carga datos
 
-Verificar que `NEXT_PUBLIC_API_URL` en `.env` apunte al backend correcto:
+Verificar que `VITE_API_URL` en `.env` apunte al backend correcto:
 
 ```
-NEXT_PUBLIC_API_URL=http://localhost:3003
+VITE_API_URL=http://localhost:3003
 ```
 
-Si cambió el `BACKEND_PORT`, actualizar esta variable también y reconstruir:
+Si cambió el `BACKEND_PORT`, actualizar esta variable también y reconstruir (Vite inyecta la URL en tiempo de build):
 
 ```bash
 docker compose build frontend
@@ -743,6 +745,28 @@ npm run dev
 ```
 
 En desarrollo local: frontend en `http://localhost:3000`, backend en `http://localhost:3001`.
+
+---
+
+## Variables de entorno de producción
+
+### Backend (servidor propio o Railway/Render)
+
+| Variable | Valor de ejemplo |
+|----------|-----------------|
+| `DATABASE_URL` | `postgresql://proy2:secret@<host-supabase>:5432/postgres?sslmode=require` |
+| `JWT_SECRET` | valor aleatorio seguro (≥ 32 chars) |
+| `FRONTEND_URL` | `https://<tu-frontend>.vercel.app` |
+| `PORT` | `3001` (o el que asigne la plataforma) |
+| `NODE_ENV` | `production` |
+
+### Frontend (Vercel)
+
+| Variable | Valor de ejemplo |
+|----------|-----------------|
+| `VITE_API_URL` | `https://<tu-backend>` |
+
+> `VITE_API_URL` se inyecta en el bundle en tiempo de build. Si la URL del backend cambia, reconstruir y redesplegar el frontend.
 
 ---
 

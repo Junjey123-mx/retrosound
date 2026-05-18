@@ -61,10 +61,10 @@ export function CheckoutConfirmationPage() {
             description="Parece que llegaste aquí sin completar una compra."
             action={
               <div className="flex flex-wrap justify-center gap-3">
-                <Button asChild variant="outline" size="sm">
+                <Button asChild className="rs-btn-primary">
                   <Link to="/tienda">Ir a la tienda</Link>
                 </Button>
-                <Button asChild size="sm">
+                <Button asChild className="rs-btn-primary">
                   <Link to="/mis-ordenes">Ver mis órdenes</Link>
                 </Button>
               </div>
@@ -152,10 +152,10 @@ export function CheckoutConfirmationPage() {
         </div>
 
         <div className="mt-8 flex flex-wrap justify-center gap-4">
-          <Button asChild>
+          <Button asChild className="rs-btn-primary">
             <Link to="/mis-ordenes">Ver mis órdenes</Link>
           </Button>
-          <Button asChild variant="outline">
+          <Button asChild className="rs-btn-primary">
             <Link to="/tienda">Seguir comprando</Link>
           </Button>
         </div>

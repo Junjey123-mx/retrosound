@@ -34,7 +34,7 @@ psql -d retrosound -f db/project3/07_permissions_project3.sql
 |-------------------------------|--------------------------------------------------------------------|
 | `01_schema_project3.sql`      | ALTER TABLE + migración de constraint `chk_usuario_rol`            |
 | `02_seed_project3.sql`        | Usuarios demo (uno por rol funcional)                              |
-| `03_roles_project3.sql`       | Creación de los 5 roles DBMS y del usuario `proy3`                 |
+| `03_roles_project3.sql`       | Creación de los 5 roles DBMS y del usuario `proy2` (técnico de conexión) |
 | `04_procedures_project3.sql`  | 5 stored procedures obligatorios de la rúbrica                     |
 | `05_views_project3.sql`       | Vistas SQL adicionales con control de acceso por rol               |
 | `06_indexes_project3.sql`     | Reservado para índices de optimización                             |
@@ -42,16 +42,18 @@ psql -d retrosound -f db/project3/07_permissions_project3.sql
 
 ---
 
-## 3. Credenciales obligatorias
+## 3. Credenciales obligatorias (Proyecto 2 Web)
 
 | Parámetro            | Valor                                                          |
 |----------------------|----------------------------------------------------------------|
-| `POSTGRES_USER`      | `proy3`                                                        |
+| `POSTGRES_USER`      | `proy2`                                                        |
 | `POSTGRES_PASSWORD`  | `secret`                                                       |
 | `POSTGRES_DB`        | `retrosound`                                                   |
-| `DATABASE_URL`       | `postgresql://proy3:secret@postgres:5432/retrosound?schema=public` |
+| `DATABASE_URL`       | `postgresql://proy2:secret@postgres:5432/retrosound?schema=public` |
 
-`proy3` es el **usuario técnico de conexión** del ORM y Docker. No es un rol funcional de la aplicación. Hereda los 5 roles DBMS mediante `GRANT rs_* TO proy3`.
+`proy2` es el **usuario técnico de conexión** del ORM y Docker para la entrega de Proyecto 2 Web. No es un rol funcional de la aplicación. Hereda los 5 roles DBMS mediante `GRANT rs_* TO proy2`.
+
+> **Nota histórica:** En una iteración anterior se usó `proy3` como usuario técnico. Ese nombre es **legacy** y ya no se crea ni se referencia en ningún script activo. Todos los scripts han sido actualizados para usar `proy2`.
 
 > El hostname dentro de Docker es `postgres` (nombre del servicio en `docker-compose.yml`). Para conexión desde el host: `localhost:5433`.
 
@@ -73,7 +75,7 @@ Valores válidos de la columna `usuario.rol_usuario`:
 
 ## 5. Roles reales del DBMS
 
-Los 5 roles de la rúbrica, creados con `CREATE ROLE` en `03_roles_project3.sql`. No tienen LOGIN; solo `proy3` lo tiene.
+Los 5 roles de la rúbrica, creados con `CREATE ROLE` en `03_roles_project3.sql`. No tienen LOGIN; solo `proy2` lo tiene.
 
 | Rol DBMS                   | Rol funcional mapeado  |
 |----------------------------|------------------------|
@@ -236,12 +238,14 @@ Control total: `SELECT, INSERT, UPDATE, DELETE` sobre todas las tablas y secuenc
 | `producto` (columnas)           | UPDATE en `descripcion_producto`, `imagen_url`, `imagen_public_id` |
 | `sp_registrar_entrega_proveedor`, `sp_actualizar_imagen_producto` | EXECUTE |
 
-### `proy3` (usuario técnico de conexión)
+### `proy2` (usuario técnico de conexión)
 Hereda todos los roles funcionales:
 ```sql
-GRANT rs_admin, rs_empleado_ventas, rs_empleado_inventario, rs_cliente, rs_proveedor TO proy3;
+GRANT rs_admin, rs_empleado_ventas, rs_empleado_inventario, rs_cliente, rs_proveedor TO proy2;
 ```
 **No cuenta como rol funcional adicional.** El backend usa `SET ROLE` por request para operar con el rol correcto.
+
+> **Histórico:** `proy3` fue el nombre del usuario técnico en una iteración anterior del proyecto. Ya no se utiliza. Los scripts actuales crean únicamente `proy2`.
 
 ---
 
@@ -249,7 +253,7 @@ GRANT rs_admin, rs_empleado_ventas, rs_empleado_inventario, rs_cliente, rs_prove
 
 Schema en: `apps/backend/prisma/schema.prisma`
 
-- Usa `url = env("DATABASE_URL")` con las credenciales `proy3 / secret`.
+- Usa `url = env("DATABASE_URL")` con las credenciales `proy2 / secret`.
 - Mapea las 18 tablas de RetroSound con `@map` (campos camelCase → snake_case) y `@@map` (modelo → tabla).
 - Usa `String` en todos los campos de estado y rol: el DDL usa `VARCHAR + CHECK`, no tipos `ENUM` nativos de PostgreSQL.
 - Incluye las columnas nuevas de Proyecto 3: `imagenUrl`, `imagenPublicId`, `cantidadRecibida`, `esProveedorPrincipal`.
@@ -282,7 +286,7 @@ Candidatos identificados:
 - [x] Usuario demo por cada rol funcional (`02_seed_project3.sql`)
 - [x] 5 stored procedures con parámetros `IN` / `OUT` y bloque `EXCEPTION` (`04_procedures_project3.sql`)
 - [x] SP con lógica transaccional y rollback por excepción (`sp_confirmar_recepcion_stock`)
-- [x] Credenciales `proy3` / `secret` usadas en `03_roles_project3.sql` y `docker-compose.yml`
+- [x] Credenciales `proy2` / `secret` usadas en `03_roles_project3.sql` y `docker-compose.yml`
 - [x] 4 vistas SQL con acceso restringido por rol (`05_views_project3.sql`)
 
 **Backend:**
@@ -309,7 +313,7 @@ Todos los ítems críticos de la rúbrica están implementados. Los puntos pendi
 | 5 SPs invocados desde backend | Completo |
 | CRUD con Prisma (≥5 módulos) | Completo |
 | Guards por rol en todos los módulos | Completo |
-| Docker con credenciales `proy3`/`secret` | Completo |
+| Docker con credenciales `proy2`/`secret` | Completo |
 | Tests unitarios (28 tests) | Completo |
 | Índices en `06_indexes_project3.sql` | Reservado (vacío) |
 
@@ -324,7 +328,7 @@ Esta sección documenta los comandos para verificar manualmente que los scripts 
 ### Conexión a psql desde Docker
 
 ```bash
-docker compose exec postgres psql -U proy3 -d retrosound
+docker compose exec postgres psql -U proy2 -d retrosound
 ```
 
 ---
@@ -344,7 +348,7 @@ WHERE rolname IN (
     'rs_empleado_inventario',
     'rs_cliente',
     'rs_proveedor',
-    'proy3'
+    'proy2'
 );
 ```
 
@@ -484,7 +488,7 @@ CALL sp_actualizar_imagen_producto(
 
 ### Validar permisos con SET ROLE
 
-`proy3` hereda todos los roles DBMS. Usar `SET ROLE` para simular el contexto de cada rol:
+`proy2` hereda todos los roles DBMS. Usar `SET ROLE` para simular el contexto de cada rol:
 
 ```sql
 -- Simular rol de proveedor
@@ -569,15 +573,15 @@ cd apps/backend && npm test
 ### Verificar roles DBMS en PostgreSQL
 
 ```bash
-docker compose exec postgres psql -U proy3 -d retrosound -c \
-  "SELECT rolname FROM pg_roles WHERE rolname LIKE 'rs_%' OR rolname = 'proy3' ORDER BY rolname;"
-# Esperado: 6 filas (rs_admin, rs_cliente, rs_empleado_inventario, rs_empleado_ventas, rs_proveedor, proy3)
+docker compose exec postgres psql -U proy2 -d retrosound -c \
+  "SELECT rolname FROM pg_roles WHERE rolname LIKE 'rs_%' OR rolname = 'proy2' ORDER BY rolname;"
+# Esperado: 6 filas (rs_admin, rs_cliente, rs_empleado_inventario, rs_empleado_ventas, rs_proveedor, proy2)
 ```
 
 ### Verificar stored procedures
 
 ```bash
-docker compose exec postgres psql -U proy3 -d retrosound -c \
+docker compose exec postgres psql -U proy2 -d retrosound -c \
   "SELECT proname FROM pg_proc WHERE proname LIKE 'sp_%' ORDER BY proname;"
 # Esperado: 5 filas
 ```

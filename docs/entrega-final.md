@@ -557,16 +557,18 @@ Usuarios adicionales del seed base (contraseña `retro2025`):
 
 ---
 
-## 15. Credenciales obligatorias
+## 15. Credenciales obligatorias (Proyecto 2 Web)
 
 | Variable | Valor |
 |----------|-------|
-| `POSTGRES_USER` | `proy3` |
+| `POSTGRES_USER` | `proy2` |
 | `POSTGRES_PASSWORD` | `secret` |
 | `POSTGRES_DB` | `retrosound` |
-| `DATABASE_URL` (Docker) | `postgresql://proy3:secret@postgres:5432/retrosound?schema=public` |
+| `DATABASE_URL` (Docker) | `postgresql://proy2:secret@postgres:5432/retrosound?schema=public` |
 
-El archivo `.env.example` define estos valores exactos. `proy3` es el usuario técnico de conexión; los roles funcionales del DBMS son los `rs_*`.
+El archivo `.env.example` define estos valores exactos. `proy2` es el usuario técnico de conexión para Proyecto 2 Web; los roles funcionales del DBMS son los `rs_*`.
+
+> **Nota histórica:** En una iteración anterior se usó `proy3` como usuario técnico. Ese nombre es legacy y ya no se crea en ningún script activo.
 
 ---
 
@@ -593,7 +595,7 @@ docker compose up --build
 | `rs_cliente` | `cliente` |
 | `rs_proveedor` | `proveedor` |
 
-`proy3` tiene LOGIN y hereda los 5 roles. No es un rol funcional.
+`proy2` tiene LOGIN y hereda los 5 roles. No es un rol funcional.
 
 ### Prisma ORM
 

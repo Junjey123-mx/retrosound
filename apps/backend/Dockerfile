@@ -10,7 +10,10 @@ FROM deps AS build
 WORKDIR /app
 COPY . .
 # Generate Prisma client with the real schema, then copy it into prod_modules
-RUN npx prisma generate && cp -R node_modules/.prisma /tmp/prod_modules/.prisma
+RUN npx prisma generate && \
+    rm -rf /tmp/prod_modules/.prisma /tmp/prod_modules/@prisma/client && \
+    cp -R node_modules/.prisma /tmp/prod_modules/.prisma && \
+    cp -R node_modules/@prisma/client /tmp/prod_modules/@prisma/client
 RUN npm run build && npx tsc -p tsconfig.build.json --incremental false
 
 # ── Stage 3: producción ──────────────────────────────────────────────────────

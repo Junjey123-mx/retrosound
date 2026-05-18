@@ -62,6 +62,7 @@ export function CustomerProfilePage() {
   };
 
   const handleSave = async () => {
+    if (!dirty) return;
     try {
       await update.mutateAsync({
         nombre: form.nombre.trim() || undefined,
@@ -92,7 +93,7 @@ export function CustomerProfilePage() {
 
         <div className="grid gap-6 lg:grid-cols-[0.38fr_1fr]">
           {/* Tarjeta lateral */}
-          <Card className="h-fit">
+          <Card className="h-fit bg-white dark:bg-card">
             <CardContent className="pt-6">
               <div className="flex flex-col items-center text-center">
                 <div
@@ -135,9 +136,9 @@ export function CustomerProfilePage() {
 
               <div className="mt-6 border-t border-border pt-6">
                 <Button
-                  variant="destructive"
+                  variant="ghost"
                   size="sm"
-                  className="w-full"
+                  className="w-full rs-btn-outline-danger"
                   onClick={logout}
                 >
                   <LogOut className="h-4 w-4" />
@@ -164,7 +165,7 @@ export function CustomerProfilePage() {
             )}
 
             {!isLoading && !isError && (
-              <Card>
+              <Card className="bg-white dark:bg-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-xl font-extrabold">
                     <User className="h-5 w-5 text-brand" />
@@ -207,7 +208,7 @@ export function CustomerProfilePage() {
             )}
 
             {!isLoading && !isError && (
-              <Card>
+              <Card className="bg-white dark:bg-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-xl font-extrabold">
                     <Mail className="h-5 w-5 text-brand" />
@@ -237,9 +238,10 @@ export function CustomerProfilePage() {
               <div className="flex justify-end">
                 <Button
                   size="lg"
-                  disabled={!dirty || update.isPending}
+                  disabled={update.isPending}
                   loading={update.isPending}
                   onClick={handleSave}
+                  className="rs-btn-primary"
                 >
                   {!update.isPending && <Save className="h-4 w-4" />}
                   Guardar cambios

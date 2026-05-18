@@ -52,6 +52,7 @@ const config: Config = {
 
         /* ── Tokens RS canónicos ───────────────────────────────────────────── */
         'rs-bg':              'var(--rs-bg)',
+        'rs-bg-soft':         'var(--rs-bg-soft)',
         'rs-surface':         'var(--rs-surface)',
         'rs-text':            'var(--rs-text)',
         'rs-muted':           'var(--rs-muted)',

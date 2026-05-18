@@ -173,13 +173,13 @@ export function LoginPage() {
 
       {/* ── Panel derecho — formulario ──────────────────────────────────── */}
       <div className="flex flex-1 items-center justify-center px-6 py-12 bg-background">
-        <div className="w-full max-w-md rounded-3xl border border-border bg-card p-10 shadow-sm space-y-8">
+        <div className="w-full max-w-sm space-y-8">
 
           <Link
             to="/"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-brand transition-colors hover:text-brand-hover"
+            className="rs-back-btn group inline-flex items-center gap-1.5 text-sm font-medium"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1" />
             Volver
           </Link>
 
@@ -225,7 +225,7 @@ export function LoginPage() {
             <Button
               type="submit"
               loading={isLoading}
-              className="w-full py-3.5 text-sm font-semibold"
+              className="w-full py-3.5 text-sm font-semibold rs-btn-primary"
             >
               {!isLoading && (
                 <>

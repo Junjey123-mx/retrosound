@@ -221,7 +221,7 @@ export function CartPage() {
                 Finalizar compra
               </Button>
 
-              <Button asChild variant="outline" className="mt-3 w-full">
+              <Button asChild variant="outline" className="mt-3 w-full dark:bg-transparent dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-800">
                 <Link to="/tienda">Seguir comprando</Link>
               </Button>
 

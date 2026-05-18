@@ -53,7 +53,7 @@ export function FormModal({
             initial="initial"
             animate="animate"
             exit="exit"
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-900/45"
             onClick={onClose}
           />
           <motion.div
@@ -61,18 +61,19 @@ export function FormModal({
             initial="initial"
             animate="animate"
             exit="exit"
-            className={`relative flex w-full flex-col ${widthClass} max-h-[90dvh] rounded-2xl border border-border bg-card shadow-xl`}
+            className={`relative flex w-full flex-col ${widthClass} max-h-[90dvh] rounded-2xl border border-slate-200 bg-white text-slate-800 shadow-xl dark:border-border dark:bg-card dark:text-foreground`}
           >
-            <div className="flex shrink-0 items-start justify-between border-b border-border px-6 py-4">
+            <div className="flex shrink-0 items-start justify-between border-b border-slate-200 px-6 py-4 dark:border-border">
               <div>
-                <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+                <h2 className="text-lg font-semibold text-slate-800 dark:text-foreground">{title}</h2>
                 {description && (
-                  <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+                  <p className="mt-0.5 text-sm text-slate-500 dark:text-muted-foreground">{description}</p>
                 )}
               </div>
               <button
                 onClick={onClose}
-                className="ml-4 mt-0.5 shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                type="button"
+                className="ml-4 mt-0.5 shrink-0 rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-rs-bg-soft hover:text-slate-800 dark:text-muted-foreground dark:hover:bg-muted dark:hover:text-foreground"
                 aria-label="Cerrar"
               >
                 <X className="h-4 w-4" />
@@ -80,7 +81,7 @@ export function FormModal({
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">{children}</div>
             {footer && (
-              <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border px-6 py-4">
+              <div className="flex shrink-0 items-center justify-end gap-2 border-t border-slate-200 px-6 py-4 dark:border-border">
                 {footer}
               </div>
             )}

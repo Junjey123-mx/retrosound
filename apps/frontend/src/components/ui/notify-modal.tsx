@@ -25,13 +25,13 @@ export function NotifyModal({ type, title, message, onClose }: NotifyModalProps)
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.15 }}
-      className="fixed inset-0 z-70 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-70 flex items-center justify-center bg-slate-900/45 p-4"
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
-        className="w-full max-w-md rounded-2xl border border-border bg-card p-10 text-center shadow-2xl"
+        className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-800 shadow-2xl dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
       >
         <div
           className={`mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full border-4 ${
@@ -46,13 +46,14 @@ export function NotifyModal({ type, title, message, onClose }: NotifyModalProps)
           }
         </div>
 
-        <h2 className="mb-2 text-2xl font-bold text-foreground">{title}</h2>
-        <p className="text-muted-foreground">{message}</p>
+        <h2 className="mb-2 text-2xl font-bold text-slate-800 dark:text-white">{title}</h2>
+        <p className="text-slate-500 dark:text-slate-400">{message}</p>
 
         {!isSuccess && (
           <button
+            type="button"
             onClick={onClose}
-            className="mt-6 rounded-xl bg-brand px-8 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-hover active:scale-[0.97]"
+            className="mt-6 rounded-xl px-8 py-3 text-sm font-semibold text-white transition-colors active:scale-[0.97] rs-btn-primary"
           >
             Aceptar
           </button>

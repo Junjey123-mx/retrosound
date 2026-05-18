@@ -9,7 +9,8 @@ export const BRAND = {
   greenSoft:    'rgba(0,230,118,0.08)',
   greenRing:    'rgba(0,230,118,0.30)',
 
-  bgLight:      '#FAF7F0',
+  bgLight:      '#F8FAFC',
+  bgSoftLight:  '#F9FAFB',
   bgDark:       '#08111F',
 
   textPrimary:   '#1F2937',
