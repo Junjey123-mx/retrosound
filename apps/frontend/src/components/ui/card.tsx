@@ -1,7 +1,7 @@
-import type { HTMLAttributes } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export function Card({ children, className = '', ...props }: CardProps) {
@@ -15,23 +15,23 @@ export function Card({ children, className = '', ...props }: CardProps) {
   );
 }
 
-export function CardHeader({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+export function CardHeader({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <div className={`mb-4 ${className}`}>{children}</div>;
 }
 
-export function CardTitle({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+export function CardTitle({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <h3 className={`text-lg font-semibold text-foreground ${className}`}>{children}</h3>;
 }
 
-export function CardDescription({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+export function CardDescription({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <p className={`mt-1 text-sm text-muted-foreground ${className}`}>{children}</p>;
 }
 
-export function CardContent({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+export function CardContent({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <div className={className}>{children}</div>;
 }
 
-export function CardFooter({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+export function CardFooter({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <div className={`mt-4 flex items-center gap-2 border-t border-border pt-4 ${className}`}>
       {children}

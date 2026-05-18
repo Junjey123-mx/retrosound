@@ -1,5 +1,4 @@
-'use client';
-
+import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { Inbox } from 'lucide-react';
 import { slideUp } from '@/lib/motion';
@@ -7,8 +6,8 @@ import { slideUp } from '@/lib/motion';
 interface EmptyStateProps {
   title?: string;
   description?: string;
-  action?: React.ReactNode;
-  icon?: React.ReactNode;
+  action?: ReactNode;
+  icon?: ReactNode;
 }
 
 export function EmptyState({

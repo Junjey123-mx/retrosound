@@ -1,5 +1,3 @@
-'use client';
-
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
@@ -75,7 +73,7 @@ export function CheckoutPage() {
     try {
       const response = await checkout.mutateAsync({ metodoPago: paymentMethod, descuento: discount });
       saveCheckoutResult(response);
-      navigate('/checkout/confirmacion' as any);
+      navigate('/checkout/confirmacion', { state: { result: response } });
     } catch (err: unknown) {
       const msg = (err as Error).message ?? '';
       const isStock = msg.toLowerCase().includes('stock') || msg.toLowerCase().includes('insuficiente');

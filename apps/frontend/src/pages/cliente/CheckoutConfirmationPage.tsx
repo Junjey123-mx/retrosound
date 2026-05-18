@@ -1,7 +1,5 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useMemo } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import {
   Calendar,
   CheckCircle2,
@@ -37,25 +35,23 @@ const PAYMENT_LABELS: Record<string, string> = {
 };
 
 export function CheckoutConfirmationPage() {
-  const [result, setResult] = useState<CheckoutResponse | null>(null);
-  const [checked, setChecked] = useState(false);
+  const { state } = useLocation();
 
-  useEffect(() => {
+  // Location state (set during navigation) is the primary source.
+  // sessionStorage is the fallback when the user refreshes the page.
+  const result = useMemo((): CheckoutResponse | null => {
+    if (state?.result) return state.result as CheckoutResponse;
     try {
       const stored = sessionStorage.getItem(CHECKOUT_KEY);
-      if (stored) {
-        setResult(JSON.parse(stored) as CheckoutResponse);
-        sessionStorage.removeItem(CHECKOUT_KEY);
-      }
+      return stored ? (JSON.parse(stored) as CheckoutResponse) : null;
     } catch {
-      // ignore
+      return null;
     }
-    setChecked(true);
-  }, []);
+  }, [state]);
 
-  if (!checked) return null;
+  const venta = result?.venta ?? null;
 
-  if (!result) {
+  if (!result || !venta) {
     return (
       <main className="rs-store-bg relative min-h-screen overflow-hidden">
         <div className="relative z-10 mx-auto max-w-2xl px-4 pb-16 pt-16 sm:px-6">
@@ -79,7 +75,6 @@ export function CheckoutConfirmationPage() {
     );
   }
 
-  const { venta } = result;
   const { recibo } = venta;
   const paymentLabel = PAYMENT_LABELS[venta.metodoPago] ?? venta.metodoPago;
 
