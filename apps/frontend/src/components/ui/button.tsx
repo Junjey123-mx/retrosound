@@ -14,7 +14,7 @@ const buttonVariants = cva(
         destructive: 'bg-rs-error text-white shadow-sm hover:bg-red-600 disabled:bg-rs-border disabled:text-slate-400 disabled:hover:bg-rs-border',
         danger:      'bg-rs-error text-white shadow-sm hover:bg-red-600 disabled:bg-rs-border disabled:text-slate-400 disabled:hover:bg-rs-border',
         success:     'bg-rs-success text-white shadow-sm hover:bg-emerald-600 disabled:bg-rs-border disabled:text-slate-400 disabled:hover:bg-rs-border',
-        outline:     'border border-rs-border bg-white text-rs-text hover:border-rs-primary hover:bg-orange-50 hover:text-rs-primary-hover disabled:bg-rs-border disabled:text-slate-400 disabled:hover:border-rs-border',
+        outline:     'border border-border bg-transparent text-foreground hover:border-brand hover:bg-brand/10 hover:text-brand disabled:opacity-40 disabled:cursor-not-allowed dark:border-border dark:bg-transparent dark:text-foreground dark:hover:border-brand dark:hover:bg-brand/10 dark:hover:text-brand',
         secondary:   'bg-rs-secondary text-white shadow-sm hover:bg-rs-secondary-hover disabled:bg-rs-border disabled:text-slate-400 disabled:hover:bg-rs-border',
         ghost:       'bg-transparent text-rs-muted hover:bg-rs-bg-soft hover:text-rs-text disabled:bg-transparent disabled:text-slate-400',
         link:        'text-rs-primary underline-offset-4 hover:text-rs-primary-hover hover:underline disabled:text-slate-400',

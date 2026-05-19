@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ChevronDown,
   ListOrdered,
@@ -265,20 +265,21 @@ export function StorePage() {
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
             {FILTERS.map((filter, index) => (
-              <button
-                key={filter.key}
-                type="button"
-                onClick={() => setActiveFilter(filter.key)}
-                className={`inline-flex h-11 items-center justify-center gap-2 rounded-full border px-6 text-sm font-extrabold transition ${
-                  activeFilter === filter.key
-                    ? 'rs-store-pill-active'
-                    : 'rs-store-pill'
-                }`}
-              >
-                {filter.label}
-                {filter.key === 'precio-bajo' && <ChevronDown className="h-4 w-4" />}
-                {index === 3 && <span className="ml-2 hidden h-7 w-px bg-border sm:inline-block" />}
-              </button>
+              <Fragment key={filter.key}>
+                <button
+                  type="button"
+                  onClick={() => setActiveFilter(filter.key)}
+                  className={`inline-flex h-11 items-center justify-center gap-2 rounded-full border px-6 text-sm font-extrabold transition ${
+                    activeFilter === filter.key
+                      ? 'rs-store-pill-active'
+                      : 'rs-store-pill'
+                  }`}
+                >
+                  {filter.label}
+                  {filter.key === 'precio-bajo' && <ChevronDown className="h-4 w-4" />}
+                </button>
+                {index === 3 && <span className="hidden h-7 w-px bg-border sm:inline-block" />}
+              </Fragment>
             ))}
           </div>
         </section>

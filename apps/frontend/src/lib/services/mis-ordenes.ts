@@ -18,14 +18,17 @@ export interface Orden {
   items: OrdenItem[];
 }
 
-export interface OrdenDetalle extends Orden {
-  recibo?: {
-    subtotal: number;
-    descuentoVenta: number;
-    totalNeto: number;
-    iva12: number;
-    total: number;
-  };
+export interface OrdenDetalle {
+  idVenta: number;
+  fechaVenta: string;
+  estadoVenta: 'pendiente' | 'completada' | 'cancelada';
+  metodoPago: string;
+  descuentoVenta: number;
+  totalBruto: number;
+  totalNeto: number;
+  iva: number;
+  totalConIva: number;
+  items: OrdenItem[];
 }
 
 export const misOrdenesService = {

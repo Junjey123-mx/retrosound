@@ -78,7 +78,7 @@ function PerfilContent() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form || !original) return;
+    if (!form || !original || !isDirty(original, form)) return;
     const dto = buildDto(original, form);
     updatePerfil.mutate(dto, {
       onSuccess: (result) => {
@@ -121,8 +121,8 @@ function PerfilContent() {
     );
   }
 
-  const dirty     = form && original ? isDirty(original, form) : false;
-  const disabled  = !dirty || updatePerfil.isPending;
+  const dirty    = form && original ? isDirty(original, form) : false;
+  const disabled = updatePerfil.isPending;
 
   return (
     <main className="space-y-6 p-6 sm:p-8">
@@ -226,7 +226,7 @@ function PerfilContent() {
                   type="submit"
                   loading={updatePerfil.isPending}
                   disabled={disabled}
-                  className="rs-btn-primary"
+                  className="w-full py-3 text-sm font-semibold rs-btn-primary"
                 >
                   {dirty ? 'Guardar cambios' : 'Sin cambios'}
                 </Button>

@@ -10,6 +10,7 @@ export interface CarritoItem {
   cantidad: number;
   precioUnitarioSnapshot: number;
   subtotal: number;
+  imagenUrl: string | null;
   fechaAgregado: string;
 }
 

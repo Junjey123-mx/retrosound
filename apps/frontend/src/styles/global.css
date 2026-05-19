@@ -1,6 +1,7 @@
 /* ── Fuente ────────────────────────────────────────────────────────────────── */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
+@config "../../tailwind.config.ts";
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -725,32 +726,62 @@ input:-webkit-autofill:active {
 }
 
 .rs-store-pill {
-  background: #FFFFFF;
-  border-color: #D8E1EC;
+  background: transparent;
+  border: 1.5px solid hsl(var(--border));
   color: hsl(var(--foreground));
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease, box-shadow 180ms ease, transform 150ms ease;
 }
 
 .rs-store-pill:hover {
-  border-color: hsl(var(--brand) / 0.45);
-  background: hsl(var(--brand) / 0.06);
+  border-color: hsl(var(--brand));
+  background: hsl(var(--brand) / 0.08);
+  color: hsl(var(--brand));
+  box-shadow: 0 4px 14px -6px rgba(var(--brand-shadow-rgb), 0.45);
+}
+
+.rs-store-pill:active {
+  transform: translateY(0) scale(0.97);
 }
 
 .dark .rs-store-pill {
-  background: transparent;
-  border-color: #1E293B;
+  border-color: rgba(255, 255, 255, 0.10);
+  color: hsl(var(--foreground));
+}
+
+.dark .rs-store-pill:hover {
+  border-color: hsl(var(--brand));
+  background: hsl(var(--brand) / 0.12);
+  color: hsl(var(--brand));
+  box-shadow: 0 0 18px rgba(var(--brand-shadow-rgb), 0.18);
 }
 
 .rs-store-pill-active {
-  border-color: hsl(var(--brand));
+  border: 1.5px solid hsl(var(--brand));
   background: hsl(var(--brand));
   color: #FFFFFF;
-  box-shadow: 0 14px 28px -20px rgba(var(--brand-shadow-rgb), 0.95);
+  box-shadow: 0 6px 20px -8px rgba(var(--brand-shadow-rgb), 0.75);
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease, box-shadow 180ms ease, transform 150ms ease;
+}
+
+.rs-store-pill-active:hover {
+  background: hsl(var(--brand-hover));
+  box-shadow: 0 8px 24px -8px rgba(var(--brand-shadow-rgb), 0.85);
+}
+
+.rs-store-pill-active:active {
+  transform: scale(0.97);
 }
 
 .dark .rs-store-pill-active {
-  background: rgba(0, 230, 118, 0.14);
-  color: #00E676;
-  box-shadow: 0 0 18px rgba(0, 230, 118, 0.12);
+  background: hsl(var(--brand));
+  border-color: hsl(var(--brand));
+  color: hsl(var(--brand-foreground));
+  box-shadow: 0 0 22px rgba(var(--brand-shadow-rgb), 0.30);
+}
+
+.dark .rs-store-pill-active:hover {
+  background: hsl(var(--brand-hover));
+  box-shadow: 0 0 28px rgba(var(--brand-shadow-rgb), 0.40);
 }
 
 /* ── Opciones de método de pago ───────────────────────────────────────────── */

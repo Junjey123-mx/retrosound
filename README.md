@@ -92,11 +92,13 @@ docker compose up
 
 | Rol | Email | Contraseña |
 |-----|-------|-----------|
-| admin | admin@retrosound.com | admin123 |
-| empleado_ventas | ventas@retrosound.com | ventas123 |
-| empleado_inventario | inventario@retrosound.com | inv123 |
-| proveedor | proveedor@sony.com | prov123 |
-| cliente | cliente@mail.com | cliente123 |
+| `admin` | admin@retrosound.com | admin123 |
+| `empleado_ventas` | ventas@retrosound.com | ventas123 |
+| `empleado_inventario` | inventario@retrosound.com | inv123 |
+| `proveedor` | proveedor@sony.com | prov123 |
+| `cliente` | cliente@retrosound.com | cliente123 |
+
+> **Nota Proyecto 3:** Para el Proyecto 3 de Bases de Datos se mejorará la UI de las vistas de empleado de ventas (`empleado_ventas`), empleado de inventario (`empleado_inventario`) y proveedores (`proveedor`).
 
 ---
 

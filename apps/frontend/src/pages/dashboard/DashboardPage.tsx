@@ -1,6 +1,6 @@
 'use client';
 
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import {
   AlertTriangle,
   BarChart3,
@@ -15,6 +15,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { RoleGuard } from '@/components/guards/role-guard';
+import { useCurrentUser } from '@/hooks/use-auth';
 import { useAdminDashboard } from '@/hooks/use-dashboard';
 import { StatCard } from '@/components/ui/stat-card';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -284,9 +285,9 @@ function DashboardContent() {
                   <Link
                     key={href}
                     to={href as any}
-                    className="group flex items-center gap-3 rounded-xl border border-rs-border bg-white p-4 text-sm font-semibold text-rs-text shadow-sm transition hover:border-rs-primary hover:bg-orange-50 hover:text-rs-primary-hover hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rs-primary/30 dark:border-border dark:bg-card dark:text-foreground"
+                    className="rs-btn-logout group flex items-center gap-3 rounded-xl bg-card p-4 text-sm font-semibold active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
                   >
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-orange-200 bg-rs-primary-soft text-rs-primary transition group-hover:border-rs-primary group-hover:bg-white group-hover:text-rs-primary-hover dark:border-border dark:bg-background dark:text-muted-foreground">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-all duration-150 group-hover:border-brand/30 group-hover:bg-brand/8 group-hover:text-brand">
                       <Icon className="h-5 w-5" />
                     </div>
                     {label}
@@ -389,10 +390,17 @@ function DashboardContent() {
   );
 }
 
+function DashboardRoot() {
+  const user = useCurrentUser();
+  if (user?.rol === 'empleado_ventas')     return <Navigate to="/dashboard/ventas"    replace />;
+  if (user?.rol === 'empleado_inventario') return <Navigate to="/dashboard/inventario" replace />;
+  return <DashboardContent />;
+}
+
 export function DashboardPage() {
   return (
     <RoleGuard allowed={['admin', 'empleado_ventas', 'empleado_inventario']}>
-      <DashboardContent />
+      <DashboardRoot />
     </RoleGuard>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle2, XCircle } from 'lucide-react';
 
@@ -20,12 +21,12 @@ export function NotifyModal({ type, title, message, onClose }: NotifyModalProps)
     return () => clearTimeout(t);
   }, [isSuccess, onClose]);
 
-  return (
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.15 }}
-      className="fixed inset-0 z-70 flex items-center justify-center bg-slate-900/45 p-4"
+      className="fixed inset-0 z-9999 flex items-center justify-center bg-slate-900/45 p-4"
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 8 }}
@@ -59,6 +60,7 @@ export function NotifyModal({ type, title, message, onClose }: NotifyModalProps)
           </button>
         )}
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body,
   );
 }

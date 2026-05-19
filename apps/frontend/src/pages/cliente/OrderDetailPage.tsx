@@ -77,7 +77,6 @@ export function OrderDetailPage() {
   if (!orden) return null;
 
   const status = STATUS_CONFIG[orden.estadoVenta] ?? { label: orden.estadoVenta, variant: 'warning' as BadgeVariant };
-  const recibo = orden.recibo;
 
   return (
     <main className="rs-store-bg relative min-h-screen">
@@ -174,34 +173,27 @@ export function OrderDetailPage() {
             <CardTitle className="text-lg font-extrabold">Resumen</CardTitle>
           </CardHeader>
           <CardContent>
-            {recibo ? (
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm font-semibold text-muted-foreground">
-                  <span>Subtotal</span>
-                  <span className="text-foreground">{formatQ(recibo.subtotal)}</span>
-                </div>
-                {recibo.descuentoVenta > 0 && (
-                  <div className="flex justify-between text-sm font-semibold text-muted-foreground">
-                    <span>Descuento</span>
-                    <span className="text-brand">-{formatQ(recibo.descuentoVenta)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-sm font-semibold text-muted-foreground">
-                  <span>IVA 12%</span>
-                  <span className="text-foreground">{formatQ(recibo.iva12)}</span>
-                </div>
-                <div className="my-3 h-px bg-border" />
-                <div className="flex items-end justify-between">
-                  <span className="text-xl font-extrabold text-foreground">Total</span>
-                  <span className="text-3xl font-extrabold text-brand">{formatQ(recibo.total)}</span>
-                </div>
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm font-semibold text-muted-foreground">
+                <span>Subtotal</span>
+                <span className="text-foreground">{formatQ(orden.totalBruto)}</span>
               </div>
-            ) : (
+              {orden.descuentoVenta > 0 && (
+                <div className="flex justify-between text-sm font-semibold text-muted-foreground">
+                  <span>Descuento</span>
+                  <span className="text-brand">-{formatQ(orden.descuentoVenta)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm font-semibold text-muted-foreground">
+                <span>IVA 12%</span>
+                <span className="text-foreground">{formatQ(orden.iva)}</span>
+              </div>
+              <div className="my-3 h-px bg-border" />
               <div className="flex items-end justify-between">
                 <span className="text-xl font-extrabold text-foreground">Total</span>
-                <span className="text-3xl font-extrabold text-brand">{formatQ(orden.total)}</span>
+                <span className="text-3xl font-extrabold text-brand">{formatQ(orden.totalConIva)}</span>
               </div>
-            )}
+            </div>
           </CardContent>
         </Card>
       </div>

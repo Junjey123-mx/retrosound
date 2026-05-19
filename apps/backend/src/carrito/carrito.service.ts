@@ -25,6 +25,7 @@ type CarritoItemRow = {
   cantidad: number;
   precio_unitario_snapshot: string | number;
   fecha_agregado: Date;
+  imagen_url: string | null;
 };
 
 @Injectable()
@@ -93,6 +94,7 @@ export class CarritoService {
         p.estado_producto,
         p.stock_actual,
         p.precio_venta,
+        p.imagen_url,
         ci.cantidad,
         ci.precio_unitario_snapshot,
         ci.fecha_agregado
@@ -122,6 +124,7 @@ export class CarritoService {
         cantidad: item.cantidad,
         precioUnitarioSnapshot: precioSnapshot,
         subtotal,
+        imagenUrl: item.imagen_url ?? null,
         fechaAgregado: item.fecha_agregado,
       };
     });

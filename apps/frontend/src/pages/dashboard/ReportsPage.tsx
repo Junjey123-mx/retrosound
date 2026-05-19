@@ -1,10 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { reportesService } from '@/lib/services/reportes';
 import { Database, Download } from 'lucide-react';
 import { RoleGuard } from '@/components/guards/role-guard';
+import { useCurrentUser } from '@/hooks/use-auth';
 import { PageHeader }   from '@/components/ui/page-header';
 import { Button }       from '@/components/ui/button';
 import { Input }        from '@/components/ui/input';
@@ -33,7 +34,11 @@ const TABS: TabConfig[] = [
   { id: 'ranking',  label: 'Ranking Ingresos'    },
 ];
 
-const FILTER_TABS = TABS.map((t) => ({ value: t.id, label: t.label }));
+const TABS_BY_ROLE: Record<string, TabId[]> = {
+  admin:               ['resumen','ventas','catalogo','compras','stock','clientes','vendidos','ranking'],
+  empleado_ventas:     ['resumen','ventas','clientes','vendidos','ranking'],
+  empleado_inventario: ['catalogo','compras','stock','vendidos'],
+};
 
 // ─── Column label map ─────────────────────────────────────────────────────────
 
@@ -281,12 +286,16 @@ function MasVendidosTab({ onData }: { onData: (d: Row[]) => void }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 function ReportesContent() {
-  const [activeTab, setActiveTab]   = useState<TabId>('resumen');
+  const user = useCurrentUser();
+  const allowedIds = useMemo(() => TABS_BY_ROLE[user?.rol ?? 'admin'] ?? TABS_BY_ROLE.admin, [user?.rol]);
+  const visibleTabs = useMemo(() => TABS.filter((t) => allowedIds.includes(t.id)).map((t) => ({ value: t.id, label: t.label })), [allowedIds]);
+  const [activeTab, setActiveTab]   = useState<TabId>(() => allowedIds[0] ?? 'resumen');
   const [exportData, setExportData] = useState<Row[]>([]);
 
   const handleData = useCallback((d: Row[]) => setExportData(d), []);
 
   useEffect(() => { setExportData([]); }, [activeTab]);
+  useEffect(() => { if (!allowedIds.includes(activeTab)) setActiveTab(allowedIds[0] ?? 'resumen'); }, [allowedIds, activeTab]);
 
   return (
     <main className="space-y-6 p-6 sm:p-8">
@@ -333,9 +342,9 @@ function ReportesContent() {
       </div>
 
       <FilterTabs
-        tabs={FILTER_TABS}
+        tabs={visibleTabs}
         active={activeTab}
-        onChange={(v) => setActiveTab(v as TabId)}
+        onChange={(v) => { setActiveTab(v as TabId); }}
       />
 
       <div className="space-y-4">

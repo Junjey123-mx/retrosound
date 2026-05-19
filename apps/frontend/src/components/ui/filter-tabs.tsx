@@ -28,17 +28,15 @@ export function FilterTabs({ tabs, value, active, onChange, className = '' }: Fi
             type="button"
             disabled={tab.disabled}
             onClick={() => onChange(tab.value)}
-            className={`rounded-xl border px-4 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rs-primary/30 disabled:cursor-not-allowed disabled:border-rs-border disabled:bg-rs-bg-soft disabled:text-slate-400 ${
-              isActive
-                ? 'border-orange-300 bg-rs-primary-soft text-orange-700 shadow-sm'
-                : 'border-rs-border bg-white text-rs-text hover:border-orange-300 hover:bg-orange-50 hover:text-rs-primary-hover'
+            className={`inline-flex h-9 items-center justify-center rounded-full border px-5 text-sm font-extrabold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 ${
+              isActive ? 'rs-store-pill-active' : 'rs-store-pill'
             }`}
           >
             {tab.label}
             {tab.count !== undefined && (
               <span
                 className={`ml-1.5 rounded-full border px-1.5 py-0.5 text-xs ${
-                  isActive ? 'border-orange-200 bg-white text-orange-700' : 'border-rs-border bg-rs-bg-soft text-rs-muted'
+                  isActive ? 'border-white/20 bg-white/15 text-inherit' : 'border-border bg-muted text-muted-foreground'
                 }`}
               >
                 {tab.count}

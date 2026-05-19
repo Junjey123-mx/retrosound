@@ -32,8 +32,12 @@ function ItemRow({ item }: { item: CarritoItem }) {
 
   return (
     <li className="flex items-center gap-4 py-4 first:pt-0 last:pb-0">
-      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-border bg-muted">
-        <Music2 className="h-7 w-7 text-brand" />
+      <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-muted">
+        {item.imagenUrl ? (
+          <img src={item.imagenUrl} alt={item.titulo} className="h-full w-full object-cover" />
+        ) : (
+          <Music2 className="h-7 w-7 text-brand" />
+        )}
       </div>
 
       <div className="min-w-0 flex-1">
@@ -127,8 +131,9 @@ export function CartPage() {
               size="sm"
               onClick={() => cancelar.mutate()}
               loading={cancelar.isPending}
-              className="text-destructive hover:text-destructive"
+              className="rs-btn-outline-danger"
             >
+              {!cancelar.isPending && <Trash2 className="h-4 w-4" />}
               Vaciar carrito
             </Button>
           )}
@@ -156,7 +161,7 @@ export function CartPage() {
                   title="Tu carrito está vacío"
                   description="Explora el catálogo y agrega productos para comenzar."
                   action={
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline" size="sm" className="dark:border-slate-600 dark:bg-transparent dark:text-slate-200 dark:hover:border-slate-400 dark:hover:bg-slate-800">
                       <Link to="/tienda">Ir a la tienda</Link>
                     </Button>
                   }
