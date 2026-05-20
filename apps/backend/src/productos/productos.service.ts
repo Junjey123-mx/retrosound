@@ -24,12 +24,17 @@ export class ProductosService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll() {
-    const productos = await this.prisma.producto.findMany({
-      where: { estadoProducto: { not: 'descontinuado' } },
-      include: INCLUDE_RELACIONES,
-      orderBy: { idProducto: 'asc' },
-    });
-    return productos.map((p) => this.mapProducto(p));
+    try {
+      const productos = await this.prisma.producto.findMany({
+        where: { estadoProducto: { not: 'descontinuado' } },
+        include: INCLUDE_RELACIONES,
+        orderBy: { idProducto: 'asc' },
+      });
+      return productos.map((p) => this.mapProducto(p));
+    } catch (error) {
+      console.error('[ProductosService.findAll]', error);
+      throw error;
+    }
   }
 
   async findOne(id: number) {
@@ -219,6 +224,10 @@ export class ProductosService {
   }
 
   private mapProducto(p: ProductoConRelaciones) {
+    const stockReservado = Number(
+      (p as ProductoConRelaciones & { stockReservado?: number }).stockReservado ?? 0,
+    );
+
     return {
       id: p.idProducto,
       titulo: p.tituloProducto,
@@ -226,7 +235,7 @@ export class ProductosService {
       anioLanzamiento: p.anioLanzamiento,
       precioVenta: Number(p.precioVenta),
       descuentoActual: Number(p.descuentoActual),
-      stockActual: Math.max(0, p.stockActual - (p.stockReservado ?? 0)),
+      stockActual: Math.max(0, p.stockActual - stockReservado),
       stockMinimo: p.stockMinimo,
       codigoSku: p.codigoSku,
       estado: p.estadoProducto,

@@ -40,6 +40,9 @@ const mockPrisma = {
     create: vi.fn(),
     update: vi.fn(),
   },
+  detalleCompraProveedor: {
+    findFirst: vi.fn(),
+  },
 };
 
 describe('ProductosService', () => {
@@ -47,6 +50,7 @@ describe('ProductosService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.detalleCompraProveedor.findFirst.mockResolvedValue(null);
     service = new ProductosService(mockPrisma as any);
   });
 

@@ -23,7 +23,6 @@ export function ClientNavbar() {
   const brandColor = isDark ? '#00E676' : '#F97316';
   const initials = user ? user.correo.slice(0, 1).toUpperCase() : '?';
   const cartActive = pathname === '/carrito' || pathname.startsWith('/carrito/');
-  const profileActive = pathname === '/perfil' || pathname.startsWith('/perfil/');
 
   const isActive = (href: string) => {
     return pathname === href || pathname.startsWith(`${href}/`);

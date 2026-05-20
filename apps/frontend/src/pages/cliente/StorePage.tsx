@@ -74,47 +74,6 @@ function SkeletonCard() {
   );
 }
 
-function StoreDecor() {
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden text-brand">
-      <svg
-        aria-hidden="true"
-        className="absolute -left-36 top-8 h-80 w-[520px] opacity-[0.10] dark:opacity-[0.14]"
-        viewBox="0 0 520 320"
-        fill="none"
-      >
-        {Array.from({ length: 8 }).map((_, i) => (
-          <path
-            key={i}
-            d={`M0 ${64 + i * 16} C 124 ${20 + i * 10}, 206 ${270 - i * 10}, 520 ${190 - i * 12}`}
-            stroke="currentColor"
-            strokeWidth="2"
-          />
-        ))}
-      </svg>
-      <svg
-        aria-hidden="true"
-        className="absolute -right-40 top-28 h-80 w-[560px] opacity-[0.10] dark:opacity-[0.16]"
-        viewBox="0 0 560 320"
-        fill="none"
-      >
-        {Array.from({ length: 8 }).map((_, i) => (
-          <path
-            key={i}
-            d={`M20 ${250 - i * 16} C 160 ${120 + i * 4}, 330 ${210 - i * 18}, 560 ${42 + i * 14}`}
-            stroke="currentColor"
-            strokeWidth="2"
-          />
-        ))}
-      </svg>
-      <Music2 className="absolute right-[11%] top-16 h-16 w-16 rotate-12 opacity-[0.10]" />
-      <Music2 className="absolute right-[18%] top-28 h-8 w-8 -rotate-6 opacity-[0.10]" />
-      <div className="absolute -left-24 bottom-40 h-52 w-52 rounded-full border-[28px] border-current opacity-[0.05]" />
-      <div className="absolute -right-20 bottom-24 h-52 w-52 rounded-full border-[24px] border-current opacity-[0.07]" />
-    </div>
-  );
-}
-
 export function StorePage() {
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterKey>('todos');
