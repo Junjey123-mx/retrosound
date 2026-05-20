@@ -46,6 +46,16 @@ export function useConfirmarRecepcion() {
   });
 }
 
+export function useCancelarRecepcion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (idCompra: number) => inventarioService.cancelarRecepcion(idCompra),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventario', 'recepciones'] });
+    },
+  });
+}
+
 export function useStockCritico(query: StockQuery = {}) {
   return useQuery({
     queryKey: ['inventario', 'stock-critico', query],

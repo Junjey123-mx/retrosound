@@ -41,6 +41,11 @@ export class InventarioController {
     return this.inventarioService.findRecepcionById(id);
   }
 
+  @Patch('recepciones/:id/cancelar')
+  cancelarRecepcion(@Param('id', ParseIntPipe) id: number) {
+    return this.inventarioService.cancelarRecepcion(id);
+  }
+
   @Patch('recepciones/:id/confirmar')
   confirmarRecepcion(
     @Param('id', ParseIntPipe) idDetalle: number,

@@ -12,7 +12,7 @@ import { ExportReporteDto } from './dto/export-reporte.dto';
 export class ReportesController {
   constructor(private readonly reportesService: ReportesService) {}
 
-  // ── Endpoints requeridos Commit 38 ─────────────────────────────────────────
+  // ── Endpoints principales ──────────────────────────────────────────────────
 
   @Get('resumen-ventas')
   @Roles('admin', 'empleado_ventas')
@@ -27,19 +27,19 @@ export class ReportesController {
   }
 
   @Get('catalogo')
-  @Roles('admin', 'empleado_inventario')
+  @Roles('admin')
   catalogo(@Query() query: ReporteQueryDto) {
     return this.reportesService.productosCatalogo(query);
   }
 
   @Get('compras')
-  @Roles('admin', 'empleado_inventario')
+  @Roles('admin')
   compras() {
     return this.reportesService.comprasProveedor();
   }
 
   @Get('stock-bajo')
-  @Roles('admin', 'empleado_inventario')
+  @Roles('admin')
   stockBajo() {
     return this.reportesService.productosStockBajo();
   }
@@ -51,7 +51,7 @@ export class ReportesController {
   }
 
   @Get('mas-vendidos')
-  @Roles('admin', 'empleado_ventas', 'empleado_inventario')
+  @Roles('admin', 'empleado_ventas')
   masVendidos(@Query() query: ReporteQueryDto) {
     return this.reportesService.productosMasVendidos(query.min ?? 1);
   }
@@ -63,7 +63,7 @@ export class ReportesController {
   }
 
   @Get('export/csv')
-  @Roles('admin', 'empleado_ventas', 'empleado_inventario')
+  @Roles('admin', 'empleado_ventas')
   async exportCsv(@Query() dto: ExportReporteDto, @Res() res: Response) {
     const { csv, filename } = await this.reportesService.exportCsv(dto);
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
@@ -74,31 +74,31 @@ export class ReportesController {
   // ── Rutas legacy (compatibilidad hacia atrás) ───────────────────────────────
 
   @Get('productos-catalogo')
-  @Roles('admin', 'empleado_inventario')
+  @Roles('admin')
   productosCatalogo(@Query() query: ReporteQueryDto) {
     return this.reportesService.productosCatalogo(query);
   }
 
   @Get('compras-proveedor')
-  @Roles('admin', 'empleado_inventario')
+  @Roles('admin')
   comprasProveedor() {
     return this.reportesService.comprasProveedor();
   }
 
   @Get('productos-bajo-stock')
-  @Roles('admin', 'empleado_inventario')
+  @Roles('admin')
   productosStockBajo() {
     return this.reportesService.productosStockBajo();
   }
 
   @Get('productos-mas-vendidos')
-  @Roles('admin', 'empleado_ventas', 'empleado_inventario')
+  @Roles('admin', 'empleado_ventas')
   productosMasVendidos(@Query('min') min?: string) {
     return this.reportesService.productosMasVendidos(Number(min) || 1);
   }
 
   @Get('dashboard')
-  @Roles('admin', 'empleado_ventas', 'empleado_inventario')
+  @Roles('admin', 'empleado_ventas')
   getDashboard() {
     return this.reportesService.getDashboard();
   }

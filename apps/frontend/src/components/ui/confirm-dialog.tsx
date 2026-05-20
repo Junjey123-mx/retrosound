@@ -14,7 +14,7 @@ const iconClass: Record<Variant, string> = {
 
 const btnClass: Record<Variant, string> = {
   default: 'bg-brand hover:bg-brand-hover',
-  danger:  'bg-danger hover:bg-danger/90',
+  danger:  'bg-rs-error hover:bg-red-600',
   warning: 'bg-warning hover:bg-warning/90',
 };
 

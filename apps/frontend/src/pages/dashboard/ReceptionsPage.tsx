@@ -76,9 +76,9 @@ function ConfirmarDetalleModal({ recepcion, detalle, onClose, onSuccess }: Confi
     try {
       const result = await confirmarMut.mutateAsync({ idDetalle: detalle.id, dto: { cantidadRecibida: num } });
       onClose();
-      onSuccess(result.mensaje ?? 'Recepción confirmada correctamente.');
+      onSuccess(result.mensaje ?? 'Entrega confirmada correctamente.');
     } catch (err: unknown) {
-      setFormError((err as Error).message ?? 'Error al confirmar la recepción.');
+      setFormError((err as Error).message ?? 'Error al confirmar la entrega.');
     }
   }
 
@@ -89,8 +89,8 @@ function ConfirmarDetalleModal({ recepcion, detalle, onClose, onSuccess }: Confi
     <FormModal
       open
       onClose={onClose}
-      title="Confirmar recepción"
-      description={`Recepción #${recepcion.id} — ${recepcion.proveedor?.nombre ?? '—'}`}
+      title="Confirmar entrega"
+      description={`Entrega #${recepcion.id} — ${recepcion.proveedor?.nombre ?? '—'}`}
       size="sm"
       footer={
         <>
@@ -113,7 +113,7 @@ function ConfirmarDetalleModal({ recepcion, detalle, onClose, onSuccess }: Confi
         <div className="rounded-xl border border-border bg-muted/30 p-3 text-sm space-y-1">
           <p className="font-medium text-foreground">{producto?.titulo ?? '—'}</p>
           <p className="text-muted-foreground">SKU: {producto?.sku ?? '—'}</p>
-          <p className="text-muted-foreground">Cantidad comprada: {detalle.cantidadComprada}</p>
+          <p className="text-muted-foreground">Cantidad reportada: {detalle.cantidadComprada}</p>
           <p className="text-muted-foreground">
             Stock actual: {producto?.stockActual ?? '—'} / Mínimo: {producto?.stockMinimo ?? '—'}
           </p>
@@ -155,7 +155,7 @@ function DetalleRecepcionModal({ recepcion, onClose, onConfirmarDetalle }: Detal
     <FormModal
       open
       onClose={onClose}
-      title={`Recepción #${recepcion.id}`}
+      title={`Entrega #${recepcion.id}`}
       description={`${recepcion.proveedor?.nombre ?? '—'} — ${fmtFecha(recepcion.fecha)}`}
       size="lg"
     >
@@ -179,7 +179,7 @@ function DetalleRecepcionModal({ recepcion, onClose, onConfirmarDetalle }: Detal
               <tr className="border-b border-border bg-muted/40">
                 <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Producto</th>
                 <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">SKU</th>
-                <th className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Comprada</th>
+                <th className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reportada</th>
                 <th className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Recibida</th>
                 <th className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Acción</th>
               </tr>
@@ -200,9 +200,17 @@ function DetalleRecepcionModal({ recepcion, onClose, onConfirmarDetalle }: Detal
                       <td className="px-3 py-2.5 text-muted-foreground">{d.producto?.sku ?? '—'}</td>
                       <td className="px-3 py-2.5 text-right text-foreground">{d.cantidadComprada}</td>
                       <td className="px-3 py-2.5 text-right">
-                        {d.cantidadRecibida != null && d.cantidadRecibida > 0
-                          ? <span className="text-success font-medium">{d.cantidadRecibida}</span>
-                          : <span className="text-muted-foreground">—</span>}
+                        {(() => {
+                          const displayed =
+                            d.cantidadRecibida != null && d.cantidadRecibida > 0
+                              ? d.cantidadRecibida
+                              : recepcion.estado === 'recibida'
+                              ? d.cantidadComprada
+                              : null;
+                          return displayed != null
+                            ? <span className="text-success font-medium">{displayed}</span>
+                            : <span className="text-muted-foreground">—</span>;
+                        })()}
                       </td>
                       <td className="px-3 py-2.5 text-center">
                         {confirmable ? (
@@ -328,13 +336,13 @@ function RecepcionesContent() {
     return (
       <main className="space-y-6 p-6 sm:p-8">
         <PageHeader
-          title="Recepciones"
-          description="Confirma entregas reportadas por proveedores"
+          title="Entregas de proveedores"
+          description="Revisa y confirma entregas reportadas por proveedores"
           icon={<ClipboardList className="h-5 w-5" />}
           backHref={ROUTES.dashboard.inventario}
           backLabel="Inventario"
         />
-        <LoadingState variant="table" label="Cargando recepciones…" />
+        <LoadingState variant="table" label="Cargando entregas…" />
       </main>
     );
   }
@@ -381,11 +389,11 @@ function RecepcionesContent() {
       {filtered.length === 0 ? (
         <EmptyState
           icon={<ClipboardList className="h-7 w-7" />}
-          title={search || filterTab !== 'todos' ? 'Sin resultados' : 'Sin recepciones'}
+          title={search || filterTab !== 'todos' ? 'Sin resultados' : 'Sin entregas'}
           description={
             search || filterTab !== 'todos'
               ? 'Ajusta la búsqueda o los filtros.'
-              : 'No hay recepciones registradas aún.'
+              : 'No hay entregas registradas aún.'
           }
         />
       ) : (
@@ -413,7 +421,8 @@ function RecepcionesContent() {
           onClose={() => setConfirmingDetalle(null)}
           onSuccess={(msg) => {
             setConfirmingDetalle(null);
-            setNotify({ type: 'success', title: 'Recepción confirmada', message: msg });
+            setSelected(null);
+            setNotify({ type: 'success', title: 'Entrega confirmada', message: msg });
           }}
         />
       )}

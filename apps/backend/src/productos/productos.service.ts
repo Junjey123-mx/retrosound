@@ -33,12 +33,24 @@ export class ProductosService {
   }
 
   async findOne(id: number) {
-    const producto = await this.prisma.producto.findUnique({
-      where: { idProducto: id },
-      include: INCLUDE_RELACIONES,
-    });
+    const [producto, lastDetalle] = await Promise.all([
+      this.prisma.producto.findUnique({
+        where: { idProducto: id },
+        include: INCLUDE_RELACIONES,
+      }),
+      this.prisma.detalleCompraProveedor.findFirst({
+        where: { idProducto: id },
+        orderBy: { compraProveedor: { fechaCompraProveedor: 'desc' } },
+        select: { costoUnitarioCompra: true },
+      }),
+    ]);
     if (!producto) throw new NotFoundException('Producto no encontrado');
-    return this.mapProducto(producto);
+    return {
+      ...this.mapProducto(producto),
+      costoUnitarioProveedor: lastDetalle
+        ? Number(lastDetalle.costoUnitarioCompra)
+        : undefined,
+    };
   }
 
   async create(dto: CreateProductoDto) {
@@ -79,6 +91,7 @@ export class ProductosService {
       if (dto.descripcion !== undefined) data.descripcionProducto = dto.descripcion;
       if (dto.anioLanzamiento !== undefined) data.anioLanzamiento = dto.anioLanzamiento;
       if (dto.precioVenta !== undefined) data.precioVenta = dto.precioVenta;
+      if (dto.descuentoActual !== undefined) data.descuentoActual = dto.descuentoActual;
       if (dto.stockActual !== undefined) data.stockActual = dto.stockActual;
       if (dto.stockMinimo !== undefined) data.stockMinimo = dto.stockMinimo;
       if (dto.codigoSku !== undefined) data.codigoSku = dto.codigoSku;
@@ -212,6 +225,7 @@ export class ProductosService {
       descripcion: p.descripcionProducto,
       anioLanzamiento: p.anioLanzamiento,
       precioVenta: Number(p.precioVenta),
+      descuentoActual: Number(p.descuentoActual),
       stockActual: p.stockActual,
       stockMinimo: p.stockMinimo,
       codigoSku: p.codigoSku,

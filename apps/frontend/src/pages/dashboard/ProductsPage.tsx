@@ -1,15 +1,18 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import {
   useProductos,
+  useProducto,
   useCreateProducto,
   useUpdateProducto,
+  useUpdateProductoImagen,
   useDeactivateProducto,
 } from '@/hooks/use-productos';
 import { useCatalogos } from '@/hooks/use-catalogs';
 import type { Producto } from '@/types';
-import { Pencil, PowerOff, Package } from 'lucide-react';
+import { Pencil, PowerOff, Package, ImagePlus, X, Eye } from 'lucide-react';
+import { useCurrentUser } from '@/hooks/use-auth';
 import { PageHeader }    from '@/components/ui/page-header';
 import { DataTable }     from '@/components/ui/data-table';
 import { Badge }         from '@/components/ui/badge';
@@ -23,6 +26,24 @@ import { NotifyModal }   from '@/components/ui/notify-modal';
 import { LoadingState }  from '@/components/ui/loading-state';
 import { ErrorState }    from '@/components/ui/error-state';
 import { EmptyState }    from '@/components/ui/empty-state';
+
+// ─── cloudinary ───────────────────────────────────────────────────────────────
+
+const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as string;
+const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET as string;
+
+async function uploadToCloudinary(file: File): Promise<{ url: string; publicId: string }> {
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('upload_preset', UPLOAD_PRESET);
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+    method: 'POST',
+    body: fd,
+  });
+  if (!res.ok) throw new Error('Error al subir la imagen a Cloudinary');
+  const data = await res.json() as { secure_url: string; public_id: string };
+  return { url: data.secure_url, publicId: data.public_id };
+}
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -45,22 +66,33 @@ const EMPTY_FORM = {
   descripcion:     '',
   anioLanzamiento: '',
   precioVenta:     '',
-  stockActual:     '',
+  descuentoActual: '0',
   stockMinimo:     '',
-  codigoSku:       '',
   idCategoria:     '',
   idFormato:       '',
 };
 
 type FormState = typeof EMPTY_FORM;
 
-function validate(f: FormState): string | null {
-  if (!f.titulo.trim())    return 'El título es obligatorio.';
-  if (!f.codigoSku.trim()) return 'El SKU es obligatorio.';
+function precioFinal(precio: string, descuento: string): number {
+  const p = Number(precio);
+  const d = Number(descuento);
+  if (isNaN(p) || isNaN(d)) return p;
+  return p * (1 - d / 100);
+}
+
+function validate(f: FormState, costoProveedor?: number): string | null {
+  if (!f.titulo.trim()) return 'El título es obligatorio.';
   if (f.precioVenta === '' || isNaN(Number(f.precioVenta)) || Number(f.precioVenta) < 0)
-    return 'El precio debe ser un número mayor o igual a 0.';
-  if (f.stockActual === '' || isNaN(Number(f.stockActual)) || Number(f.stockActual) < 0)
-    return 'El stock actual debe ser un número mayor o igual a 0.';
+    return 'El precio de venta debe ser un número mayor o igual a 0.';
+  const desc = Number(f.descuentoActual);
+  if (isNaN(desc) || desc < 0 || desc > 100)
+    return 'El descuento debe estar entre 0 y 100.';
+  if (costoProveedor !== undefined) {
+    const pf = precioFinal(f.precioVenta, f.descuentoActual);
+    if (pf < costoProveedor)
+      return `El precio final con descuento (Q${pf.toFixed(2)}) no puede ser menor al costo del proveedor (Q${costoProveedor.toFixed(2)}).`;
+  }
   if (f.stockMinimo === '' || isNaN(Number(f.stockMinimo)) || Number(f.stockMinimo) < 0)
     return 'El stock mínimo debe ser un número mayor o igual a 0.';
   if (!f.idCategoria) return 'Selecciona una categoría.';
@@ -73,30 +105,35 @@ const FIELD = 'w-full rounded-xl border border-border bg-input-bg px-3.5 py-2.5 
 // ─── page ─────────────────────────────────────────────────────────────────────
 
 function ProductosContent() {
+  const currentUser = useCurrentUser();
+  const isAdmin     = currentUser?.rol === 'admin';
+
   const { data: productos, isLoading, error: loadError } = useProductos();
   const { data: catalogos } = useCatalogos();
-  const createMut = useCreateProducto();
-  const updateMut = useUpdateProducto();
-  const deactMut  = useDeactivateProducto();
+  const createMut    = useCreateProducto();
+  const updateMut    = useUpdateProducto();
+  const updateImgMut = useUpdateProductoImagen();
+  const deactMut     = useDeactivateProducto();
 
-  const [search,     setSearch]     = useState('');
-  const [filterTab,  setFilterTab]  = useState('todos');
-  const [modalOpen,  setModalOpen]  = useState(false);
-  const [editing,    setEditing]    = useState<Producto | null>(null);
-  const [form,       setForm]       = useState<FormState>(EMPTY_FORM);
-  const [formError,  setFormError]  = useState<string | null>(null);
-  const [confirmId,  setConfirmId]  = useState<number | null>(null);
-  const [notify,     setNotify]     = useState<{ type: 'success' | 'error'; title: string; message: string } | null>(null);
-  const [recentIds,  setRecentIds]  = useState<number[]>([]);
+  const [search,      setSearch]      = useState('');
+  const [filterTab,   setFilterTab]   = useState('todos');
+  const [modalOpen,   setModalOpen]   = useState(false);
+  const [editing,     setEditing]     = useState<Producto | null>(null);
+  const [viewing,     setViewing]     = useState<Producto | null>(null);
+
+  const { data: editingDetalle } = useProducto(editing?.id ?? 0);
+  const costoProveedor = editingDetalle?.costoUnitarioProveedor;
+  const [form,        setForm]        = useState<FormState>(EMPTY_FORM);
+  const [formError,   setFormError]   = useState<string | null>(null);
+  const [confirmId,   setConfirmId]   = useState<number | null>(null);
+  const [notify,      setNotify]      = useState<{ type: 'success' | 'error'; title: string; message: string } | null>(null);
+  const [recentIds,   setRecentIds]   = useState<number[]>([]);
+  const [imgFile,     setImgFile]     = useState<File | null>(null);
+  const [imgPreview,  setImgPreview]  = useState<string | null>(null);
+  const [imgUploading, setImgUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const confirmTarget = productos?.find((p) => p.id === confirmId) ?? null;
-
-  function openCreate() {
-    setEditing(null);
-    setForm(EMPTY_FORM);
-    setFormError(null);
-    setModalOpen(true);
-  }
 
   function openEdit(p: Producto) {
     setEditing(p);
@@ -105,12 +142,13 @@ function ProductosContent() {
       descripcion:     p.descripcion ?? '',
       anioLanzamiento: p.anioLanzamiento?.toString() ?? '',
       precioVenta:     String(p.precioVenta),
-      stockActual:     String(p.stockActual),
+      descuentoActual: String(p.descuentoActual ?? 0),
       stockMinimo:     String(p.stockMinimo),
-      codigoSku:       p.codigoSku,
       idCategoria:     String(p.idCategoria),
       idFormato:       String(p.idFormato),
     });
+    setImgFile(null);
+    setImgPreview(null);
     setFormError(null);
     setModalOpen(true);
   }
@@ -120,6 +158,41 @@ function ProductosContent() {
     setEditing(null);
     setForm(EMPTY_FORM);
     setFormError(null);
+    setImgFile(null);
+    setImgPreview(null);
+  }
+
+  function handleImgChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImgFile(file);
+    setImgPreview(URL.createObjectURL(file));
+  }
+
+  function clearImg() {
+    setImgFile(null);
+    setImgPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
+  async function handleUploadImage() {
+    if (!imgFile || !editing) return;
+    setImgUploading(true);
+    setFormError(null);
+    try {
+      const { url, publicId } = await uploadToCloudinary(imgFile);
+      await updateImgMut.mutateAsync({ id: editing.id, imagenUrl: url, imagenPublicId: publicId });
+      setRecentIds((prev) => [editing.id, ...prev.filter((x) => x !== editing.id)]);
+      setEditing((prev) => prev ? { ...prev, imagenUrl: url } : prev);
+      setImgFile(null);
+      setImgPreview(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      setNotify({ type: 'success', title: 'Imagen actualizada', message: 'La imagen del producto se guardó correctamente.' });
+    } catch (err: unknown) {
+      setFormError((err as Error).message ?? 'Error al subir la imagen.');
+    } finally {
+      setImgUploading(false);
+    }
   }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
@@ -128,7 +201,7 @@ function ProductosContent() {
 
   async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
-    const err = validate(form);
+    const err = validate(form, costoProveedor);
     if (err) { setFormError(err); return; }
     setFormError(null);
 
@@ -137,9 +210,8 @@ function ProductosContent() {
       descripcion:     form.descripcion.trim() || undefined,
       anioLanzamiento: form.anioLanzamiento ? Number(form.anioLanzamiento) : undefined,
       precioVenta:     Number(form.precioVenta),
-      stockActual:     Number(form.stockActual),
+      descuentoActual: Number(form.descuentoActual),
       stockMinimo:     Number(form.stockMinimo),
-      codigoSku:       form.codigoSku.trim(),
       idCategoria:     Number(form.idCategoria),
       idFormato:       Number(form.idFormato),
     };
@@ -175,6 +247,7 @@ function ProductosContent() {
   }
 
   const isSaving = createMut.isPending || updateMut.isPending;
+  const isImgBusy = imgUploading || updateImgMut.isPending;
 
   const sorted = useMemo(() => {
     return [...(productos ?? [])].sort((a, b) => {
@@ -244,11 +317,34 @@ function ProductosContent() {
     },
     {
       key: 'precioVenta',
-      header: 'Precio',
+      header: 'Precio venta',
       className: 'text-right',
       render: (p: Producto) => (
         <span className="font-medium tabular-nums text-foreground">{formatQ(p.precioVenta)}</span>
       ),
+    },
+    {
+      key: 'descuentoActual',
+      header: 'Descuento',
+      className: 'text-center',
+      render: (p: Producto) => {
+        const d = p.descuentoActual ?? 0;
+        return d > 0
+          ? <span className="rounded-full bg-brand/10 px-2 py-0.5 text-xs font-semibold text-brand">{d}%</span>
+          : <span className="text-muted-foreground">—</span>;
+      },
+    },
+    {
+      key: 'precioFinal',
+      header: 'Precio final',
+      className: 'text-right',
+      render: (p: Producto) => {
+        const d = p.descuentoActual ?? 0;
+        const pf = Number(p.precioVenta) * (1 - d / 100);
+        return d > 0
+          ? <span className="font-semibold tabular-nums text-brand">{formatQ(pf)}</span>
+          : <span className="tabular-nums text-muted-foreground">—</span>;
+      },
     },
     {
       key: 'stockActual',
@@ -279,31 +375,42 @@ function ProductosContent() {
       key: 'acciones',
       header: 'Acciones',
       className: 'text-center',
-      render: (p: Producto) => (
-        <div className="flex items-center justify-center gap-2">
+      render: (p: Producto) =>
+        isAdmin ? (
+          <div className="flex items-center justify-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openEdit(p)}
+              className="gap-1.5 text-xs"
+            >
+              <Pencil className="h-3 w-3" />
+              Editar
+            </Button>
+            {p.estado !== 'descontinuado' && (
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => setConfirmId(p.id)}
+                disabled={deactMut.isPending}
+                className="gap-1.5 text-xs"
+              >
+                <PowerOff className="h-3 w-3" />
+                Desactivar
+              </Button>
+            )}
+          </div>
+        ) : (
           <Button
             variant="outline"
             size="sm"
-            onClick={() => openEdit(p)}
+            onClick={() => setViewing(p)}
             className="gap-1.5 text-xs"
           >
-            <Pencil className="h-3 w-3" />
-            Editar
+            <Eye className="h-3 w-3" />
+            Ver detalle
           </Button>
-          {p.estado !== 'descontinuado' && (
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => setConfirmId(p.id)}
-              disabled={deactMut.isPending}
-              className="gap-1.5 text-xs"
-            >
-              <PowerOff className="h-3 w-3" />
-              Desactivar
-            </Button>
-          )}
-        </div>
-      ),
+        ),
     },
   ];
 
@@ -317,11 +424,6 @@ function ProductosContent() {
         title="Productos"
         description="Administra el catálogo de RetroSound"
         icon={<Package className="h-5 w-5" />}
-        action={
-          <Button onClick={openCreate} size="sm">
-            + Nuevo producto
-          </Button>
-        }
       />
 
       {/* Toolbar */}
@@ -338,7 +440,7 @@ function ProductosContent() {
         />
         <div className="flex items-center gap-3">
           <SearchInput
-            placeholder="Buscar por SKU, título, categoría…"
+            placeholder="Buscar por título, categoría…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onClear={() => setSearch('')}
@@ -358,12 +460,7 @@ function ProductosContent() {
           description={
             search || filterTab !== 'todos'
               ? 'Intenta ajustar la búsqueda o los filtros.'
-              : 'Agrega el primer producto al catálogo.'
-          }
-          action={
-            !search && filterTab === 'todos' ? (
-              <Button size="sm" onClick={openCreate}>+ Nuevo producto</Button>
-            ) : undefined
+              : 'El catálogo de productos está vacío.'
           }
         />
       ) : (
@@ -388,6 +485,52 @@ function ProductosContent() {
         onConfirm={handleDeactivateConfirm}
         onCancel={() => setConfirmId(null)}
       />
+
+      {/* Modal solo lectura — empleado_inventario */}
+      {viewing && (
+        <FormModal
+          open
+          onClose={() => setViewing(null)}
+          title={viewing.titulo}
+          description={`SKU: ${viewing.codigoSku}`}
+          size="md"
+        >
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            {[
+              { label: 'SKU',         value: <span className="font-mono">{viewing.codigoSku}</span> },
+              { label: 'Estado',      value: <Badge variant={estadoBadgeVariant(viewing.estado)}>{viewing.estado}</Badge> },
+              { label: 'Categoría',   value: viewing.categoria?.nombre ?? '—' },
+              { label: 'Formato',     value: viewing.formato?.nombre ?? '—' },
+              { label: 'Precio venta', value: formatQ(viewing.precioVenta) },
+              { label: 'Descuento',   value: (viewing.descuentoActual ?? 0) > 0 ? `${viewing.descuentoActual}%` : '—' },
+              { label: 'Precio final', value: (() => { const d = viewing.descuentoActual ?? 0; return d > 0 ? <span className="font-semibold text-brand">{formatQ(Number(viewing.precioVenta) * (1 - d / 100))}</span> : <span className="text-muted-foreground">—</span>; })() },
+              { label: 'Stock actual', value: <span className={viewing.stockActual === 0 ? 'font-semibold text-danger' : 'text-foreground'}>{viewing.stockActual}</span> },
+              { label: 'Stock mínimo', value: String(viewing.stockMinimo) },
+              ...(viewing.anioLanzamiento ? [{ label: 'Año', value: String(viewing.anioLanzamiento) }] : []),
+            ].map(({ label, value }) => (
+              <div key={label} className="rounded-lg border border-border bg-card px-3 py-2.5">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+                <div className="mt-0.5 font-medium text-foreground">{value}</div>
+              </div>
+            ))}
+          </div>
+          {viewing.descripcion && (
+            <div className="mt-3 rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm">
+              <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">Descripción</p>
+              <p className="text-foreground">{viewing.descripcion}</p>
+            </div>
+          )}
+          {viewing.imagenUrl && (
+            <div className="mt-3 flex justify-center">
+              <img
+                src={viewing.imagenUrl}
+                alt={viewing.titulo}
+                className="h-28 w-28 rounded-lg border border-border object-cover"
+              />
+            </div>
+          )}
+        </FormModal>
+      )}
 
       {/* Modal crear/editar */}
       <FormModal
@@ -433,38 +576,24 @@ function ProductosContent() {
             />
           </div>
 
+          <div>
+            <label className="mb-1 block text-sm font-medium text-foreground">Año de lanzamiento</label>
+            <input
+              name="anioLanzamiento"
+              type="number"
+              min="1900"
+              max="2099"
+              value={form.anioLanzamiento}
+              onChange={handleChange}
+              placeholder="Ej: 1973"
+              className={FIELD}
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="mb-1 block text-sm font-medium text-foreground">
-                SKU <span className="text-danger">*</span>
-              </label>
-              <input
-                name="codigoSku"
-                value={form.codigoSku}
-                onChange={handleChange}
-                placeholder="Ej: RS-001-V"
-                className={FIELD}
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-foreground">Año de lanzamiento</label>
-              <input
-                name="anioLanzamiento"
-                type="number"
-                min="1900"
-                max="2099"
-                value={form.anioLanzamiento}
-                onChange={handleChange}
-                placeholder="Ej: 1973"
-                className={FIELD}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-foreground">
-                Precio (Q) <span className="text-danger">*</span>
+                Precio de venta RetroSound (Q) <span className="text-danger">*</span>
               </label>
               <input
                 name="precioVenta"
@@ -474,20 +603,6 @@ function ProductosContent() {
                 value={form.precioVenta}
                 onChange={handleChange}
                 placeholder="0.00"
-                className={FIELD}
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-foreground">
-                Stock actual <span className="text-danger">*</span>
-              </label>
-              <input
-                name="stockActual"
-                type="number"
-                min="0"
-                value={form.stockActual}
-                onChange={handleChange}
-                placeholder="0"
                 className={FIELD}
               />
             </div>
@@ -506,6 +621,57 @@ function ProductosContent() {
               />
             </div>
           </div>
+
+          {/* Descuento y precio final */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                Descuento actual (%)
+              </label>
+              <input
+                name="descuentoActual"
+                type="number"
+                step="1"
+                min="0"
+                max="100"
+                value={form.descuentoActual}
+                onChange={handleChange}
+                placeholder="0"
+                className={FIELD}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                Precio final con descuento (Q)
+              </label>
+              <input
+                type="text"
+                value={
+                  form.precioVenta !== ''
+                    ? `Q${precioFinal(form.precioVenta, form.descuentoActual).toFixed(2)}`
+                    : '—'
+                }
+                readOnly
+                disabled
+                className={FIELD}
+              />
+            </div>
+          </div>
+
+          {editing && costoProveedor !== undefined && (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                Costo unitario proveedor (Q)
+              </label>
+              <input
+                type="text"
+                value={`Q${costoProveedor.toFixed(2)}`}
+                readOnly
+                disabled
+                className={FIELD}
+              />
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -543,6 +709,71 @@ function ProductosContent() {
               className={FIELD}
             />
           </div>
+
+          {/* Sección imagen — solo al editar */}
+          {editing && (
+            <div className="space-y-2 rounded-xl border border-border bg-surface-alt p-3">
+              <label className="block text-sm font-medium text-foreground">
+                Imagen del producto
+              </label>
+
+              {/* Preview: nueva seleccionada o actual */}
+              {(imgPreview || editing.imagenUrl) && (
+                <div className="relative w-fit">
+                  <img
+                    src={imgPreview ?? editing.imagenUrl!}
+                    alt="Imagen del producto"
+                    className="h-28 w-28 rounded-lg border border-border object-cover"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                  />
+                  {imgPreview && (
+                    <button
+                      type="button"
+                      onClick={clearImg}
+                      className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-danger text-white shadow"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImgChange}
+                  className="hidden"
+                  id="img-upload-input"
+                />
+                <label
+                  htmlFor="img-upload-input"
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-alt transition"
+                >
+                  <ImagePlus className="h-3.5 w-3.5" />
+                  {editing.imagenUrl && !imgFile ? 'Cambiar imagen' : 'Seleccionar imagen'}
+                </label>
+
+                {imgFile && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    loading={isImgBusy}
+                    disabled={isImgBusy}
+                    onClick={handleUploadImage}
+                    className="text-xs"
+                  >
+                    {isImgBusy ? 'Subiendo…' : 'Subir imagen'}
+                  </Button>
+                )}
+              </div>
+
+              {imgFile && !isImgBusy && (
+                <p className="text-xs text-muted-foreground">{imgFile.name}</p>
+              )}
+            </div>
+          )}
 
         </form>
       </FormModal>

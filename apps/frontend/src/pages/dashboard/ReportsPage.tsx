@@ -297,11 +297,13 @@ function ReportesContent() {
   useEffect(() => { setExportData([]); }, [activeTab]);
   useEffect(() => { if (!allowedIds.includes(activeTab)) setActiveTab(allowedIds[0] ?? 'resumen'); }, [allowedIds, activeTab]);
 
+  const isEmpleadoVentas = user?.rol === 'empleado_ventas';
+
   return (
     <main className="space-y-6 p-6 sm:p-8">
       <PageHeader
-        title="Reportes SQL"
-        description="Consulta reportes operativos y exporta datos de RetroSound"
+        title={isEmpleadoVentas ? 'Reportes de ventas' : 'Reportes SQL'}
+        description={isEmpleadoVentas ? 'Consulta reportes de ventas y exporta datos' : 'Consulta reportes operativos y exporta datos de RetroSound'}
         icon={<Database className="h-5 w-5" />}
         action={
           <Button

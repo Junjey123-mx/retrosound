@@ -25,9 +25,9 @@ export function PageHeader({
       {backHref && (
         <Link
           to={backHref as any}
-          className="rs-back-btn mb-2 inline-flex items-center gap-1.5 text-sm font-medium"
+          className="rs-back-btn group mb-2 inline-flex items-center gap-1.5 text-sm font-medium"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1" />
           {backLabel}
         </Link>
       )}

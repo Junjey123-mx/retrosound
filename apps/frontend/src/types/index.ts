@@ -52,6 +52,9 @@ export interface Producto {
   estado: EstadoProducto;
   imagen?: string;
   imagenUrl?: string;
+  imagenPublicId?: string;
+  descuentoActual?: number;
+  costoUnitarioProveedor?: number;
   fechaInactivacion?: string;
   idCategoria: number;
   idFormato: number;
@@ -250,6 +253,8 @@ export interface ProveedorProducto {
   stockMinimo: number;
   imagenUrl: string | null;
   anioLanzamiento?: number | null;
+  costoUnitarioProveedor?: number;
+  descuentoActual?: number;
 }
 
 export interface UpdateProveedorProductoDto {

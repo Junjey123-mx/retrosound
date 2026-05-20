@@ -11,6 +11,7 @@ export interface CreateVentaDto {
     idProducto: number;
     cantidadVendida: number;
     precioUnitario: number;
+    descuentoDetalle?: number;
   }[];
 }
 

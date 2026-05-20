@@ -9,8 +9,8 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default:     'bg-rs-primary text-white shadow-sm hover:bg-rs-primary-hover hover:shadow-md disabled:bg-rs-border disabled:text-slate-400 disabled:hover:bg-rs-border',
-        primary:     'bg-rs-primary text-white shadow-sm hover:bg-rs-primary-hover hover:shadow-md disabled:bg-rs-border disabled:text-slate-400 disabled:hover:bg-rs-border',
+        default:     'bg-rs-primary text-brand-foreground shadow-sm hover:bg-rs-primary-hover hover:shadow-md disabled:bg-rs-border disabled:text-slate-400 disabled:hover:bg-rs-border',
+        primary:     'bg-rs-primary text-brand-foreground shadow-sm hover:bg-rs-primary-hover hover:shadow-md disabled:bg-rs-border disabled:text-slate-400 disabled:hover:bg-rs-border',
         destructive: 'bg-rs-error text-white shadow-sm hover:bg-red-600 disabled:bg-rs-border disabled:text-slate-400 disabled:hover:bg-rs-border',
         danger:      'bg-rs-error text-white shadow-sm hover:bg-red-600 disabled:bg-rs-border disabled:text-slate-400 disabled:hover:bg-rs-border',
         success:     'bg-rs-success text-white shadow-sm hover:bg-emerald-600 disabled:bg-rs-border disabled:text-slate-400 disabled:hover:bg-rs-border',

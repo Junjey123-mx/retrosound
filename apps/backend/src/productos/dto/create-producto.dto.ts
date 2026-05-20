@@ -34,6 +34,11 @@ export class CreateProductoDto {
   idFormato: number;
 
   @IsOptional()
+  @IsNumber()
+  @Min(0)
+  descuentoActual?: number;
+
+  @IsOptional()
   @IsArray()
   @IsInt({ each: true })
   artistaIds?: number[];

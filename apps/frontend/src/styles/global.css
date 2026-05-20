@@ -103,8 +103,8 @@
   --muted-foreground:       215 20% 65%;
   --accent:                 219 48% 13%;
   --accent-foreground:      214 32% 91%;
-  --destructive:              0 91% 71%;   /* #F87171                          */
-  --destructive-foreground: 217 59%  8%;
+  --destructive:              0 74% 42%;   /* #b91c1c                          */
+  --destructive-foreground:   0  0% 100%; /* #FFFFFF                          */
   --border:                 216 37% 21%;   /* #22324A                          */
   --input:                  216 37% 21%;
   --ring:                   151 100% 45%;
@@ -123,7 +123,7 @@
   --success-shadow-rgb:       0, 230, 118;
   --info:                   213 93% 68%;   /* #60A5FA                          */
   --warning:                 43 96% 56%;   /* #FBBF24                          */
-  --danger:                   0 91% 71%;   /* #F87171                          */
+  --danger:                   0 91% 71%;   /* #F87171 — mantener para text-danger */
 
   /* ── Tokens RS canónicos — Modo Oscuro ───────────────────────────────────── */
   --rs-bg:              #08111F;
@@ -143,8 +143,8 @@
   --rs-info-soft:       rgba(96, 165, 250, 0.12);
   --rs-warning:         #FBBF24;
   --rs-warning-soft:    rgba(251, 191, 36, 0.12);
-  --rs-error:           #F87171;
-  --rs-error-soft:      rgba(248, 113, 113, 0.12);
+  --rs-error:           #b91c1c;
+  --rs-error-soft:      rgba(185, 28, 28, 0.15);
 }
 
 /* ── Reset base ────────────────────────────────────────────────────────────── */
@@ -439,7 +439,7 @@ body {
 /* ── Botones de modal / acción principal ──────────────────────────────────── */
 .rs-btn-primary {
   background: hsl(var(--brand));
-  color: #ffffff;
+  color: hsl(var(--brand-foreground));
   transition: background 150ms ease, box-shadow 180ms ease, transform 150ms ease;
 }
 .rs-btn-primary:hover:not(:disabled) {
@@ -985,3 +985,7 @@ input:-webkit-autofill:active {
 ::-webkit-scrollbar-track      { background: transparent; }
 ::-webkit-scrollbar-thumb      { background: hsl(var(--border)); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover{ background: hsl(var(--muted-foreground) / 0.5); }
+
+/* ── Ocultar scrollbar sin deshabilitar scroll ─────────────────────────────── */
+.scrollbar-hide                          { scrollbar-width: none; -ms-overflow-style: none; }
+.scrollbar-hide::-webkit-scrollbar       { display: none; }

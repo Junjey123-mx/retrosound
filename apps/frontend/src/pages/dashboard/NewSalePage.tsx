@@ -16,10 +16,12 @@ import { NotifyModal }  from '@/components/ui/notify-modal';
 // ─── types ─────────────────────────────────────────────────────────────────────
 
 type CartItem = {
-  idProducto:     number;
-  titulo:         string;
-  precioUnitario: number;
-  stockActual:    number;
+  idProducto:      number;
+  titulo:          string;
+  precioUnitario:  number;
+  descuentoActual: number;
+  precioFinal:     number;
+  stockActual:     number;
   cantidadVendida: number;
 };
 
@@ -145,7 +147,7 @@ function NuevaVentaContent() {
     [productos, selectedProductId],
   );
 
-  const subtotal  = cartItems.reduce((s, i) => s + i.precioUnitario * i.cantidadVendida, 0);
+  const subtotal  = cartItems.reduce((s, i) => s + i.precioFinal * i.cantidadVendida, 0);
   const descMonto = subtotal * (descuento / 100);
   const total     = subtotal - descMonto;
 
@@ -155,12 +157,17 @@ function NuevaVentaContent() {
     if (!selectedProduct) { setFormError('Selecciona un producto.'); return; }
     if (cantidadInput < 1) { setFormError('La cantidad debe ser mayor a 0.'); return; }
     setFormError(null);
+    const precioVenta   = Number(selectedProduct.precioVenta);
+    const desc          = selectedProduct.descuentoActual ?? 0;
+    const pFinalCalc    = precioVenta * (1 - desc / 100);
     dispatch({
       type: 'add_item',
       item: {
         idProducto:      selectedProduct.id,
         titulo:          selectedProduct.titulo,
-        precioUnitario:  Number(selectedProduct.precioVenta),
+        precioUnitario:  precioVenta,
+        descuentoActual: desc,
+        precioFinal:     pFinalCalc,
         stockActual:     selectedProduct.stockActual,
         cantidadVendida: cantidadInput,
       },
@@ -189,6 +196,10 @@ function NuevaVentaContent() {
       setFormError('Todas las cantidades deben ser mayores a 0.');
       return;
     }
+    if (descuento < 0 || descuento > 50) {
+      setFormError('El descuento de venta debe estar entre 0 y 50%.');
+      return;
+    }
 
     const payload = {
       fechaVenta: String(fechaVenta),
@@ -196,9 +207,10 @@ function NuevaVentaContent() {
       metodoPago,
       idCliente:  Number(idCliente),
       detalles: cartItems.map((i) => ({
-        idProducto:      i.idProducto,
-        cantidadVendida: i.cantidadVendida,
-        precioUnitario:  i.precioUnitario,
+        idProducto:       i.idProducto,
+        cantidadVendida:  i.cantidadVendida,
+        precioUnitario:   i.precioFinal,
+        descuentoDetalle: i.descuentoActual > 0 ? i.descuentoActual : undefined,
       })),
     };
 
@@ -227,12 +239,10 @@ function NuevaVentaContent() {
 
       {/* Header */}
       <div className="mb-6">
-        <Button variant="ghost" size="sm" asChild className="mb-3 gap-1.5 text-muted-foreground hover:text-foreground">
-          <Link to={"/dashboard/ventas" as any}>
-            <ArrowLeft className="h-4 w-4" />
-            Volver a ventas
-          </Link>
-        </Button>
+        <Link to={"/dashboard/ventas" as any} className="rs-back-btn group mb-3 inline-flex items-center gap-1.5 text-sm font-medium">
+          <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1" />
+          Volver a ventas
+        </Link>
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand/10 text-brand">
             <Receipt className="h-5 w-5" />
@@ -313,17 +323,18 @@ function NuevaVentaContent() {
 
                 <div>
                   <label className="mb-1 block text-sm font-medium text-foreground">
-                    Descuento (%)
+                    Descuento de venta (%)
                   </label>
                   <input
                     type="number"
                     min="0"
-                    max="100"
+                    max="50"
                     step="0.01"
                     value={descuento}
                     onChange={(e) => dispatch({ type: 'set_discount', descuento: Number(e.target.value) })}
                     className={FIELD}
                   />
+                  <p className="mt-0.5 text-xs text-muted-foreground">Descuento manual sobre el total de la venta (máx. 50%)</p>
                 </div>
 
               </div>
@@ -364,7 +375,10 @@ function NuevaVentaContent() {
                         >
                           <span className="font-medium text-foreground">{p.titulo}</span>
                           <span className="ml-2 shrink-0 text-xs text-muted-foreground">
-                            {formatQ(Number(p.precioVenta))} · Stock: {p.stockActual}
+                            {(p.descuentoActual ?? 0) > 0
+                              ? <>{formatQ(Number(p.precioVenta) * (1 - (p.descuentoActual ?? 0) / 100))} <span className="text-brand">(-{p.descuentoActual}%)</span></>
+                              : formatQ(Number(p.precioVenta))
+                            } · Stock: {p.stockActual}
                           </span>
                         </button>
                       ))}
@@ -372,7 +386,17 @@ function NuevaVentaContent() {
                   )}
                   {selectedProduct && (
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {formatQ(Number(selectedProduct.precioVenta))} · Stock disponible: {selectedProduct.stockActual}
+                      {(selectedProduct.descuentoActual ?? 0) > 0 ? (
+                        <>
+                          <span className="line-through">{formatQ(Number(selectedProduct.precioVenta))}</span>
+                          {' → '}
+                          <span className="font-semibold text-brand">
+                            {formatQ(Number(selectedProduct.precioVenta) * (1 - (selectedProduct.descuentoActual ?? 0) / 100))}
+                          </span>
+                          {' '}(-{selectedProduct.descuentoActual}%)
+                        </>
+                      ) : formatQ(Number(selectedProduct.precioVenta))}
+                      {' · '}Stock disponible: {selectedProduct.stockActual}
                       {selectedProduct.stockActual === 0 && (
                         <span className="ml-1 font-medium text-danger">(Sin stock)</span>
                       )}
@@ -422,7 +446,7 @@ function NuevaVentaContent() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border bg-muted/40">
-                        {['Producto', 'Precio unit.', 'Cantidad', 'Subtotal', ''].map((h, i) => (
+                        {['Producto', 'Precio', 'Dto.', 'P. final', 'Cantidad', 'Subtotal', ''].map((h, i) => (
                           <th
                             key={i}
                             className={`px-3 py-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground ${i === 0 ? '' : 'text-right'}`}
@@ -434,7 +458,7 @@ function NuevaVentaContent() {
                     </thead>
                     <tbody>
                       {cartItems.map((item) => {
-                        const linea   = item.precioUnitario * item.cantidadVendida;
+                        const linea   = item.precioFinal * item.cantidadVendida;
                         const overQty = item.cantidadVendida > item.stockActual && item.stockActual > 0;
                         return (
                           <tr key={item.idProducto} className="border-b border-border last:border-0">
@@ -446,8 +470,20 @@ function NuevaVentaContent() {
                                 </p>
                               )}
                             </td>
-                            <td className="px-3 py-3 text-right text-muted-foreground tabular-nums">
-                              {formatQ(item.precioUnitario)}
+                            <td className="px-3 py-3 text-right tabular-nums text-muted-foreground">
+                              {item.descuentoActual > 0
+                                ? <span className="line-through">{formatQ(item.precioUnitario)}</span>
+                                : formatQ(item.precioUnitario)
+                              }
+                            </td>
+                            <td className="px-3 py-3 text-right tabular-nums">
+                              {item.descuentoActual > 0
+                                ? <span className="text-xs font-semibold text-brand">-{item.descuentoActual}%</span>
+                                : <span className="text-muted-foreground">—</span>
+                              }
+                            </td>
+                            <td className="px-3 py-3 text-right tabular-nums font-medium text-foreground">
+                              {formatQ(item.precioFinal)}
                             </td>
                             <td className="px-3 py-3 text-right">
                               <input

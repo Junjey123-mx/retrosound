@@ -115,23 +115,39 @@ export class ProveedorPortalService {
   async getProducto(idProveedor: number | null, idProducto: number) {
     this.requireProveedorId(idProveedor);
     await this.assertProductoBelongsToProveedor(idProducto, idProveedor);
-    const producto = await this.prisma.producto.findUnique({
-      where: { idProducto },
-      select: {
-        idProducto: true,
-        tituloProducto: true,
-        descripcionProducto: true,
-        estadoProducto: true,
-        codigoSku: true,
-        precioVenta: true,
-        stockActual: true,
-        stockMinimo: true,
-        imagenUrl: true,
-        anioLanzamiento: true,
-      },
-    });
+    const [producto, lastDetalle] = await Promise.all([
+      this.prisma.producto.findUnique({
+        where: { idProducto },
+        select: {
+          idProducto: true,
+          tituloProducto: true,
+          descripcionProducto: true,
+          estadoProducto: true,
+          codigoSku: true,
+          precioVenta: true,
+          stockActual: true,
+          stockMinimo: true,
+          imagenUrl: true,
+          anioLanzamiento: true,
+        },
+      }),
+      this.prisma.detalleCompraProveedor.findFirst({
+        where: {
+          idProducto,
+          compraProveedor: { idProveedor: idProveedor! },
+        },
+        orderBy: { compraProveedor: { fechaCompraProveedor: 'desc' } },
+        select: { costoUnitarioCompra: true },
+      }),
+    ]);
     if (!producto) throw new NotFoundException('Producto no encontrado');
-    return { ...producto, precioVenta: Number(producto.precioVenta) };
+    return {
+      ...producto,
+      precioVenta: Number(producto.precioVenta),
+      costoUnitarioProveedor: lastDetalle
+        ? Number(lastDetalle.costoUnitarioCompra)
+        : undefined,
+    };
   }
 
   async updateProducto(

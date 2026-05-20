@@ -213,7 +213,8 @@ export class VentasService {
               'estado', p.estado_producto,
               'fechaInactivacion', p.fecha_inactivacion,
               'idCategoria', p.id_categoria,
-              'idFormato', p.id_formato
+              'idFormato', p.id_formato,
+              'imagenUrl', p.imagen_url
             )
           )
           ORDER BY dv.id_detalle_venta

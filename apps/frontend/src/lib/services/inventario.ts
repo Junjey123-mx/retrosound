@@ -59,6 +59,12 @@ export const inventarioService = {
       dto,
     ),
 
+  cancelarRecepcion: (idCompra: number) =>
+    apiClient.patch<{ id: number; estado: string; mensaje: string }>(
+      `/inventario/recepciones/${idCompra}/cancelar`,
+      {},
+    ),
+
   getStockCritico: (query: StockQuery = {}) =>
     apiClient.get<PaginatedResponse<StockCriticoItem>>(
       `/inventario/stock-critico${buildQs({ search: query.search, page: query.page, limit: query.limit })}`,

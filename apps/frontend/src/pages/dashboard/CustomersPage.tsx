@@ -9,6 +9,7 @@ import {
   useDeactivateCliente,
 } from '@/hooks/use-clientes';
 import type { Cliente } from '@/types';
+import { useCurrentUser } from '@/hooks/use-auth';
 import { RoleGuard }    from '@/components/guards/role-guard';
 import { PageHeader }   from '@/components/ui/page-header';
 import { DataTable }    from '@/components/ui/data-table';
@@ -40,8 +41,6 @@ type FormState = typeof EMPTY_FORM;
 function validate(f: FormState): string | null {
   if (!f.nombre.trim())   return 'El nombre es obligatorio.';
   if (!f.apellido.trim()) return 'El apellido es obligatorio.';
-  if (!f.correo.trim())   return 'El correo es obligatorio.';
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.correo)) return 'El correo no tiene un formato válido.';
   return null;
 }
 
@@ -52,6 +51,9 @@ function fmtFecha(raw?: string) {
 // ─── page ─────────────────────────────────────────────────────────────────────
 
 function ClientesContent() {
+  const user = useCurrentUser();
+  const canDelete = user?.rol !== 'empleado_ventas';
+
   const { data: clientes, isLoading, error } = useClientes();
   const createMut = useCreateCliente();
   const updateMut = useUpdateCliente();
@@ -68,13 +70,6 @@ function ClientesContent() {
   const [recentIds, setRecentIds] = useState<number[]>([]);
 
   const confirmTarget = (clientes ?? []).find((c) => c.id === confirmId) ?? null;
-
-  function openCreate() {
-    setEditing(null);
-    setForm(EMPTY_FORM);
-    setFormError(null);
-    setModalOpen(true);
-  }
 
   function openEdit(c: Cliente) {
     setEditing(c);
@@ -109,7 +104,6 @@ function ClientesContent() {
     const payload: Partial<Cliente> = {
       nombre:    form.nombre.trim(),
       apellido:  form.apellido.trim(),
-      correo:    form.correo.trim()    || undefined,
       telefono:  form.telefono.trim()  || undefined,
       direccion: form.direccion.trim() || undefined,
     };
@@ -234,9 +228,11 @@ function ClientesContent() {
           <Button variant="outline" size="sm" onClick={() => openEdit(c)} className="gap-1.5 text-xs">
             <Pencil className="h-3 w-3" /> Editar
           </Button>
-          <Button variant="danger" size="sm" onClick={() => setConfirmId(c.id)} disabled={deactMut.isPending} className="gap-1.5 text-xs">
-            <Trash2 className="h-3 w-3" /> Eliminar
-          </Button>
+          {canDelete && (
+            <Button variant="danger" size="sm" onClick={() => setConfirmId(c.id)} disabled={deactMut.isPending} className="gap-1.5 text-xs">
+              <Trash2 className="h-3 w-3" /> Eliminar
+            </Button>
+          )}
         </div>
       ),
     },
@@ -252,7 +248,6 @@ function ClientesContent() {
         title="Clientes"
         description="Gestiona la información de clientes de RetroSound"
         icon={<Users className="h-5 w-5" />}
-        action={<Button size="sm" onClick={openCreate}>+ Nuevo cliente</Button>}
       />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -284,7 +279,6 @@ function ClientesContent() {
           icon={<Users className="h-7 w-7" />}
           title={search || filterTab !== 'todos' ? 'Sin resultados' : 'No hay clientes'}
           description={search || filterTab !== 'todos' ? 'Ajusta la búsqueda o los filtros.' : 'Registra el primer cliente.'}
-          action={!search && filterTab === 'todos' ? <Button size="sm" onClick={openCreate}>+ Nuevo cliente</Button> : undefined}
         />
       ) : (
         <DataTable columns={columns as any} data={filtered} getRowKey={(c) => (c as Cliente).id} />
@@ -333,8 +327,15 @@ function ClientesContent() {
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">Correo <span className="text-danger">*</span></label>
-            <input name="correo" type="email" value={form.correo} onChange={handleChange} placeholder="cliente@email.com" className={FIELD} />
+            <label className="mb-1 block text-sm font-medium text-foreground">Correo</label>
+            <input
+              name="correo"
+              type="email"
+              value={form.correo}
+              readOnly
+              tabIndex={-1}
+              className={`${FIELD} cursor-default select-text opacity-60`}
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>

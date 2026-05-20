@@ -26,6 +26,7 @@ export const ROUTE_PATHS = {
     CUSTOMERS: '/dashboard/clientes',
     USERS: '/dashboard/usuarios',
     EMPLOYEES: '/dashboard/empleados',
+    ENTREGAS: '/dashboard/entregas',
     INVENTORY: '/dashboard/inventario',
     RECEPTIONS: '/dashboard/inventario/recepciones',
     CRITICAL_STOCK: '/dashboard/inventario/stock-critico',

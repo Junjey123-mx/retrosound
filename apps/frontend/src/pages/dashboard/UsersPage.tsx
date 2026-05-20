@@ -86,13 +86,6 @@ function UsuariosContent() {
 
   const confirmTarget = (usuarios ?? []).find((u) => u.id === confirmId) ?? null;
 
-  function openCreate() {
-    setEditing(null);
-    setCreateForm(EMPTY_CREATE);
-    setFormError(null);
-    setModalOpen(true);
-  }
-
   function openEdit(u: UsuarioAdmin) {
     setEditing(u);
     setEditForm({ rol: u.rol, estado: u.estado });
@@ -252,7 +245,6 @@ function UsuariosContent() {
         title="Usuarios"
         description="Administra accesos, roles y estado de cuentas"
         icon={<ShieldCheck className="h-5 w-5" />}
-        action={<Button size="sm" onClick={openCreate}>+ Nuevo usuario</Button>}
       />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -285,7 +277,6 @@ function UsuariosContent() {
           icon={<ShieldCheck className="h-7 w-7" />}
           title={search || filterTab !== 'todos' ? 'Sin resultados' : 'No hay usuarios'}
           description={search || filterTab !== 'todos' ? 'Ajusta la búsqueda o los filtros.' : 'Crea la primera cuenta de usuario.'}
-          action={!search && filterTab === 'todos' ? <Button size="sm" onClick={openCreate}>+ Nuevo usuario</Button> : undefined}
         />
       ) : (
         <DataTable columns={columns as any} data={filtered} getRowKey={(u) => (u as UsuarioAdmin).id} />

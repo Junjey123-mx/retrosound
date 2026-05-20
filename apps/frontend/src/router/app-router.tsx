@@ -15,6 +15,7 @@ import { CustomerProfilePage } from '@/pages/cliente/CustomerProfilePage';
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
 import { DashboardProfilePage } from '@/pages/dashboard/DashboardProfilePage';
 import { EmployeesPage } from '@/pages/dashboard/EmployeesPage';
+import { EntregasPage }  from '@/pages/dashboard/EntregasPage';
 import { InventoryPage } from '@/pages/dashboard/InventoryPage';
 import { LandingPage } from '@/pages/public/LandingPage';
 import { LoginPage } from '@/pages/public/LoginPage';
@@ -99,10 +100,11 @@ export function AppRouter() {
       <Route path={ROUTE_PATHS.DASHBOARD.CUSTOMERS} element={dashboardElement(<CustomersPage />, SALES_ROLES)} />
       <Route path={ROUTE_PATHS.DASHBOARD.USERS} element={dashboardElement(<UsersPage />, ADMIN_ROLES)} />
       <Route path={ROUTE_PATHS.DASHBOARD.EMPLOYEES} element={dashboardElement(<EmployeesPage />, ADMIN_ROLES)} />
+      <Route path={ROUTE_PATHS.DASHBOARD.ENTREGAS} element={dashboardElement(<EntregasPage />, ADMIN_ROLES)} />
       <Route path={ROUTE_PATHS.DASHBOARD.INVENTORY} element={dashboardElement(<InventoryPage />, INVENTORY_ROLES)} />
       <Route path={ROUTE_PATHS.DASHBOARD.RECEPTIONS} element={dashboardElement(<ReceptionsPage />, INVENTORY_ROLES)} />
       <Route path={ROUTE_PATHS.DASHBOARD.CRITICAL_STOCK} element={dashboardElement(<CriticalStockPage />, INVENTORY_ROLES)} />
-      <Route path={ROUTE_PATHS.DASHBOARD.REPORTS} element={dashboardElement(<ReportsPage />, STAFF_ROLES)} />
+      <Route path={ROUTE_PATHS.DASHBOARD.REPORTS} element={dashboardElement(<ReportsPage />, SALES_ROLES)} />
       <Route path={ROUTE_PATHS.DASHBOARD.PROFILE} element={dashboardElement(<DashboardProfilePage />, STAFF_ROLES)} />
 
       <Route path={ROUTE_PATHS.PROVEEDOR.HOME} element={proveedorElement(<ProviderDashboardPage />)} />

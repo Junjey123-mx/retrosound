@@ -31,11 +31,18 @@ export class DashboardService {
         WHERE estado_producto = 'activo' AND stock_actual <= stock_minimo
       `,
       this.prisma.$queryRaw<Array<{ total: string }>>`
-        SELECT COALESCE(SUM(dv.cantidad_vendida * dv.precio_unitario_venta), 0)::text AS total
-        FROM detalle_venta dv
-        JOIN venta v ON v.id_venta = dv.id_venta
-        WHERE v.estado_venta = 'completada'
-          AND DATE_TRUNC('month', v.fecha_venta) = DATE_TRUNC('month', CURRENT_DATE)
+        SELECT COALESCE(SUM(venta_total.total_neto), 0)::text AS total
+        FROM (
+          SELECT
+            v.id_venta,
+            COALESCE(SUM(dv.cantidad_vendida * dv.precio_unitario_venta - dv.descuento_detalle), 0)
+              - v.descuento_venta AS total_neto
+          FROM venta v
+          LEFT JOIN detalle_venta dv ON dv.id_venta = v.id_venta
+          WHERE v.estado_venta = 'completada'
+            AND DATE_TRUNC('month', v.fecha_venta) = DATE_TRUNC('month', CURRENT_DATE)
+          GROUP BY v.id_venta, v.descuento_venta
+        ) venta_total
       `,
       this.prisma.$queryRaw<Array<{
         id_producto: number;
@@ -87,12 +94,15 @@ export class DashboardService {
       }>>`
         SELECT v.id_venta, v.fecha_venta, v.estado_venta, v.metodo_pago,
                CONCAT(c.nombre_cliente, ' ', c.apellido_cliente) AS cliente,
-               COALESCE(SUM(dv.cantidad_vendida * dv.precio_unitario_venta), 0)::text AS total_neto
+               (
+                 COALESCE(SUM(dv.cantidad_vendida * dv.precio_unitario_venta - dv.descuento_detalle), 0)
+                 - v.descuento_venta
+               )::text AS total_neto
         FROM venta v
         JOIN cliente c ON c.id_cliente = v.id_cliente
         LEFT JOIN detalle_venta dv ON dv.id_venta = v.id_venta
         GROUP BY v.id_venta, v.fecha_venta, v.estado_venta, v.metodo_pago,
-                 c.nombre_cliente, c.apellido_cliente
+                 c.nombre_cliente, c.apellido_cliente, v.descuento_venta
         ORDER BY v.id_venta DESC
         LIMIT 5
       `,
@@ -156,13 +166,18 @@ export class DashboardService {
         WHERE DATE_TRUNC('month', fecha_venta) = DATE_TRUNC('month', CURRENT_DATE)
       `,
       this.prisma.$queryRaw<Array<{ total: string }>>`
-        SELECT COALESCE(
-          SUM(dv.cantidad_vendida * dv.precio_unitario_venta), 0
-        )::text AS total
-        FROM detalle_venta dv
-        JOIN venta v ON v.id_venta = dv.id_venta
-        WHERE v.estado_venta = 'completada'
-          AND DATE_TRUNC('month', v.fecha_venta) = DATE_TRUNC('month', CURRENT_DATE)
+        SELECT COALESCE(SUM(venta_total.total_neto), 0)::text AS total
+        FROM (
+          SELECT
+            v.id_venta,
+            COALESCE(SUM(dv.cantidad_vendida * dv.precio_unitario_venta - dv.descuento_detalle), 0)
+              - v.descuento_venta AS total_neto
+          FROM venta v
+          LEFT JOIN detalle_venta dv ON dv.id_venta = v.id_venta
+          WHERE v.estado_venta = 'completada'
+            AND DATE_TRUNC('month', v.fecha_venta) = DATE_TRUNC('month', CURRENT_DATE)
+          GROUP BY v.id_venta, v.descuento_venta
+        ) venta_total
       `,
       this.prisma.cliente.count({ where: { estadoCliente: 'activo' } }),
       this.prisma.producto.count({

@@ -53,5 +53,10 @@ export const productosService = {
   },
   create: (data: Partial<Producto>) => apiClient.post<Producto>('/productos', data),
   update: (id: number, data: Partial<Producto>) => apiClient.patch<Producto>(`/productos/${id}`, data),
+  updateImage: (id: number, imagenUrl: string, imagenPublicId: string) =>
+    apiClient.patch<{ idProducto: number; titulo: string; imagenUrl: string | null; imagenPublicId: string | null; mensaje: string }>(
+      `/productos/${id}/imagen`,
+      { imagenUrl, imagenPublicId },
+    ),
   remove: (id: number) => apiClient.delete<void>(`/productos/${id}`),
 };

@@ -10,6 +10,7 @@ import {
   Calendar,
   Tag,
   Briefcase,
+  Disc3,
 } from 'lucide-react';
 import { RoleGuard } from '@/components/guards/role-guard';
 import { useVenta } from '@/hooks/use-ventas';
@@ -135,10 +136,13 @@ function VentaDetalleContent() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/40">
-                    {['Producto', 'Precio unit.', 'Cantidad', 'Subtotal'].map((h) => (
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Producto
+                    </th>
+                    {['Dto.', 'Precio unit.', 'Cantidad', 'Subtotal'].map((h) => (
                       <th
                         key={h}
-                        className={`px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground ${h !== 'Producto' ? 'text-right' : ''}`}
+                        className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground"
                       >
                         {h}
                       </th>
@@ -148,11 +152,55 @@ function VentaDetalleContent() {
                 <tbody>
                   {detalles.map((d, i) => {
                     const productoNombre = d.producto?.titulo ?? `Producto #${d.idProducto}`;
-                    const linea = d.precioUnitario * d.cantidadVendida;
+                    const imagenUrl      = d.producto?.imagenUrl;
+                    const linea          = d.precioUnitario * d.cantidadVendida;
                     return (
                       <tr key={i} className="border-b border-border last:border-0 hover:bg-muted/20">
-                        <td className="px-4 py-3 font-medium text-foreground">{productoNombre}</td>
-                        <td className="px-4 py-3 text-right text-muted-foreground tabular-nums">{formatQ(d.precioUnitario)}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            {/* miniatura portada */}
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
+                              {imagenUrl ? (
+                                <img
+                                  src={imagenUrl}
+                                  alt={productoNombre}
+                                  className="h-full w-full object-cover"
+                                  onError={(e) => {
+                                    const el = e.currentTarget;
+                                    el.style.display = 'none';
+                                    el.nextElementSibling?.removeAttribute('style');
+                                  }}
+                                />
+                              ) : null}
+                              <Disc3
+                                className="h-5 w-5 text-muted-foreground"
+                                style={imagenUrl ? { display: 'none' } : undefined}
+                              />
+                            </div>
+                            <span className="font-medium text-foreground">{productoNombre}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums">
+                          {d.descuentoDetalle && d.descuentoDetalle > 0 ? (
+                            <span className="rounded-full bg-brand/15 px-1.5 py-0.5 text-xs font-bold text-brand">
+                              -{d.descuentoDetalle}%
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums">
+                          {d.descuentoDetalle && d.descuentoDetalle > 0 ? (
+                            <div className="flex flex-col items-end leading-snug">
+                              <span className="text-xs text-muted-foreground line-through">
+                                {formatQ(d.precioUnitario / (1 - d.descuentoDetalle / 100))}
+                              </span>
+                              <span className="font-medium text-brand">{formatQ(d.precioUnitario)}</span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">{formatQ(d.precioUnitario)}</span>
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-right text-muted-foreground tabular-nums">{d.cantidadVendida}</td>
                         <td className="px-4 py-3 text-right font-medium text-foreground tabular-nums">{formatQ(linea)}</td>
                       </tr>

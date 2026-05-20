@@ -18,6 +18,7 @@ export const ROUTES = {
     clientes: '/dashboard/clientes',
     proveedores: '/dashboard/proveedores',
     inventario: '/dashboard/inventario',
+    entregas: '/dashboard/entregas',
     inventarioRecepciones: '/dashboard/inventario/recepciones',
     inventarioStock: '/dashboard/inventario/stock-critico',
     usuarios: '/dashboard/usuarios',

@@ -20,7 +20,6 @@ export const ADMIN_NAV: NavItem[] = [
 ];
 
 export const EMPLEADO_VENTAS_NAV: NavItem[] = [
-  { href: ROUTES.dashboard.root,               label: 'Inicio', exact: true },
   { href: ROUTES.dashboard.ventas,             label: 'Ventas'      },
   { href: ROUTES.dashboard.ventasNueva,        label: 'Nueva venta', exact: true },
   { href: ROUTES.dashboard.clientes,           label: 'Clientes'    },
@@ -31,9 +30,8 @@ export const EMPLEADO_INVENTARIO_NAV: NavItem[] = [
   { href: ROUTES.dashboard.inventario,             label: 'Inicio', exact: true },
   { href: ROUTES.dashboard.productos,              label: 'Productos'   },
   { href: ROUTES.dashboard.proveedores,            label: 'Proveedores' },
-  { href: ROUTES.dashboard.inventarioRecepciones,  label: 'Recepciones', exact: true },
+  { href: ROUTES.dashboard.inventarioRecepciones,  label: 'Entregas', exact: true },
   { href: ROUTES.dashboard.inventarioStock,        label: 'Stock', exact: true },
-  { href: ROUTES.dashboard.reportes,               label: 'Reportes'    },
 ];
 
 export const CLIENTE_NAV: NavItem[] = [

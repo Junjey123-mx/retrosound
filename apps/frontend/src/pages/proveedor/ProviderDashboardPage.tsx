@@ -2,11 +2,9 @@ import { Link } from 'react-router-dom';
 import {
   Package,
   Truck,
-  User,
   LayoutDashboard,
   ArrowRight,
   ClipboardList,
-  Plus,
 } from 'lucide-react';
 import {
   useProveedorDashboard,
@@ -84,14 +82,6 @@ function ProveedorContent() {
         title="Portal proveedor"
         description="Gestiona tus productos y entregas en RetroSound"
         icon={<LayoutDashboard className="h-5 w-5" />}
-        action={
-          <Button asChild size="sm">
-            <Link to={ROUTES.proveedor.entregasNueva as any}>
-              <Plus className="mr-1.5 h-4 w-4" />
-              Registrar entrega
-            </Link>
-          </Button>
-        }
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -196,39 +186,6 @@ function ProveedorContent() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Accesos rápidos</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-3">
-            <Button asChild variant="outline" size="sm">
-              <Link to={ROUTES.proveedor.productos as any}>
-                <Package className="mr-1.5 h-4 w-4" />
-                Mis productos
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="sm">
-              <Link to={ROUTES.proveedor.entregas as any}>
-                <Truck className="mr-1.5 h-4 w-4" />
-                Mis entregas
-              </Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link to={ROUTES.proveedor.entregasNueva as any}>
-                <Plus className="mr-1.5 h-4 w-4" />
-                Registrar entrega
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="sm">
-              <Link to={ROUTES.proveedor.perfil as any}>
-                <User className="mr-1.5 h-4 w-4" />
-                Mi perfil
-              </Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </main>
   );
 }

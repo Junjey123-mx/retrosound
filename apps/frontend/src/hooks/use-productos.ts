@@ -49,6 +49,15 @@ export function useUpdateProducto() {
   });
 }
 
+export function useUpdateProductoImagen() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, imagenUrl, imagenPublicId }: { id: number; imagenUrl: string; imagenPublicId: string }) =>
+      productosService.updateImage(id, imagenUrl, imagenPublicId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['productos'] }),
+  });
+}
+
 export function useDeactivateProducto() {
   const queryClient = useQueryClient();
   return useMutation({

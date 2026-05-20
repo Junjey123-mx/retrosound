@@ -31,16 +31,16 @@ export class ProductosController {
     return this.productosService.findOne(id);
   }
 
-  // Rutas administrativas: solo admin o empleado
+  // Rutas administrativas: solo admin
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'empleado_inventario')
+  @Roles('admin')
   @Post()
   create(@Body() dto: CreateProductoDto) {
     return this.productosService.create(dto);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'empleado_inventario')
+  @Roles('admin')
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -50,7 +50,7 @@ export class ProductosController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'empleado_inventario')
+  @Roles('admin')
   @Patch(':id/imagen')
   updateImage(
     @Param('id', ParseIntPipe) id: number,
@@ -60,7 +60,7 @@ export class ProductosController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'empleado_inventario')
+  @Roles('admin')
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.productosService.remove(id);

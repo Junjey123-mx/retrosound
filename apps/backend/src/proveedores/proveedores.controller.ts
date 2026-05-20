@@ -16,26 +16,31 @@ import { ProveedoresService } from './proveedores.service';
 import { CreateProveedorDto } from './dto/create-proveedor.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin', 'empleado_inventario')
 @Controller('proveedores')
 export class ProveedoresController {
   constructor(private readonly proveedoresService: ProveedoresService) {}
 
+  // Consulta: admin y empleado_inventario
+  @Roles('admin', 'empleado_inventario')
   @Get()
   findAll() {
     return this.proveedoresService.findAll();
   }
 
+  @Roles('admin', 'empleado_inventario')
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.proveedoresService.findOne(id);
   }
 
+  // Mutaciones: solo admin
+  @Roles('admin')
   @Post()
   create(@Body() dto: CreateProveedorDto) {
     return this.proveedoresService.create(dto);
   }
 
+  @Roles('admin')
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -44,6 +49,7 @@ export class ProveedoresController {
     return this.proveedoresService.update(id, dto);
   }
 
+  @Roles('admin')
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.proveedoresService.remove(id);

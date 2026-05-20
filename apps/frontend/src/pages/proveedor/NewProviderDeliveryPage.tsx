@@ -41,7 +41,7 @@ function validate(form: FormState): FormErrors {
 
   const costo = Number(form.costoUnitario);
   if (form.costoUnitario === '' || isNaN(costo) || costo < 0) {
-    errors.costoUnitario = 'El costo unitario debe ser un número mayor o igual a 0.';
+    errors.costoUnitario = 'El costo de compra unitario debe ser un número mayor o igual a 0.';
   }
 
   return errors;
@@ -173,7 +173,7 @@ function NuevaEntregaContent() {
 
               <Input
                 id="costoUnitario"
-                label="Costo unitario (Q) *"
+                label="Costo de compra unitario (Q) *"
                 type="number"
                 min={0}
                 step="0.01"
@@ -185,7 +185,7 @@ function NuevaEntregaContent() {
 
               {form.idProducto && form.cantidadReportada && form.costoUnitario && (
                 <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm">
-                  <p className="text-muted-foreground">Total estimado</p>
+                  <p className="text-muted-foreground">Total estimado proveedor</p>
                   <p className="mt-0.5 text-lg font-semibold text-foreground">
                     Q{(Number(form.cantidadReportada) * Number(form.costoUnitario)).toFixed(2)}
                   </p>

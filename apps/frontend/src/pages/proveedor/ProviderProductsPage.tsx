@@ -1,30 +1,27 @@
+'use client';
+
 import { useState } from 'react';
-import { Package, ImageIcon } from 'lucide-react';
-import {
-  useProveedorProductos,
-  useUpdateProveedorProducto,
-  useUpdateProveedorProductoImagen,
-} from '@/hooks/use-proveedor-portal';
+import { Package, Disc3 } from 'lucide-react';
+import { useProveedorProductos, useProveedorProducto } from '@/hooks/use-proveedor-portal';
 import type { ProveedorProducto } from '@/types';
-import { PageHeader } from '@/components/ui/page-header';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { DataTable } from '@/components/ui/data-table';
-import { SearchInput } from '@/components/ui/search-input';
-import { FilterTabs } from '@/components/ui/filter-tabs';
-import { FormModal } from '@/components/ui/form-modal';
-import { NotifyModal } from '@/components/ui/notify-modal';
+import { PageHeader }   from '@/components/ui/page-header';
+import { Badge }        from '@/components/ui/badge';
+import { Button }       from '@/components/ui/button';
+import { DataTable }    from '@/components/ui/data-table';
+import { SearchInput }  from '@/components/ui/search-input';
+import { FilterTabs }   from '@/components/ui/filter-tabs';
+import { FormModal }    from '@/components/ui/form-modal';
 import { LoadingState } from '@/components/ui/loading-state';
-import { ErrorState } from '@/components/ui/error-state';
-import { EmptyState } from '@/components/ui/empty-state';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { ErrorState }   from '@/components/ui/error-state';
+import { EmptyState }   from '@/components/ui/empty-state';
+
+// ─── helpers ──────────────────────────────────────────────────────────────────
 
 const ESTADO_TABS = [
-  { value: '', label: 'Todos' },
-  { value: 'activo', label: 'Activos' },
-  { value: 'agotado', label: 'Agotados' },
-  { value: 'inactivo', label: 'Inactivos' },
+  { value: '',              label: 'Todos'          },
+  { value: 'activo',        label: 'Activos'        },
+  { value: 'agotado',       label: 'Agotados'       },
+  { value: 'inactivo',      label: 'Inactivos'      },
   { value: 'descontinuado', label: 'Descontinuados' },
 ];
 
@@ -38,80 +35,133 @@ function estadoBadge(estado: string) {
   }
 }
 
+function formatQ(n: number) {
+  return `Q${Number(n).toFixed(2)}`;
+}
+
+// ─── miniatura ────────────────────────────────────────────────────────────────
+
+function AlbumThumb({ src, alt, size = 'sm' }: { src: string | null; alt: string; size?: 'sm' | 'lg' }) {
+  const dim = size === 'lg' ? 'h-28 w-28' : 'h-10 w-10';
+  return (
+    <div className={`${dim} shrink-0 overflow-hidden rounded-lg border border-border bg-muted flex items-center justify-center`}>
+      {src ? (
+        <img
+          src={src}
+          alt={alt}
+          className="h-full w-full object-cover"
+          onError={(e) => {
+            const el = e.currentTarget;
+            el.style.display = 'none';
+            (el.nextElementSibling as HTMLElement | null)?.removeAttribute('style');
+          }}
+        />
+      ) : null}
+      <Disc3
+        className="h-5 w-5 text-muted-foreground"
+        style={src ? { display: 'none' } : undefined}
+      />
+    </div>
+  );
+}
+
+// ─── modal detalle ────────────────────────────────────────────────────────────
+
+function DetalleModal({ producto, onClose }: { producto: ProveedorProducto; onClose: () => void }) {
+  const { data: detalleFull } = useProveedorProducto(producto.idProducto);
+  const costoProveedor = detalleFull?.costoUnitarioProveedor ?? producto.costoUnitarioProveedor;
+  const descuento = detalleFull?.descuentoActual ?? producto.descuentoActual ?? 0;
+  const pFinal = Number(producto.precioVenta) * (1 - descuento / 100);
+
+  return (
+    <FormModal
+      open
+      onClose={onClose}
+      title={producto.tituloProducto}
+      description={`SKU: ${producto.codigoSku}`}
+      size="md"
+    >
+      <div className="space-y-5">
+
+        {/* imagen centrada */}
+        <div className="flex justify-center">
+          <AlbumThumb src={producto.imagenUrl} alt={producto.tituloProducto} size="lg" />
+        </div>
+
+        {/* grid de datos */}
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <DetailRow label="SKU"                        value={<span className="font-mono">{producto.codigoSku}</span>} />
+          <DetailRow label="Estado"                     value={estadoBadge(producto.estadoProducto)} />
+          {costoProveedor !== undefined && (
+            <DetailRow label="Costo unitario proveedor" value={formatQ(costoProveedor)} />
+          )}
+          <DetailRow label="Precio de venta RetroSound" value={formatQ(producto.precioVenta)} />
+          {descuento > 0 && (
+            <DetailRow label="Descuento actual"         value={`${descuento}%`} />
+          )}
+          {descuento > 0 && (
+            <DetailRow label="Precio final"             value={
+              <span className="font-semibold text-brand">{formatQ(pFinal)}</span>
+            } />
+          )}
+          <DetailRow label="Stock actual"               value={
+            <span className={producto.stockActual === 0 ? 'font-semibold text-danger' : 'text-foreground'}>
+              {producto.stockActual}
+            </span>
+          } />
+          <DetailRow label="Stock mínimo"               value={String(producto.stockMinimo)} />
+          {producto.anioLanzamiento && (
+            <DetailRow label="Año"                      value={String(producto.anioLanzamiento)} />
+          )}
+        </div>
+
+        {producto.descripcionProducto && (
+          <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm">
+            <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">Descripción</p>
+            <p className="text-foreground">{producto.descripcionProducto}</p>
+          </div>
+        )}
+
+        <p className="text-xs text-muted-foreground border-t border-border pt-3">
+          La edición del catálogo se administra desde el panel de administrador.
+        </p>
+      </div>
+    </FormModal>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="rounded-lg border border-border bg-card px-3 py-2.5">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div className="mt-0.5 font-medium text-foreground">{value}</div>
+    </div>
+  );
+}
+
+// ─── page ─────────────────────────────────────────────────────────────────────
+
 function ProductosContent() {
-  const [search, setSearch]     = useState('');
-  const [estado, setEstado]     = useState('');
-  const [page, setPage]         = useState(1);
-
-  const [editTarget, setEditTarget]       = useState<ProveedorProducto | null>(null);
-  const [imagenTarget, setImagenTarget]   = useState<ProveedorProducto | null>(null);
-  const [descripcion, setDescripcion]     = useState('');
-  const [imagenUrl, setImagenUrl]         = useState('');
-  const [imagenPublicId, setImagenPublicId] = useState('');
-
-  const [notify, setNotify] = useState<{ type: 'success' | 'error'; title: string; message: string } | null>(null);
+  const [search, setSearch] = useState('');
+  const [estado, setEstado] = useState('');
+  const [page, setPage]     = useState(1);
+  const [detalle, setDetalle] = useState<ProveedorProducto | null>(null);
 
   const { data, isLoading, error } = useProveedorProductos({ search, estado, page, limit: 15 });
-  const updateProducto = useUpdateProveedorProducto();
-  const updateImagen   = useUpdateProveedorProductoImagen();
-
-  function openEdit(p: ProveedorProducto) {
-    setEditTarget(p);
-    setDescripcion(p.descripcionProducto ?? '');
-  }
-
-  function openImagen(p: ProveedorProducto) {
-    setImagenTarget(p);
-    setImagenUrl(p.imagenUrl ?? '');
-    setImagenPublicId('');
-  }
-
-  function handleEdit() {
-    if (!editTarget) return;
-    updateProducto.mutate(
-      { id: editTarget.idProducto, dto: { descripcion } },
-      {
-        onSuccess: () => {
-          setEditTarget(null);
-          setNotify({ type: 'success', title: 'Actualizado', message: 'Descripción actualizada correctamente.' });
-        },
-        onError: (err) => {
-          setNotify({ type: 'error', title: 'Error', message: err instanceof Error ? err.message : 'Error al actualizar.' });
-        },
-      },
-    );
-  }
-
-  function handleImagen() {
-    if (!imagenTarget) return;
-    if (!imagenUrl.trim() || !imagenPublicId.trim()) {
-      setNotify({ type: 'error', title: 'Campos requeridos', message: 'La URL y el ID público son obligatorios.' });
-      return;
-    }
-    updateImagen.mutate(
-      { id: imagenTarget.idProducto, dto: { imagenUrl: imagenUrl.trim(), imagenPublicId: imagenPublicId.trim() } },
-      {
-        onSuccess: () => {
-          setImagenTarget(null);
-          setNotify({ type: 'success', title: 'Imagen actualizada', message: 'La imagen del producto fue actualizada.' });
-        },
-        onError: (err) => {
-          setNotify({ type: 'error', title: 'Error', message: err instanceof Error ? err.message : 'Error al actualizar imagen.' });
-        },
-      },
-    );
-  }
 
   const columns = [
     {
       key: 'tituloProducto',
       header: 'Producto',
       render: (p: ProveedorProducto) => (
-        <div>
-          <p className="font-medium text-foreground">{p.tituloProducto}</p>
-          {p.descripcionProducto && (
-            <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">{p.descripcionProducto}</p>
-          )}
+        <div className="flex items-center gap-3">
+          <AlbumThumb src={p.imagenUrl} alt={p.tituloProducto} />
+          <div>
+            <p className="font-medium text-foreground">{p.tituloProducto}</p>
+            {p.descripcionProducto && (
+              <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">{p.descripcionProducto}</p>
+            )}
+          </div>
         </div>
       ),
     },
@@ -126,7 +176,7 @@ function ProductosContent() {
       key: 'stockActual',
       header: 'Stock',
       render: (p: ProveedorProducto) => (
-        <span className={p.stockActual === 0 ? 'text-danger font-semibold' : 'text-foreground'}>
+        <span className={p.stockActual === 0 ? 'font-semibold text-danger' : 'text-foreground'}>
           {p.stockActual}
         </span>
       ),
@@ -137,34 +187,12 @@ function ProductosContent() {
       render: (p: ProveedorProducto) => estadoBadge(p.estadoProducto),
     },
     {
-      key: 'imagenUrl',
-      header: 'Imagen',
-      render: (p: ProveedorProducto) =>
-        p.imagenUrl ? (
-          <a
-            href={p.imagenUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-brand hover:underline"
-          >
-            Ver
-          </a>
-        ) : (
-          <span className="text-xs text-muted-foreground">—</span>
-        ),
-    },
-    {
       key: 'acciones',
       header: 'Acciones',
       render: (p: ProveedorProducto) => (
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => openEdit(p)}>
-            Editar
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => openImagen(p)}>
-            <ImageIcon className="h-3.5 w-3.5" />
-          </Button>
-        </div>
+        <Button size="sm" variant="outline" onClick={() => setDetalle(p)}>
+          Ver detalle
+        </Button>
       ),
     },
   ];
@@ -173,7 +201,7 @@ function ProductosContent() {
     <main className="space-y-6 p-6 sm:p-8">
       <PageHeader
         title="Mis productos"
-        description="Consulta y actualiza la información permitida de tus productos"
+        description="Consulta el catálogo de productos asociados a tu cuenta"
         icon={<Package className="h-5 w-5" />}
         backHref="/proveedor"
       />
@@ -217,110 +245,17 @@ function ProductosContent() {
             Página {data.meta.page} de {data.meta.totalPages} · {data.meta.total} productos
           </span>
           <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-            >
+            <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
               Anterior
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={page >= data.meta.totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
+            <Button size="sm" variant="outline" disabled={page >= data.meta.totalPages} onClick={() => setPage((p) => p + 1)}>
               Siguiente
             </Button>
           </div>
         </div>
       )}
 
-      {/* modal editar descripción */}
-      <FormModal
-        open={!!editTarget}
-        onClose={() => setEditTarget(null)}
-        title="Editar producto"
-        description={editTarget?.tituloProducto}
-        footer={
-          <>
-            <Button variant="outline" onClick={() => setEditTarget(null)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleEdit}
-              loading={updateProducto.isPending}
-              disabled={updateProducto.isPending}
-            >
-              Guardar
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <Textarea
-            id="descripcion"
-            label="Descripción"
-            value={descripcion}
-            onChange={(e) => setDescripcion(e.target.value)}
-            rows={4}
-            placeholder="Describe el producto…"
-          />
-          <p className="text-xs text-muted-foreground">
-            Solo puedes editar la descripción del producto.
-          </p>
-        </div>
-      </FormModal>
-
-      {/* modal actualizar imagen */}
-      <FormModal
-        open={!!imagenTarget}
-        onClose={() => setImagenTarget(null)}
-        title="Actualizar imagen"
-        description={imagenTarget?.tituloProducto}
-        footer={
-          <>
-            <Button variant="outline" onClick={() => setImagenTarget(null)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleImagen}
-              loading={updateImagen.isPending}
-              disabled={updateImagen.isPending}
-            >
-              Guardar imagen
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <Input
-            id="imagenUrl"
-            label="URL de imagen *"
-            type="url"
-            value={imagenUrl}
-            onChange={(e) => setImagenUrl(e.target.value)}
-            placeholder="https://…"
-          />
-          <Input
-            id="imagenPublicId"
-            label="ID público de imagen *"
-            value={imagenPublicId}
-            onChange={(e) => setImagenPublicId(e.target.value)}
-            placeholder="carpeta/nombre-imagen"
-          />
-        </div>
-      </FormModal>
-
-      {notify && (
-        <NotifyModal
-          type={notify.type}
-          title={notify.title}
-          message={notify.message}
-          onClose={() => setNotify(null)}
-        />
-      )}
+      {detalle && <DetalleModal producto={detalle} onClose={() => setDetalle(null)} />}
     </main>
   );
 }

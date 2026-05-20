@@ -8,7 +8,8 @@ import {
   useDeactivateProveedor,
 } from '@/hooks/use-proveedores';
 import type { Proveedor } from '@/types';
-import { Pencil, PowerOff, Truck } from 'lucide-react';
+import { Pencil, PowerOff, Truck, Eye } from 'lucide-react';
+import { useCurrentUser } from '@/hooks/use-auth';
 import { PageHeader }    from '@/components/ui/page-header';
 import { DataTable }     from '@/components/ui/data-table';
 import { Badge }         from '@/components/ui/badge';
@@ -37,8 +38,6 @@ type FormState = typeof EMPTY_FORM;
 
 function validate(f: FormState): string | null {
   if (!f.nombre.trim()) return 'El nombre del proveedor es obligatorio.';
-  if (f.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.correo))
-    return 'El correo no tiene un formato válido.';
   return null;
 }
 
@@ -47,6 +46,9 @@ const FIELD = 'w-full rounded-xl border border-border bg-input-bg px-3.5 py-2.5 
 // ─── page ─────────────────────────────────────────────────────────────────────
 
 function ProveedoresContent() {
+  const currentUser = useCurrentUser();
+  const isAdmin     = currentUser?.rol === 'admin';
+
   const { data: proveedores, isLoading, error: loadError } = useProveedores();
   const createMut = useCreateProveedor();
   const updateMut = useUpdateProveedor();
@@ -56,6 +58,7 @@ function ProveedoresContent() {
   const [filterTab, setFilterTab] = useState('todos');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing,   setEditing]   = useState<Proveedor | null>(null);
+  const [viewing,   setViewing]   = useState<Proveedor | null>(null);
   const [form,      setForm]      = useState<FormState>(EMPTY_FORM);
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
@@ -63,13 +66,6 @@ function ProveedoresContent() {
   const [recentIds, setRecentIds] = useState<number[]>([]);
 
   const confirmTarget = proveedores?.find((p) => p.id === confirmId) ?? null;
-
-  function openCreate() {
-    setEditing(null);
-    setForm(EMPTY_FORM);
-    setFormError(null);
-    setModalOpen(true);
-  }
 
   function openEdit(p: Proveedor) {
     setEditing(p);
@@ -103,7 +99,6 @@ function ProveedoresContent() {
 
     const payload: Partial<Proveedor> = {
       nombre:         form.nombre.trim(),
-      correo:         form.correo.trim()         || undefined,
       telefono:       form.telefono.trim()       || undefined,
       direccion:      form.direccion.trim()      || undefined,
       nombreContacto: form.nombreContacto.trim() || undefined,
@@ -229,31 +224,42 @@ function ProveedoresContent() {
       key: 'acciones',
       header: 'Acciones',
       className: 'text-center',
-      render: (p: Proveedor) => (
-        <div className="flex items-center justify-center gap-2">
+      render: (p: Proveedor) =>
+        isAdmin ? (
+          <div className="flex items-center justify-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openEdit(p)}
+              className="gap-1.5 text-xs"
+            >
+              <Pencil className="h-3 w-3" />
+              Editar
+            </Button>
+            {p.estado === 'activo' && (
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => setConfirmId(p.id)}
+                disabled={deactMut.isPending}
+                className="gap-1.5 text-xs"
+              >
+                <PowerOff className="h-3 w-3" />
+                Desactivar
+              </Button>
+            )}
+          </div>
+        ) : (
           <Button
             variant="outline"
             size="sm"
-            onClick={() => openEdit(p)}
+            onClick={() => setViewing(p)}
             className="gap-1.5 text-xs"
           >
-            <Pencil className="h-3 w-3" />
-            Editar
+            <Eye className="h-3 w-3" />
+            Ver detalle
           </Button>
-          {p.estado === 'activo' && (
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => setConfirmId(p.id)}
-              disabled={deactMut.isPending}
-              className="gap-1.5 text-xs"
-            >
-              <PowerOff className="h-3 w-3" />
-              Desactivar
-            </Button>
-          )}
-        </div>
-      ),
+        ),
     },
   ];
 
@@ -267,11 +273,6 @@ function ProveedoresContent() {
         title="Proveedores"
         description="Gestiona proveedores y contactos comerciales"
         icon={<Truck className="h-5 w-5" />}
-        action={
-          <Button onClick={openCreate} size="sm">
-            + Nuevo proveedor
-          </Button>
-        }
       />
 
       {/* Toolbar */}
@@ -309,11 +310,6 @@ function ProveedoresContent() {
               ? 'Intenta ajustar la búsqueda o los filtros.'
               : 'Agrega el primer proveedor al sistema.'
           }
-          action={
-            !search && filterTab === 'todos' ? (
-              <Button size="sm" onClick={openCreate}>+ Nuevo proveedor</Button>
-            ) : undefined
-          }
         />
       ) : (
         <DataTable
@@ -337,6 +333,32 @@ function ProveedoresContent() {
         onConfirm={handleDeactivateConfirm}
         onCancel={() => setConfirmId(null)}
       />
+
+      {/* Modal solo lectura — empleado_inventario */}
+      {viewing && (
+        <FormModal
+          open
+          onClose={() => setViewing(null)}
+          title={viewing.nombre}
+          description="Detalle del proveedor"
+          size="md"
+        >
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            {[
+              { label: 'Estado',   value: <Badge variant={viewing.estado === 'activo' ? 'success' : 'muted'}>{viewing.estado}</Badge> },
+              { label: 'Contacto', value: viewing.nombreContacto ?? '—' },
+              { label: 'Correo',   value: viewing.correo ?? '—' },
+              { label: 'Teléfono', value: viewing.telefono ?? '—' },
+              { label: 'Dirección', value: viewing.direccion ?? '—' },
+            ].map(({ label, value }) => (
+              <div key={label} className="rounded-lg border border-border bg-card px-3 py-2.5">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+                <div className="mt-0.5 font-medium text-foreground">{value}</div>
+              </div>
+            ))}
+          </div>
+        </FormModal>
+      )}
 
       {/* Modal crear/editar */}
       <FormModal
@@ -400,9 +422,9 @@ function ProveedoresContent() {
                 name="correo"
                 type="email"
                 value={form.correo}
-                onChange={handleChange}
-                placeholder="proveedor@email.com"
-                className={FIELD}
+                readOnly
+                tabIndex={-1}
+                className={`${FIELD} cursor-default select-text opacity-60`}
               />
             </div>
             <div>

@@ -53,8 +53,6 @@ const EMPTY_FORM: CreateEmpleadoDto = {
 function validate(f: CreateEmpleadoDto): string | null {
   if (!f.nombre.trim())   return 'El nombre es obligatorio.';
   if (!f.apellido.trim()) return 'El apellido es obligatorio.';
-  if (!f.fechaContratacion) return 'La fecha de contratación es obligatoria.';
-  if (f.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.correo)) return 'El correo no tiene un formato válido.';
   return null;
 }
 
@@ -77,13 +75,6 @@ function EmpleadosContent() {
   const [recentIds, setRecentIds] = useState<number[]>([]);
 
   const confirmTarget = (empleados ?? []).find((e) => e.id === confirmId) ?? null;
-
-  function openCreate() {
-    setEditing(null);
-    setForm({ ...EMPTY_FORM, fechaContratacion: todayStr() });
-    setFormError(null);
-    setModalOpen(true);
-  }
 
   function openEdit(e: EmpleadoAdmin) {
     setEditing(e);
@@ -118,9 +109,7 @@ function EmpleadosContent() {
     const payload: UpdateEmpleadoDto = {
       nombre:            form.nombre.trim(),
       apellido:          form.apellido.trim(),
-      correo:            form.correo?.trim()   || undefined,
       telefono:          form.telefono?.trim() || undefined,
-      fechaContratacion: form.fechaContratacion,
     };
 
     try {
@@ -269,7 +258,6 @@ function EmpleadosContent() {
         title="Empleados"
         description="Gestiona colaboradores y roles operativos"
         icon={<Briefcase className="h-5 w-5" />}
-        action={<Button size="sm" onClick={openCreate}>+ Nuevo empleado</Button>}
       />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -301,7 +289,6 @@ function EmpleadosContent() {
           icon={<Briefcase className="h-7 w-7" />}
           title={search || filterTab !== 'todos' ? 'Sin resultados' : 'No hay empleados'}
           description={search || filterTab !== 'todos' ? 'Ajusta la búsqueda o los filtros.' : 'Registra el primer empleado.'}
-          action={!search && filterTab === 'todos' ? <Button size="sm" onClick={openCreate}>+ Nuevo empleado</Button> : undefined}
         />
       ) : (
         <DataTable columns={columns as any} data={filtered} getRowKey={(e) => (e as EmpleadoAdmin).id} />
@@ -352,7 +339,7 @@ function EmpleadosContent() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="mb-1 block text-sm font-medium text-foreground">Correo</label>
-              <input name="correo" type="email" value={form.correo ?? ''} onChange={handleChange} placeholder="empleado@email.com" className={FIELD} />
+              <input name="correo" type="email" value={form.correo ?? ''} readOnly tabIndex={-1} className={`${FIELD} cursor-default select-text opacity-60`} />
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-foreground">Teléfono</label>
@@ -360,8 +347,8 @@ function EmpleadosContent() {
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">Fecha de contratación <span className="text-danger">*</span></label>
-            <input name="fechaContratacion" type="date" value={form.fechaContratacion} onChange={handleChange} className={FIELD} />
+            <label className="mb-1 block text-sm font-medium text-foreground">Fecha de contratación</label>
+            <input name="fechaContratacion" type="date" value={form.fechaContratacion} readOnly tabIndex={-1} className={`${FIELD} cursor-default opacity-60`} />
           </div>
         </form>
       </FormModal>

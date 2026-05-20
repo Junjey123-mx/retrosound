@@ -136,6 +136,30 @@ export class InventarioService {
     };
   }
 
+  async cancelarRecepcion(idCompra: number) {
+    const compra = await this.prisma.compraProveedor.findUnique({
+      where: { idCompraProveedor: idCompra },
+    });
+
+    if (!compra) throw new NotFoundException('Entrega no encontrada');
+    if (compra.estadoCompra !== 'pendiente') {
+      throw new ConflictException(
+        `No se puede cancelar: la entrega está en estado "${compra.estadoCompra}"`,
+      );
+    }
+
+    await this.prisma.compraProveedor.update({
+      where: { idCompraProveedor: idCompra },
+      data: { estadoCompra: 'cancelada' },
+    });
+
+    return {
+      id: idCompra,
+      estado: 'cancelada',
+      mensaje: 'Entrega cancelada correctamente',
+    };
+  }
+
   async findStockCritico(query: StockQueryDto = {}) {
     const { search, page = 1, limit = 20 } = query;
     const offset = (page - 1) * limit;

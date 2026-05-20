@@ -1,11 +1,11 @@
 'use client';
 
-import { Link } from 'react-router-dom';
-import { useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { useCurrentUser, useLogout } from '@/hooks/use-auth';
 import { useCarritoItemCount } from '@/hooks/use-carrito';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { Disc3, LogOut, ShoppingCart } from 'lucide-react';
+import { Disc3, LogOut, Menu, ShoppingCart, X } from 'lucide-react';
 import { getNavItemsForRole, type NavItem } from '@/lib/constants/nav-items';
 import { ROLES } from '@/lib/auth/roles';
 
@@ -69,6 +69,10 @@ export function RoleNavbar() {
   const user     = useCurrentUser();
   const logout   = useLogout();
   const { pathname } = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => { setMenuOpen(false); }, [pathname]);
+
   if (!user) return null;
 
   const { rol, correo } = user;
@@ -80,11 +84,13 @@ export function RoleNavbar() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
+      {/* ── Barra principal ── */}
+      <div className="mx-auto flex h-14 max-w-7xl items-center gap-2 px-4 sm:px-6">
 
+        {/* Logo */}
         <Link
           to={homeHref as any}
-          className="flex items-center gap-2 font-bold text-foreground transition-colors hover:text-brand"
+          className="flex shrink-0 items-center gap-2 font-bold text-foreground transition-colors hover:text-brand"
         >
           <div
             className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-brand"
@@ -92,32 +98,40 @@ export function RoleNavbar() {
           >
             <Disc3 className="rs-logo-mark h-4 w-4" />
           </div>
-          <span>RetroSound</span>
+          <span className="hidden sm:inline">RetroSound</span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-1" aria-label="Navegación principal">
-          {navItems.map(({ href, label }, index) => {
-            const active = activeNavKey === `${href}-${label}-${index}`;
-            return (
-              <Link
-                key={`${href}-${label}`}
-                to={href as any}
-                className={`relative px-4 py-1.5 text-sm font-medium transition-colors duration-150 ${
-                  active ? 'rs-nav-active rounded-xl' : 'rs-nav-item rs-nav-muted rounded-xl'
-                }`}
-              >
-                {label}
-              </Link>
-            );
-          })}
+        {/* Links — desktop/tablet: zona desplazable horizontalmente, centrada */}
+        <nav
+          className="scrollbar-hide hidden md:flex flex-1 min-w-0 overflow-x-auto items-center justify-center"
+          aria-label="Navegación principal"
+        >
+          <div className="flex shrink-0 items-center gap-1">
+            {navItems.map(({ href, label }, index) => {
+              const active = activeNavKey === `${href}-${label}-${index}`;
+              return (
+                <Link
+                  key={`${href}-${label}`}
+                  to={href as any}
+                  className={`shrink-0 whitespace-nowrap relative px-4 py-1.5 text-sm font-medium transition-colors duration-150 ${
+                    active ? 'rs-nav-active rounded-xl' : 'rs-nav-item rs-nav-muted rounded-xl'
+                  }`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
         </nav>
 
-        <div className="flex items-center gap-2">
+        {/* Espaciador móvil: empuja las acciones hacia la derecha cuando no hay nav */}
+        <div className="flex-1 md:hidden" />
+
+        {/* Acciones de usuario */}
+        <div className="flex shrink-0 items-center gap-2">
           <ThemeToggle />
 
-          {rol === ROLES.CLIENTE && (
-            <CartBadge />
-          )}
+          {rol === ROLES.CLIENTE && <CartBadge />}
 
           <Link
             to={profileHref as any}
@@ -139,8 +153,41 @@ export function RoleNavbar() {
           </button>
         </div>
 
+        {/* Botón hamburguesa — solo móvil */}
+        <button
+          type="button"
+          onClick={() => setMenuOpen(prev => !prev)}
+          aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
+          aria-expanded={menuOpen}
+          className="md:hidden flex shrink-0 items-center justify-center rounded-lg p-1.5 text-foreground hover:bg-muted transition-colors"
+        >
+          {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+
       </div>
 
+      {/* ── Menú desplegable móvil ── */}
+      {menuOpen && (
+        <div className="md:hidden border-t border-border bg-background/95 backdrop-blur px-4 py-3">
+          <nav className="flex flex-col gap-1" aria-label="Navegación móvil">
+            {navItems.map(({ href, label }, index) => {
+              const active = activeNavKey === `${href}-${label}-${index}`;
+              return (
+                <Link
+                  key={`${href}-${label}`}
+                  to={href as any}
+                  onClick={() => setMenuOpen(false)}
+                  className={`px-4 py-2.5 text-sm font-medium transition-colors duration-150 ${
+                    active ? 'rs-nav-active rounded-xl' : 'rs-nav-item rs-nav-muted rounded-xl'
+                  }`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+      )}
     </header>
   );
 }

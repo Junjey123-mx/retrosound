@@ -72,6 +72,9 @@ export function ProductCard({ producto }: { producto: Producto }) {
     producto.estado === 'descontinuado' ||
     producto.stockActual <= 0;
 
+  const descuento = producto.descuentoActual ?? 0;
+  const pFinal = Number(producto.precioVenta) * (1 - descuento / 100);
+
   const artistNames = producto.artistas?.map((a) => a.artista.nombre).filter(Boolean).join(', ');
   const subtitle = artistNames || producto.categoria?.nombre || producto.generos?.[0]?.generoMusical.nombre || 'RetroSound';
 
@@ -120,9 +123,23 @@ export function ProductCard({ producto }: { producto: Producto }) {
         )}
 
         <div className="mt-auto flex items-end justify-between gap-4 pt-4">
-          <span className="text-xl font-bold leading-none text-brand">
-            Q{Number(producto.precioVenta).toFixed(2)}
-          </span>
+          <div className="flex flex-col leading-none">
+            {descuento > 0 && (
+              <span className="mb-0.5 text-xs font-medium text-muted-foreground line-through">
+                Q{Number(producto.precioVenta).toFixed(2)}
+              </span>
+            )}
+            <div className="flex items-center gap-2">
+              <span className="text-xl font-bold text-brand">
+                Q{pFinal.toFixed(2)}
+              </span>
+              {descuento > 0 && (
+                <span className="rounded-full bg-brand/15 px-1.5 py-0.5 text-xs font-bold text-brand">
+                  -{descuento}%
+                </span>
+              )}
+            </div>
+          </div>
           {isUnavailable ? (
             <span className="rs-badge-pendiente rounded-full px-3 py-0.5 text-xs font-semibold">Agotado</span>
           ) : (

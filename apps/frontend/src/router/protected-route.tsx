@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 
 import { useSession } from '@/contexts/session-context';
 import type { Role } from '@/lib/auth/roles';
+import { ROLES } from '@/lib/auth/roles';
 import { ROUTE_PATHS } from './route-paths';
 
 type ProtectedRouteProps = {
@@ -30,7 +31,10 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   }
 
   if (allowedRoles?.length && (!user || !allowedRoles.includes(user.rol as Role))) {
-    return <Navigate to={ROUTE_PATHS.PUBLIC.ACCESS_DENIED} replace />;
+    const redirectTo = user?.rol === ROLES.EMPLEADO_VENTAS
+      ? ROUTE_PATHS.DASHBOARD.SALES
+      : ROUTE_PATHS.PUBLIC.ACCESS_DENIED;
+    return <Navigate to={redirectTo} replace />;
   }
 
   return <>{children}</>;

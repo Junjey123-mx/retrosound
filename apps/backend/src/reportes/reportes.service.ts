@@ -185,11 +185,16 @@ export class ReportesService {
             AND v2.estado_venta = 'completada'
         )::INT AS ventas_completadas,
         COALESCE((
-          SELECT SUM(dv.cantidad_vendida * dv.precio_unitario_venta)
+          SELECT SUM(dv.cantidad_vendida * dv.precio_unitario_venta - dv.descuento_detalle)
           FROM venta v3
           JOIN detalle_venta dv ON dv.id_venta = v3.id_venta
           WHERE v3.id_cliente  = c.id_cliente
             AND v3.estado_venta = 'completada'
+        ), 0) - COALESCE((
+          SELECT SUM(v5.descuento_venta)
+          FROM venta v5
+          WHERE v5.id_cliente  = c.id_cliente
+            AND v5.estado_venta = 'completada'
         ), 0) AS total_gastado,
         (
           SELECT MAX(v4.fecha_venta)

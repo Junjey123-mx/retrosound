@@ -49,7 +49,7 @@ function InventarioContent() {
       <main className="space-y-6 p-6 sm:p-8">
         <PageHeader
           title="Inventario"
-          description="Supervisa stock, recepciones y productos críticos"
+          description="Supervisa stock, entregas y productos críticos"
           icon={<BoxesIcon className="h-5 w-5" />}
         />
         <LoadingState variant="cards" label="Cargando métricas…" />
@@ -78,7 +78,7 @@ function InventarioContent() {
         action={
           <div className="flex gap-2">
             <Button asChild size="sm" variant="outline">
-              <Link to={ROUTES.dashboard.inventarioRecepciones as any}>Ver recepciones</Link>
+              <Link to={ROUTES.dashboard.inventarioRecepciones as any}>Ver entregas</Link>
             </Button>
             <Button asChild size="sm">
               <Link to={ROUTES.dashboard.inventarioStock as any}>Stock crítico</Link>
@@ -109,7 +109,7 @@ function InventarioContent() {
           tone="danger"
         />
         <StatCard
-          title="Recepciones pendientes"
+          title="Entregas pendientes"
           value={stats?.recepcionesPendientes ?? 0}
           icon={<Truck className="h-5 w-5" />}
           tone="info"
@@ -126,7 +126,7 @@ function InventarioContent() {
         {/* recepciones recientes */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Recepciones recientes</CardTitle>
+            <CardTitle>Entregas recientes</CardTitle>
             <Button asChild variant="ghost" size="sm" className="gap-1 text-xs">
               <Link to={ROUTES.dashboard.inventarioRecepciones as any}>
                 Ver todas <ArrowRight className="h-3.5 w-3.5" />
@@ -137,7 +137,7 @@ function InventarioContent() {
             {!recent?.recepcionesRecientes?.length ? (
               <EmptyState
                 icon={<ClipboardList className="h-6 w-6" />}
-                title="Sin recepciones pendientes"
+                title="Sin entregas recientes"
                 description="No hay entregas en curso actualmente."
               />
             ) : (
@@ -210,7 +210,7 @@ function InventarioContent() {
               <Link to={ROUTES.dashboard.proveedores}>Proveedores</Link>
             </Button>
             <Button asChild variant="outline" size="sm">
-              <Link to={ROUTES.dashboard.inventarioRecepciones as any}>Recepciones</Link>
+              <Link to={ROUTES.dashboard.inventarioRecepciones as any}>Entregas de proveedores</Link>
             </Button>
             <Button asChild variant="outline" size="sm">
               <Link to={ROUTES.dashboard.inventarioStock as any}>Stock crítico</Link>
