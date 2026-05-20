@@ -3,7 +3,8 @@
 // All status/role fields use String (DB uses VARCHAR + CHECK, not native enums).
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
