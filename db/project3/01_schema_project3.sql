@@ -22,6 +22,11 @@ ALTER TABLE producto
     ADD COLUMN IF NOT EXISTS imagen_url       TEXT,
     ADD COLUMN IF NOT EXISTS imagen_public_id VARCHAR(255);
 
+-- Descuento activo del producto (porcentaje, 0 = sin descuento)
+ALTER TABLE producto
+    ADD COLUMN IF NOT EXISTS descuento_actual NUMERIC(5,2) NOT NULL DEFAULT 0
+        CHECK (descuento_actual >= 0 AND descuento_actual <= 100);
+
 -- NULL while delivery is pending; set on receipt confirmation
 ALTER TABLE detalle_compra_proveedor
     ADD COLUMN IF NOT EXISTS cantidad_recibida INTEGER;
