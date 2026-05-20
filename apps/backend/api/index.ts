@@ -6,11 +6,10 @@ import { AppModule } from '../src/app.module';
 import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter';
 
 const server: Express = express();
-let isReady = false;
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
-    logger: ['error', 'warn'],
+    logger: ['log', 'error', 'warn'],
   });
 
   app.useGlobalFilters(new HttpExceptionFilter());
@@ -18,12 +17,37 @@ async function bootstrap() {
   app.enableCors({ origin: true, credentials: true });
 
   await app.init();
-  isReady = true;
 }
 
-const ready = bootstrap();
+// Retry on failure so a transient cold-start error doesn't permanently brick
+// a warm serverless instance for the rest of its lifetime.
+let ready: Promise<void> | null = null;
+
+function getReady(): Promise<void> {
+  if (!ready) {
+    ready = bootstrap().catch((err) => {
+      console.error('[bootstrap] NestJS init failed:', err);
+      ready = null; // allow the next request to retry
+      throw err;
+    });
+  }
+  return ready;
+}
 
 export default async function handler(req: express.Request, res: express.Response) {
-  if (!isReady) await ready;
+  try {
+    await getReady();
+  } catch (err) {
+    console.error('[handler] app not ready:', err);
+    res.status(500).json({
+      success: false,
+      statusCode: 500,
+      message: 'Service temporarily unavailable — initialization failed',
+      error: err instanceof Error ? err.message : String(err),
+      path: req.url,
+      timestamp: new Date().toISOString(),
+    });
+    return;
+  }
   server(req, res);
 }

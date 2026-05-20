@@ -85,6 +85,9 @@ export class AuthService {
         empleado: { select: { nombreEmpleado: true, apellidoEmpleado: true } },
         proveedor: { select: { nombreProveedor: true } },
       },
+    }).catch((err: unknown) => {
+      console.error('[AuthService.login] findUnique error for', dto.correo, err);
+      throw err;
     });
 
     if (!usuario) throw new UnauthorizedException('Credenciales inválidas');

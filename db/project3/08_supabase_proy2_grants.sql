@@ -22,7 +22,7 @@ END $$;
 -- ── 2. Database-level access ──────────────────────────────────
 -- Replace <db_name> with the actual database name if needed
 -- (in Supabase the default database is "postgres").
-GRANT CONNECT ON DATABASE retrosound TO proy2;
+GRANT CONNECT ON DATABASE postgres TO proy2;
 
 -- ── 3. Schema-level access ────────────────────────────────────
 GRANT USAGE ON SCHEMA public TO proy2;
