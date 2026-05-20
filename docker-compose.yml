@@ -35,8 +35,8 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:3003}
-        VITE_CLOUDINARY_CLOUD_NAME: ${VITE_CLOUDINARY_CLOUD_NAME}
-        VITE_CLOUDINARY_UPLOAD_PRESET: ${VITE_CLOUDINARY_UPLOAD_PRESET}
+        VITE_CLOUDINARY_CLOUD_NAME: dgjpqiurw
+        VITE_CLOUDINARY_UPLOAD_PRESET: retrosound_products
     ports:
       - "${FRONTEND_PORT:-3002}:80"
     environment:

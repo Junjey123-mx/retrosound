@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -24,8 +24,6 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { LoadingState } from '@/components/ui/loading-state';
 import { NotifyModal } from '@/components/ui/notify-modal';
-import type { CheckoutResponse } from '@/lib/services/checkout';
-
 type PaymentMethod = 'tarjeta' | 'transferencia' | 'efectivo';
 
 const PAYMENT_OPTIONS: { key: PaymentMethod; title: string; description: string; Icon: LucideIcon }[] = [
@@ -34,18 +32,8 @@ const PAYMENT_OPTIONS: { key: PaymentMethod; title: string; description: string;
   { key: 'efectivo',      title: 'Efectivo contra entrega',  description: 'Paga al recibir tu pedido',  Icon: Banknote          },
 ];
 
-const CHECKOUT_KEY = 'rs-checkout-result';
-
 function formatQ(value: number) {
   return `Q${value.toFixed(2)}`;
-}
-
-function saveCheckoutResult(response: CheckoutResponse) {
-  try {
-    sessionStorage.setItem(CHECKOUT_KEY, JSON.stringify(response));
-  } catch {
-    // ignore storage errors
-  }
 }
 
 export function CheckoutPage() {
@@ -59,11 +47,9 @@ export function CheckoutPage() {
 
   const items = carrito?.items ?? [];
   const subtotal = carrito?.subtotal ?? 0;
-  const discount = subtotal >= 30 ? 30 : 0;
-  const taxable = Math.max(subtotal - discount, 0);
-  const iva = taxable * 0.12;
-  const total = taxable + iva;
-  const itemCount = useMemo(() => items.reduce((sum, item) => sum + item.cantidad, 0), [items]);
+  const iva = subtotal * 0.12;
+  const total = subtotal + iva;
+  const itemCount = items.reduce((sum, item) => sum + item.cantidad, 0);
 
   const handleConfirm = async () => {
     if (items.length === 0) {
@@ -71,9 +57,8 @@ export function CheckoutPage() {
       return;
     }
     try {
-      const response = await checkout.mutateAsync({ metodoPago: paymentMethod, descuento: discount });
-      saveCheckoutResult(response);
-      navigate('/checkout/confirmacion', { state: { result: response } });
+      const response = await checkout.mutateAsync({ metodoPago: paymentMethod, descuento: 0 });
+      navigate(`/checkout/confirmacion/${response.idVenta}`);
     } catch (err: unknown) {
       const msg = (err as Error).message ?? '';
       const isStock = msg.toLowerCase().includes('stock') || msg.toLowerCase().includes('insuficiente');
@@ -150,8 +135,12 @@ export function CheckoutPage() {
                   <ul className="divide-y divide-border">
                     {items.map((item) => (
                       <li key={item.idCarritoItem} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-border bg-muted">
-                          <Music2 className="h-5 w-5 text-brand" />
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
+                          {item.imagenUrl ? (
+                            <img src={item.imagenUrl} alt={item.titulo} className="h-full w-full object-cover" />
+                          ) : (
+                            <Music2 className="h-5 w-5 text-brand" />
+                          )}
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="line-clamp-1 text-sm font-bold text-foreground">{item.titulo}</p>
@@ -282,12 +271,6 @@ export function CheckoutPage() {
                   <span>Subtotal ({itemCount} productos)</span>
                   <span className="text-foreground">{formatQ(subtotal)}</span>
                 </div>
-                {discount > 0 && (
-                  <div className="flex justify-between text-sm font-semibold text-muted-foreground">
-                    <span>Descuento</span>
-                    <span className="text-brand">-{formatQ(discount)}</span>
-                  </div>
-                )}
                 <div className="flex justify-between text-sm font-semibold text-muted-foreground">
                   <span>IVA 12%</span>
                   <span className="text-foreground">{formatQ(iva)}</span>

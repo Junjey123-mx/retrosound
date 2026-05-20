@@ -1,20 +1,22 @@
-import { useMemo } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
+  ArrowLeft,
   Calendar,
   CheckCircle2,
   CreditCard,
   Music2,
+  Package,
   PackageSearch,
   ShoppingBag,
 } from 'lucide-react';
+import { useMisOrden } from '@/hooks/use-mis-ordenes';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
-import type { CheckoutResponse } from '@/lib/services/checkout';
-
-const CHECKOUT_KEY = 'rs-checkout-result';
+import { ErrorState } from '@/components/ui/error-state';
+import { LoadingState } from '@/components/ui/loading-state';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('es-GT', {
@@ -25,7 +27,7 @@ function formatDate(iso: string) {
 }
 
 function formatQ(value: number) {
-  return `Q${value.toFixed(2)}`;
+  return `Q${Number(value).toFixed(2)}`;
 }
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -35,23 +37,13 @@ const PAYMENT_LABELS: Record<string, string> = {
 };
 
 export function CheckoutConfirmationPage() {
-  const { state } = useLocation();
+  const { pedidoId } = useParams<{ pedidoId?: string }>();
+  const id = pedidoId ? Number(pedidoId) : NaN;
+  const isValidId = !Number.isNaN(id) && id > 0;
 
-  // Location state (set during navigation) is the primary source.
-  // sessionStorage is the fallback when the user refreshes the page.
-  const result = useMemo((): CheckoutResponse | null => {
-    if (state?.result) return state.result as CheckoutResponse;
-    try {
-      const stored = sessionStorage.getItem(CHECKOUT_KEY);
-      return stored ? (JSON.parse(stored) as CheckoutResponse) : null;
-    } catch {
-      return null;
-    }
-  }, [state]);
+  const { data: orden, isLoading, isError, error, refetch } = useMisOrden(isValidId ? id : 0);
 
-  const venta = result?.venta ?? null;
-
-  if (!result || !venta) {
+  if (!isValidId) {
     return (
       <main className="rs-store-bg relative min-h-screen overflow-hidden">
         <div className="relative z-10 mx-auto max-w-2xl px-4 pb-16 pt-16 sm:px-6">
@@ -64,7 +56,7 @@ export function CheckoutConfirmationPage() {
                 <Button asChild className="rs-btn-primary">
                   <Link to="/tienda">Ir a la tienda</Link>
                 </Button>
-                <Button asChild className="rs-btn-primary">
+                <Button asChild variant="outline">
                   <Link to="/mis-ordenes">Ver mis órdenes</Link>
                 </Button>
               </div>
@@ -75,90 +67,188 @@ export function CheckoutConfirmationPage() {
     );
   }
 
-  const { recibo } = venta;
-  const paymentLabel = PAYMENT_LABELS[venta.metodoPago] ?? venta.metodoPago;
+  if (isLoading) {
+    return (
+      <main className="rs-store-bg relative min-h-screen overflow-hidden">
+        <div className="relative z-10 mx-auto max-w-2xl px-4 pb-16 pt-16 sm:px-6">
+          <LoadingState label="Cargando confirmación del pedido..." />
+        </div>
+      </main>
+    );
+  }
+
+  if (isError || !orden) {
+    return (
+      <main className="rs-store-bg relative min-h-screen overflow-hidden">
+        <div className="relative z-10 mx-auto max-w-2xl px-4 pb-16 pt-16 sm:px-6">
+          <ErrorState
+            title="No se pudo cargar el pedido"
+            error={error}
+            action={
+              <div className="flex flex-wrap justify-center gap-3">
+                <Button variant="outline" size="sm" onClick={() => refetch()}>
+                  Reintentar
+                </Button>
+                <Button asChild variant="ghost" size="sm">
+                  <Link to="/mis-ordenes">Ver mis órdenes</Link>
+                </Button>
+              </div>
+            }
+          />
+        </div>
+      </main>
+    );
+  }
+
+  const paymentLabel = PAYMENT_LABELS[orden.metodoPago] ?? orden.metodoPago;
 
   return (
     <main className="rs-store-bg relative min-h-screen overflow-hidden">
       <div className="relative z-10 mx-auto max-w-2xl px-4 pb-16 pt-10 sm:px-6">
-        <div className="mb-8 text-center">
+
+        {/* Encabezado de éxito */}
+        <motion.div
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="mb-8 text-center"
+        >
           <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-brand/30 bg-brand/10">
             <CheckCircle2 className="h-10 w-10 text-brand" />
           </div>
           <h1 className="text-4xl font-extrabold tracking-normal text-foreground">
-            ¡Compra confirmada!
+            Compra realizada correctamente
           </h1>
           <p className="mt-3 text-base font-semibold text-muted-foreground">
-            Tu pedido fue registrado exitosamente en RetroSound.
+            Tu pedido fue registrado exitosamente.
           </p>
-        </div>
+        </motion.div>
 
-        <Card className="mb-6">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-xl font-extrabold">
-                <ShoppingBag className="h-5 w-5 text-brand" />
-                Pedido #{venta.idVenta}
-              </CardTitle>
-              <Badge variant="success">Confirmada</Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 text-sm font-semibold text-muted-foreground">
-                <Calendar className="h-4 w-4 text-brand" />
-                <span>Fecha: <span className="text-foreground">{formatDate(new Date().toISOString())}</span></span>
+        {/* Resumen del pedido */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.28, delay: 0.06 }}
+        >
+          <Card className="mb-6">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-xl font-extrabold">
+                  <ShoppingBag className="h-5 w-5 text-brand" />
+                  Pedido #{orden.idVenta}
+                </CardTitle>
+                <Badge variant="success">Confirmada</Badge>
               </div>
-              <div className="flex items-center gap-3 text-sm font-semibold text-muted-foreground">
-                <CreditCard className="h-4 w-4 text-brand" />
-                <span>Método de pago: <span className="text-foreground">{paymentLabel}</span></span>
-              </div>
-            </div>
-
-            {recibo && (
-              <>
-                <div className="my-5 h-px bg-border" />
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm font-semibold text-muted-foreground">
-                    <span>Subtotal</span>
-                    <span className="text-foreground">{formatQ(recibo.subtotal)}</span>
-                  </div>
-                  {recibo.descuentoVenta > 0 && (
-                    <div className="flex justify-between text-sm font-semibold text-muted-foreground">
-                      <span>Descuento</span>
-                      <span className="text-brand">-{formatQ(recibo.descuentoVenta)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-sm font-semibold text-muted-foreground">
-                    <span>IVA 12%</span>
-                    <span className="text-foreground">{formatQ(recibo.iva12)}</span>
-                  </div>
-                  <div className="my-3 h-px bg-border" />
-                  <div className="flex items-end justify-between">
-                    <span className="text-lg font-extrabold text-foreground">Total pagado</span>
-                    <span className="text-3xl font-extrabold text-brand">{formatQ(recibo.total)}</span>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-4 w-4 shrink-0 text-brand" />
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground">Fecha</p>
+                    <p className="text-sm font-bold text-foreground">{formatDate(orden.fechaVenta)}</p>
                   </div>
                 </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+                <div className="flex items-center gap-3">
+                  <CreditCard className="h-4 w-4 shrink-0 text-brand" />
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground">Método de pago</p>
+                    <p className="text-sm font-bold text-foreground">{paymentLabel}</p>
+                  </div>
+                </div>
+              </div>
 
-        <div className="rs-store-surface rounded-[18px] border p-5 text-center">
-          <Music2 className="mx-auto mb-3 h-7 w-7 text-brand" />
-          <p className="text-sm font-semibold text-muted-foreground">
-            Pronto recibirás más detalles sobre tu pedido.
-          </p>
-        </div>
+              <div className="my-5 h-px bg-border" />
 
-        <div className="mt-8 flex flex-wrap justify-center gap-4">
+              {/* Totales */}
+              <div className="space-y-3">
+                <div className="flex justify-between text-sm font-semibold text-muted-foreground">
+                  <span>Subtotal</span>
+                  <span className="text-foreground">{formatQ(orden.totalNeto)}</span>
+                </div>
+                {orden.descuentoVenta > 0 && (
+                  <div className="flex justify-between text-sm font-semibold text-muted-foreground">
+                    <span>Descuento</span>
+                    <span className="text-brand">-{formatQ(orden.descuentoVenta)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm font-semibold text-muted-foreground">
+                  <span>IVA 12%</span>
+                  <span className="text-foreground">{formatQ(orden.iva)}</span>
+                </div>
+                <div className="my-2 h-px bg-border" />
+                <div className="flex items-end justify-between">
+                  <span className="text-lg font-extrabold text-foreground">Total pagado</span>
+                  <span className="text-3xl font-extrabold text-brand">{formatQ(orden.totalConIva)}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Productos comprados */}
+        {orden.items.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.28, delay: 0.12 }}
+          >
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg font-extrabold">
+                  <Package className="h-5 w-5 text-brand" />
+                  Productos ({orden.items.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="divide-y divide-border">
+                  {orden.items.map((item, idx) => (
+                    <li key={idx} className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
+                          {item.imagenUrl ? (
+                            <img src={item.imagenUrl} alt={item.tituloProducto} className="h-full w-full object-cover" />
+                          ) : (
+                            <Music2 className="h-4 w-4 text-brand" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="line-clamp-1 text-sm font-bold text-foreground">{item.tituloProducto}</p>
+                          <p className="mt-0.5 text-xs font-medium text-muted-foreground">
+                            x{item.cantidad} · {formatQ(item.precioUnitario)} c/u
+                          </p>
+                        </div>
+                      </div>
+                      <p className="shrink-0 text-sm font-bold text-foreground">{formatQ(item.totalLinea)}</p>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Acciones */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: 0.18 }}
+          className="flex flex-wrap justify-center gap-4"
+        >
           <Button asChild className="rs-btn-primary">
-            <Link to="/mis-ordenes">Ver mis órdenes</Link>
+            <Link to={`/mis-ordenes/${orden.idVenta}`}>
+              <ArrowLeft className="mr-1 h-4 w-4 rotate-180" />
+              Ver mi pedido
+            </Link>
           </Button>
-          <Button asChild className="rs-btn-primary">
-            <Link to="/tienda">Seguir comprando</Link>
+          <Button asChild variant="outline" className="dark:border-slate-600 dark:bg-transparent dark:text-slate-200 dark:hover:border-slate-400 dark:hover:bg-slate-800">
+            <Link to="/tienda">Volver a la tienda</Link>
           </Button>
-        </div>
+          <Button asChild variant="ghost" size="sm" className="w-full text-muted-foreground">
+            <Link to="/mis-ordenes">Ver todas mis órdenes</Link>
+          </Button>
+        </motion.div>
+
       </div>
     </main>
   );

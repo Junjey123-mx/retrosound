@@ -226,7 +226,7 @@ export class ProductosService {
       anioLanzamiento: p.anioLanzamiento,
       precioVenta: Number(p.precioVenta),
       descuentoActual: Number(p.descuentoActual),
-      stockActual: p.stockActual,
+      stockActual: Math.max(0, p.stockActual - (p.stockReservado ?? 0)),
       stockMinimo: p.stockMinimo,
       codigoSku: p.codigoSku,
       estado: p.estadoProducto,

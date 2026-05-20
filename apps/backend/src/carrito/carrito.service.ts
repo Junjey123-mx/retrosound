@@ -21,6 +21,7 @@ type CarritoItemRow = {
   titulo_producto: string;
   estado_producto: string;
   stock_actual: number;
+  stock_reservado: number;
   precio_venta: string | number;
   cantidad: number;
   precio_unitario_snapshot: string | number;
@@ -162,14 +163,17 @@ export class CarritoService {
         id_producto: number;
         titulo_producto: string;
         precio_venta: string | number;
+        descuento_actual: string | number;
         stock_actual: number;
+        stock_reservado: number;
         estado_producto: string;
       }>(
         `
-        SELECT id_producto, titulo_producto, precio_venta, stock_actual, estado_producto
+        SELECT id_producto, titulo_producto, precio_venta, descuento_actual,
+               stock_actual, stock_reservado, estado_producto
         FROM producto
         WHERE id_producto = $1
-        LIMIT 1
+        FOR UPDATE
         `,
         [dto.idProducto],
       );
@@ -181,7 +185,8 @@ export class CarritoService {
           `El producto "${producto.titulo_producto}" no está disponible`,
         );
       }
-      if (producto.stock_actual <= 0) {
+      const stockDisponible = producto.stock_actual - producto.stock_reservado;
+      if (stockDisponible <= 0) {
         throw new BadRequestException(
           `El producto "${producto.titulo_producto}" no tiene stock disponible`,
         );
@@ -228,10 +233,10 @@ export class CarritoService {
       const existente = itemExistente.rows[0];
       if (existente) {
         const nuevaCantidad = existente.cantidad + dto.cantidad;
-        if (nuevaCantidad > producto.stock_actual) {
+        if (dto.cantidad > stockDisponible) {
           throw new BadRequestException(
             `Stock insuficiente para "${producto.titulo_producto}": ` +
-              `disponible=${producto.stock_actual}, en carrito=${existente.cantidad}, ` +
+              `disponible=${stockDisponible}, en carrito=${existente.cantidad}, ` +
               `solicitado adicional=${dto.cantidad}`,
           );
         }
@@ -244,14 +249,21 @@ export class CarritoService {
           `,
           [nuevaCantidad, existente.id_carrito_item],
         );
+
+        await client.query(
+          `UPDATE producto SET stock_reservado = stock_reservado + $1 WHERE id_producto = $2`,
+          [dto.cantidad, dto.idProducto],
+        );
       } else {
-        if (dto.cantidad > producto.stock_actual) {
+        if (dto.cantidad > stockDisponible) {
           throw new BadRequestException(
             `Stock insuficiente para "${producto.titulo_producto}": ` +
-              `disponible=${producto.stock_actual}, solicitado=${dto.cantidad}`,
+              `disponible=${stockDisponible}, solicitado=${dto.cantidad}`,
           );
         }
 
+        const descuento = Number(producto.descuento_actual ?? 0);
+        const precioSnapshot = Number(producto.precio_venta) * (1 - descuento / 100);
         await client.query(
           `
           INSERT INTO carrito_item
@@ -259,7 +271,12 @@ export class CarritoService {
           VALUES
             ($1, $2, $3, $4)
           `,
-          [idCarrito, dto.idProducto, dto.cantidad, producto.precio_venta],
+          [idCarrito, dto.idProducto, dto.cantidad, precioSnapshot],
+        );
+
+        await client.query(
+          `UPDATE producto SET stock_reservado = stock_reservado + $1 WHERE id_producto = $2`,
+          [dto.cantidad, dto.idProducto],
         );
       }
 
@@ -297,6 +314,7 @@ export class CarritoService {
         p.titulo_producto,
         p.estado_producto,
         p.stock_actual,
+        p.stock_reservado,
         p.precio_venta,
         ci.cantidad,
         ci.precio_unitario_snapshot,
@@ -317,10 +335,13 @@ export class CarritoService {
       throw new NotFoundException('Item no encontrado en tu carrito activo');
     }
 
-    if (dto.cantidad > item.stock_actual) {
+    // free stock = total - reserved by all carts; this item's own reservation is already included
+    const stockDisponible = item.stock_actual - item.stock_reservado;
+    const maxCantidad = item.cantidad + stockDisponible;
+    if (dto.cantidad > maxCantidad) {
       throw new BadRequestException(
         `Stock insuficiente para "${item.titulo_producto}": ` +
-          `disponible=${item.stock_actual}, solicitado=${dto.cantidad}`,
+          `máximo permitido=${maxCantidad}, solicitado=${dto.cantidad}`,
       );
     }
 
@@ -343,6 +364,15 @@ export class CarritoService {
       [dto.cantidad, idCarritoItem],
     );
     const actualizado = updatedResult.rows[0];
+
+    const diff = dto.cantidad - item.cantidad;
+    if (diff !== 0) {
+      await this.db.query(
+        `UPDATE producto SET stock_reservado = GREATEST(0, stock_reservado + $1) WHERE id_producto = $2`,
+        [diff, item.id_producto],
+      );
+    }
+
     const precioSnapshot = Number(actualizado.precio_unitario_snapshot);
 
     return {
@@ -360,9 +390,9 @@ export class CarritoService {
   async removeItem(idUsuario: number, idCarritoItem: number) {
     const idCliente = await this.resolveIdCliente(idUsuario);
 
-    const item = await this.db.query<{ id_carrito_item: number }>(
+    const item = await this.db.query<{ id_carrito_item: number; id_producto: number; cantidad: number }>(
       `
-      SELECT ci.id_carrito_item
+      SELECT ci.id_carrito_item, ci.id_producto, ci.cantidad
       FROM carrito_item ci
       JOIN carrito c ON c.id_carrito = ci.id_carrito
       WHERE ci.id_carrito_item = $1
@@ -377,12 +407,16 @@ export class CarritoService {
       throw new NotFoundException('Item no encontrado en tu carrito activo');
     }
 
+    const { id_producto, cantidad } = item.rows[0];
+
     await this.db.query(
-      `
-      DELETE FROM carrito_item
-      WHERE id_carrito_item = $1
-      `,
+      `DELETE FROM carrito_item WHERE id_carrito_item = $1`,
       [idCarritoItem],
+    );
+
+    await this.db.query(
+      `UPDATE producto SET stock_reservado = GREATEST(0, stock_reservado - $1) WHERE id_producto = $2`,
+      [cantidad, id_producto],
     );
 
     return { message: 'Item eliminado del carrito' };
@@ -399,6 +433,18 @@ export class CarritoService {
     const client = await this.db.getClient();
     try {
       await client.query('BEGIN');
+
+      await client.query(
+        `
+        UPDATE producto p
+        SET stock_reservado = GREATEST(0, p.stock_reservado - ci.cantidad)
+        FROM carrito_item ci
+        WHERE ci.id_carrito = $1
+          AND ci.id_producto = p.id_producto
+        `,
+        [carrito.id_carrito],
+      );
+
       await client.query('DELETE FROM carrito_item WHERE id_carrito = $1', [
         carrito.id_carrito,
       ]);

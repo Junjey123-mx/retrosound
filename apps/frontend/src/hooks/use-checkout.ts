@@ -9,6 +9,7 @@ export function useCheckout() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['carrito'] });
       queryClient.invalidateQueries({ queryKey: ['cliente-productos'] });
+      queryClient.invalidateQueries({ queryKey: ['mis-ordenes'] });
     },
   });
 }

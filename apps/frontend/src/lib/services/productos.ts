@@ -1,9 +1,5 @@
 import { apiClient } from '../api/client';
 import type { Producto } from '@/types';
-import {
-  enrichProductWithAlbumCover,
-  enrichProductsWithAlbumCovers,
-} from './itunes';
 
 type ProductoApi = Producto & {
   precio_venta?: number | string;
@@ -44,12 +40,10 @@ export const productosService = {
     return normalizeProducto(producto);
   },
   getAllWithAlbumCovers: async () => {
-    const productos = await productosService.getAll();
-    return enrichProductsWithAlbumCovers(productos);
+    return productosService.getAll();
   },
   getOneWithAlbumCover: async (id: number) => {
-    const producto = await productosService.getOne(id);
-    return enrichProductWithAlbumCover(producto);
+    return productosService.getOne(id);
   },
   create: (data: Partial<Producto>) => apiClient.post<Producto>('/productos', data),
   update: (id: number, data: Partial<Producto>) => apiClient.patch<Producto>(`/productos/${id}`, data),

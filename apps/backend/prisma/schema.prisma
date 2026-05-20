@@ -121,6 +121,7 @@ model Producto {
   anioLanzamiento     Int?      @map("anio_lanzamiento")
   precioVenta         Decimal   @map("precio_venta") @db.Decimal(10, 2)
   stockActual         Int       @default(0) @map("stock_actual")
+  stockReservado      Int       @default(0) @map("stock_reservado")
   stockMinimo         Int       @default(0) @map("stock_minimo")
   codigoSku           String    @unique @map("codigo_sku") @db.VarChar(255)
   estadoProducto      String    @default("activo") @map("estado_producto") @db.VarChar(30)

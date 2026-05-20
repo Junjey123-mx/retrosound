@@ -32,11 +32,19 @@ export function useClienteProducto(id: number) {
   });
 }
 
+function invalidateProductos(queryClient: ReturnType<typeof useQueryClient>, id?: number) {
+  queryClient.invalidateQueries({ queryKey: ['productos'] });
+  queryClient.invalidateQueries({ queryKey: ['cliente-productos'] });
+  if (id !== undefined) {
+    queryClient.invalidateQueries({ queryKey: ['cliente-producto', id] });
+  }
+}
+
 export function useCreateProducto() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: Partial<Producto>) => productosService.create(data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['productos'] }),
+    onSuccess: () => invalidateProductos(queryClient),
   });
 }
 
@@ -45,7 +53,7 @@ export function useUpdateProducto() {
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<Producto> }) =>
       productosService.update(id, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['productos'] }),
+    onSuccess: (_, { id }) => invalidateProductos(queryClient, id),
   });
 }
 
@@ -54,7 +62,7 @@ export function useUpdateProductoImagen() {
   return useMutation({
     mutationFn: ({ id, imagenUrl, imagenPublicId }: { id: number; imagenUrl: string; imagenPublicId: string }) =>
       productosService.updateImage(id, imagenUrl, imagenPublicId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['productos'] }),
+    onSuccess: (_, { id }) => invalidateProductos(queryClient, id),
   });
 }
 
@@ -62,6 +70,6 @@ export function useDeactivateProducto() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => productosService.remove(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['productos'] }),
+    onSuccess: (_, id) => invalidateProductos(queryClient, id),
   });
 }

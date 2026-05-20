@@ -87,6 +87,7 @@ export function AppRouter() {
       <Route path={ROUTE_PATHS.CLIENTE.CART} element={clientElement(<CartPage />)} />
       <Route path={ROUTE_PATHS.CLIENTE.CHECKOUT} element={clientElement(<CheckoutPage />)} />
       <Route path={ROUTE_PATHS.CLIENTE.CHECKOUT_CONFIRMATION} element={clientElement(<CheckoutConfirmationPage />)} />
+      <Route path={ROUTE_PATHS.CLIENTE.CHECKOUT_CONFIRMATION_BASE} element={clientElement(<CheckoutConfirmationPage />)} />
       <Route path={ROUTE_PATHS.CLIENTE.ORDERS} element={clientElement(<MyOrdersPage />)} />
       <Route path={ROUTE_PATHS.CLIENTE.ORDER_DETAIL} element={clientElement(<OrderDetailPage />)} />
       <Route path={ROUTE_PATHS.CLIENTE.PROFILE} element={clientElement(<CustomerProfilePage />)} />

@@ -42,9 +42,16 @@ function ItemRow({ item }: { item: CarritoItem }) {
 
       <div className="min-w-0 flex-1">
         <p className="line-clamp-1 text-sm font-bold text-foreground">{item.titulo}</p>
-        <p className="mt-0.5 text-xs font-medium text-muted-foreground">
-          {formatQ(item.precioUnitarioSnapshot)} c/u
-        </p>
+        <div className="mt-0.5 flex flex-col leading-none">
+          {item.precioUnitarioSnapshot < item.precioVenta && (
+            <span className="text-xs font-medium text-muted-foreground line-through">
+              {formatQ(item.precioVenta)} c/u
+            </span>
+          )}
+          <span className="text-xs font-medium text-muted-foreground">
+            {formatQ(item.precioUnitarioSnapshot)} c/u
+          </span>
+        </div>
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
@@ -99,10 +106,8 @@ export function CartPage() {
 
   const items = carrito?.items ?? [];
   const subtotal = carrito?.subtotal ?? 0;
-  const discount = subtotal >= 30 ? 30 : 0;
-  const taxable = Math.max(subtotal - discount, 0);
-  const iva = taxable * 0.12;
-  const total = taxable + iva;
+  const iva = subtotal * 0.12;
+  const total = subtotal + iva;
   const itemCount = items.reduce((sum, item) => sum + item.cantidad, 0);
 
   return (
@@ -199,12 +204,6 @@ export function CartPage() {
                   <span>Subtotal ({itemCount} productos)</span>
                   <span className="text-foreground">{formatQ(subtotal)}</span>
                 </div>
-                {discount > 0 && (
-                  <div className="flex justify-between text-sm font-semibold text-muted-foreground">
-                    <span>Descuento</span>
-                    <span className="text-brand">-{formatQ(discount)}</span>
-                  </div>
-                )}
                 <div className="flex justify-between text-sm font-semibold text-muted-foreground">
                   <span>IVA 12%</span>
                   <span className="text-foreground">{formatQ(iva)}</span>

@@ -107,6 +107,12 @@ export function ProductCard({ producto }: { producto: Producto }) {
         {fmt.label}
       </span>
 
+      {descuento > 0 && (
+        <span className="absolute right-7 top-7 z-20 inline-flex h-9 items-center rounded-full bg-brand px-4 text-sm font-extrabold text-white shadow-md">
+          -{descuento}%&nbsp;OFF
+        </span>
+      )}
+
       <div className="w-full">
         <ProductVisual producto={producto} />
       </div>
@@ -125,20 +131,13 @@ export function ProductCard({ producto }: { producto: Producto }) {
         <div className="mt-auto flex items-end justify-between gap-4 pt-4">
           <div className="flex flex-col leading-none">
             {descuento > 0 && (
-              <span className="mb-0.5 text-xs font-medium text-muted-foreground line-through">
+              <span className="mb-0.5 text-sm font-semibold text-muted-foreground line-through">
                 Q{Number(producto.precioVenta).toFixed(2)}
               </span>
             )}
-            <div className="flex items-center gap-2">
-              <span className="text-xl font-bold text-brand">
-                Q{pFinal.toFixed(2)}
-              </span>
-              {descuento > 0 && (
-                <span className="rounded-full bg-brand/15 px-1.5 py-0.5 text-xs font-bold text-brand">
-                  -{descuento}%
-                </span>
-              )}
-            </div>
+            <span className="text-xl font-bold text-brand">
+              Q{pFinal.toFixed(2)}
+            </span>
           </div>
           {isUnavailable ? (
             <span className="rs-badge-pendiente rounded-full px-3 py-0.5 text-xs font-semibold">Agotado</span>

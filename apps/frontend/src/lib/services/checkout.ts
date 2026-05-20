@@ -6,17 +6,27 @@ export interface CheckoutPayload {
 }
 
 export interface CheckoutResponse {
-  message: string;
-  venta: {
-    idVenta: number;
-    metodoPago: string;
-    recibo: {
-      subtotal: number;
-      descuentoVenta: number;
-      totalNeto: number;
-      iva12: number;
-      total: number;
-    };
+  mensaje: string;
+  idVenta: number;
+  fecha: string;
+  metodoPago: string;
+  estado: string;
+  cliente: { id: number; nombre: string; correo: string | null } | null;
+  items: {
+    idProducto: number;
+    titulo: string;
+    sku: string;
+    cantidad: number;
+    precioUnitario: number;
+    descuento: number;
+    subtotal: number;
+  }[];
+  recibo: {
+    subtotal: number;
+    descuento: number;
+    totalNeto: number;
+    iva12: number;
+    total: number;
   };
 }
 

@@ -7,6 +7,7 @@ export interface OrdenItem {
   cantidad: number;
   precioUnitario: number;
   totalLinea: number;
+  imagenUrl?: string | null;
 }
 
 export interface Orden {

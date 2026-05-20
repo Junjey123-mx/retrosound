@@ -33,6 +33,9 @@ const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as string;
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET as string;
 
 async function uploadToCloudinary(file: File): Promise<{ url: string; publicId: string }> {
+  if (!CLOUD_NAME || !UPLOAD_PRESET) {
+    throw new Error('Cloudinary no está configurado (VITE_CLOUDINARY_CLOUD_NAME / VITE_CLOUDINARY_UPLOAD_PRESET).');
+  }
   const fd = new FormData();
   fd.append('file', file);
   fd.append('upload_preset', UPLOAD_PRESET);
@@ -40,9 +43,11 @@ async function uploadToCloudinary(file: File): Promise<{ url: string; publicId: 
     method: 'POST',
     body: fd,
   });
-  if (!res.ok) throw new Error('Error al subir la imagen a Cloudinary');
-  const data = await res.json() as { secure_url: string; public_id: string };
-  return { url: data.secure_url, publicId: data.public_id };
+  const data = await res.json() as { secure_url?: string; public_id?: string; error?: { message?: string } };
+  if (!res.ok) {
+    throw new Error(data.error?.message ?? `Error Cloudinary (${res.status})`);
+  }
+  return { url: data.secure_url!, publicId: data.public_id! };
 }
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -131,6 +136,7 @@ function ProductosContent() {
   const [imgFile,     setImgFile]     = useState<File | null>(null);
   const [imgPreview,  setImgPreview]  = useState<string | null>(null);
   const [imgUploading, setImgUploading] = useState(false);
+  const [imgError,    setImgError]    = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const confirmTarget = productos?.find((p) => p.id === confirmId) ?? null;
@@ -160,6 +166,7 @@ function ProductosContent() {
     setFormError(null);
     setImgFile(null);
     setImgPreview(null);
+    setImgError(null);
   }
 
   function handleImgChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -172,13 +179,14 @@ function ProductosContent() {
   function clearImg() {
     setImgFile(null);
     setImgPreview(null);
+    setImgError(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
   async function handleUploadImage() {
     if (!imgFile || !editing) return;
     setImgUploading(true);
-    setFormError(null);
+    setImgError(null);
     try {
       const { url, publicId } = await uploadToCloudinary(imgFile);
       await updateImgMut.mutateAsync({ id: editing.id, imagenUrl: url, imagenPublicId: publicId });
@@ -189,7 +197,7 @@ function ProductosContent() {
       if (fileInputRef.current) fileInputRef.current.value = '';
       setNotify({ type: 'success', title: 'Imagen actualizada', message: 'La imagen del producto se guardó correctamente.' });
     } catch (err: unknown) {
-      setFormError((err as Error).message ?? 'Error al subir la imagen.');
+      setImgError((err as Error).message ?? 'Error al subir la imagen.');
     } finally {
       setImgUploading(false);
     }
@@ -738,7 +746,7 @@ function ProductosContent() {
                 </div>
               )}
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -771,6 +779,12 @@ function ProductosContent() {
 
               {imgFile && !isImgBusy && (
                 <p className="text-xs text-muted-foreground">{imgFile.name}</p>
+              )}
+
+              {imgError && (
+                <p className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
+                  {imgError}
+                </p>
               )}
             </div>
           )}

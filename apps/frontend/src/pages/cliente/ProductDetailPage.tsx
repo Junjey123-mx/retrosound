@@ -191,16 +191,16 @@ function MiniCard({
         : 'text-brand';
 
   return (
-    <div className="rs-store-card flex min-h-24 items-center gap-4 rounded-[16px] border p-4">
+    <div className="rs-store-card flex flex-col items-center gap-2 rounded-[16px] border px-3 py-4 text-center">
       <div
-        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-current ${statusClass}`}
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-current ${statusClass}`}
         style={{ backgroundColor: 'hsl(var(--brand) / 0.07)' }}
       >
-        <Icon className="h-6 w-6" />
+        <Icon className="h-5 w-5" />
       </div>
-      <div className="min-w-0">
+      <div>
         <p className="text-xs font-bold text-muted-foreground">{label}</p>
-        <p className={`mt-1 truncate text-base font-extrabold ${status ? statusClass : 'text-foreground'}`}>
+        <p className={`mt-0.5 text-sm font-extrabold leading-snug ${status ? statusClass : 'text-foreground'}`}>
           {value}
         </p>
       </div>
@@ -220,7 +220,6 @@ function SpecsCard({
   genres: string;
 }) {
   const specs = [
-    { label: 'SKU', value: producto.codigoSku },
     { label: 'Categoría', value: producto.categoria?.nombre },
     { label: 'Año de lanzamiento', value: producto.anioLanzamiento?.toString() },
     { label: 'Géneros', value: genres || 'Varios' },
@@ -309,8 +308,8 @@ function DetailSkeleton() {
       <div className="mb-8 h-6 w-40 animate-pulse rounded bg-muted" />
       <div className="grid gap-8 lg:grid-cols-[1fr_1.04fr]">
         <div className="space-y-5">
-          <div className="aspect-[1.55/1] min-h-[360px] animate-pulse rounded-[18px] bg-muted" />
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="aspect-square min-h-[460px] animate-pulse rounded-[18px] bg-muted" />
+          <div className="grid grid-cols-3 gap-3">
             {Array.from({ length: 3 }).map((_, index) => (
               <div key={index} className="h-24 animate-pulse rounded-[16px] bg-muted" />
             ))}
@@ -440,12 +439,12 @@ export function ProductDetailPage() {
             className="space-y-5"
           >
             <div className="rs-store-surface overflow-hidden rounded-[18px] border">
-              <div className="aspect-[1.55/1] min-h-[360px]">
+              <div className="aspect-square min-h-[460px]">
                 <ProductArtwork producto={producto} />
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-3 gap-3">
               <MiniCard Icon={fmt.Icon} label="Formato" value={fmt.label} />
               <MiniCard Icon={Music2} label="Categoría" value={producto.categoria?.nombre ?? 'No disponible'} />
               <MiniCard Icon={Package} label="Estado" value={productState.label} status={productState.kind} />
@@ -486,7 +485,7 @@ export function ProductDetailPage() {
             </p>
 
             <div className="mt-6">
-              <StatusLine status={productState} stock={producto.stockActual} />
+              <StatusLine status={productState} stock={Math.max(0, producto.stockActual - (quantity - 1))} />
             </div>
 
             <div className="rs-store-control mt-7 inline-flex w-fit overflow-hidden rounded-[16px] border">

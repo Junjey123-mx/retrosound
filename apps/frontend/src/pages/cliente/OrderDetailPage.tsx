@@ -144,8 +144,12 @@ export function OrderDetailPage() {
               {orden.items.map((item, idx) => (
                 <li key={idx} className="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted">
-                      <Music2 className="h-5 w-5 text-brand" />
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
+                      {item.imagenUrl ? (
+                        <img src={item.imagenUrl} alt={item.tituloProducto} className="h-full w-full object-cover" />
+                      ) : (
+                        <Music2 className="h-5 w-5 text-brand" />
+                      )}
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-foreground">{item.tituloProducto}</p>
