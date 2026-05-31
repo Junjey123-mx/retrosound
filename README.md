@@ -1,7 +1,8 @@
 # RetroSound Store
 
-**cc3062 · Sistemas y Tecnologías Web — Proyecto 2**  
-Universidad del Valle de Guatemala · Ciclo 1, 2026
+**cc3088 · Bases de Datos 1 — Proyecto 3**  
+Universidad del Valle de Guatemala · Ciclo 1, 2026  
+*(extiende el Proyecto 2 Web, cc3062 · Sistemas y Tecnologías Web)*
 
 RetroSound Store es una tienda especializada en la venta de música en formatos físicos: vinilos, CDs y casetes. La aplicación gestiona productos, categorías, proveedores, clientes, empleados, ventas, inventario y genera reportes con exportación a CSV.
 
@@ -54,10 +55,14 @@ El `.env.example` incluido usa exactamente las credenciales requeridas por la r�
 
 ```env
 # Base de datos (credenciales fijas de evaluación)
+POSTGRES_USER=proy3
+POSTGRES_PASSWORD=secret
+POSTGRES_DB=retrosound
 DB_USER=proy3
 DB_PASSWORD=secret
 DB_NAME=retrosound
 DB_PORT=5433
+DATABASE_URL=postgresql://proy3:secret@localhost:5433/retrosound?schema=public
 
 # Puertos
 BACKEND_PORT=3003
@@ -95,10 +100,8 @@ docker compose up
 | `admin` | admin@retrosound.com | retro2025 |
 | `empleado_ventas` | ventas@retrosound.com | retro2025 |
 | `empleado_inventario` | inventario@retrosound.com | retro2025 |
-| `proveedor` | proveedor@retrosound.com retro2025 |
+| `proveedor` | proveedor@retrosound.com | retro2025 |
 | `cliente` | cliente@retrosound.com | retro2025 |
-
-> **Nota Proyecto 3:** Para el Proyecto 3 de Bases de Datos se mejorará la UI de las vistas de empleado de ventas (`empleado_ventas`), empleado de inventario (`empleado_inventario`) y proveedores (`proveedor`).
 
 ---
 
