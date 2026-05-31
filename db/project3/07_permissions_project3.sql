@@ -12,7 +12,7 @@ REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public   FROM PUBLIC;
 -- schema access for all roles and the ORM connection user
 GRANT USAGE ON SCHEMA public TO
     rs_admin, rs_empleado_ventas, rs_empleado_inventario,
-    rs_cliente, rs_proveedor, proy2;
+    rs_cliente, rs_proveedor, proy3;
 
 -- ── rs_admin ─────────────────────────────────────────────────
 GRANT SELECT, INSERT, UPDATE, DELETE
@@ -92,15 +92,13 @@ GRANT USAGE, SELECT, UPDATE
        detalle_compra_proveedor_id_detalle_compra_proveedor_seq
     TO rs_proveedor;
 
--- ── proy2 (ORM connection user) ───────────────────────────────
--- backend calls SET ROLE to switch to the appropriate functional role per request
--- proy2 inherits all 5 functional DBMS roles.
--- (proy3 was the legacy user in an earlier iteration — no longer in use)
-GRANT rs_admin                 TO proy2;
-GRANT rs_empleado_ventas       TO proy2;
-GRANT rs_empleado_inventario   TO proy2;
-GRANT rs_cliente               TO proy2;
-GRANT rs_proveedor             TO proy2;
+-- ── proy3 (ORM connection user — credencial obligatoria de calificación) ──────
+-- proy3 inherits all 5 functional DBMS roles.
+GRANT rs_admin                 TO proy3;
+GRANT rs_empleado_ventas       TO proy3;
+GRANT rs_empleado_inventario   TO proy3;
+GRANT rs_cliente               TO proy3;
+GRANT rs_proveedor             TO proy3;
 
 -- sales summary view defined in retrosound_ddl.sql
 GRANT SELECT ON vista_resumen_ventas TO rs_empleado_ventas, rs_admin;

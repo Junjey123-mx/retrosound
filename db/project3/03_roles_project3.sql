@@ -23,9 +23,8 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'rs_proveedor') THEN
         CREATE ROLE rs_proveedor;
     END IF;
-    -- proy2: ORM connection user for Proyecto 2 Web evaluation (LOGIN required).
-    -- Note: proy3 was used in an earlier iteration and is now legacy / not needed.
-    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'proy2') THEN
-        CREATE ROLE proy2 WITH LOGIN PASSWORD 'secret';
+    -- proy3: ORM connection user required for Proyecto 3 DB evaluation (LOGIN required).
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'proy3') THEN
+        CREATE ROLE proy3 WITH LOGIN PASSWORD 'secret';
     END IF;
 END $$;

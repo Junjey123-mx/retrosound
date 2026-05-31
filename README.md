@@ -54,7 +54,7 @@ El `.env.example` incluido usa exactamente las credenciales requeridas por la r√
 
 ```env
 # Base de datos (credenciales fijas de evaluaci√≥n)
-DB_USER=proy2
+DB_USER=proy3
 DB_PASSWORD=secret
 DB_NAME=retrosound
 DB_PORT=5433
@@ -86,7 +86,7 @@ docker compose up
 | Frontend | http://localhost:3002 |
 | Backend API | http://localhost:3003 |
 | pgAdmin | http://localhost:5051 (admin@retrosound.dev / admin) |
-| PostgreSQL | localhost:5433 (proy2 / secret) |
+| PostgreSQL | localhost:5433 (proy3 / secret) |
 
 ### Usuarios de prueba (seed)
 
