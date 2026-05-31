@@ -3,7 +3,8 @@ ALTER TABLE producto
   ADD COLUMN IF NOT EXISTS stock_reservado INTEGER NOT NULL DEFAULT 0
     CHECK (stock_reservado >= 0);
 
--- Actualizar sp_checkout_carrito: liberar la reserva al confirmar la compra
+-- sp_checkout_carrito: convierte el carrito activo del cliente en una venta.
+-- Usa COMMIT/ROLLBACK explícitos (requiere llamarse fuera de un bloque de transacción).
 CREATE OR REPLACE PROCEDURE sp_checkout_carrito(
     IN  p_id_cliente        INTEGER,
     IN  p_metodo_pago       VARCHAR,
@@ -17,6 +18,7 @@ DECLARE
     v_stock      INTEGER;
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM cliente WHERE id_cliente = p_id_cliente) THEN
+        ROLLBACK;
         RAISE EXCEPTION 'client % does not exist', p_id_cliente;
     END IF;
 
@@ -26,10 +28,12 @@ BEGIN
     FOR UPDATE;
 
     IF NOT FOUND THEN
+        ROLLBACK;
         RAISE EXCEPTION 'no active cart for client %', p_id_cliente;
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM carrito_item WHERE id_carrito = v_id_carrito) THEN
+        ROLLBACK;
         RAISE EXCEPTION 'cart % is empty', v_id_carrito;
     END IF;
 
@@ -41,6 +45,7 @@ BEGIN
     )
     RETURNING id_venta INTO p_id_venta_generada;
 
+    -- order by id_producto for consistent lock acquisition (deadlock prevention)
     FOR v_item IN
         SELECT ci.id_producto, ci.cantidad, ci.precio_unitario_snapshot
         FROM   carrito_item ci
@@ -53,10 +58,12 @@ BEGIN
         FOR UPDATE;
 
         IF NOT FOUND THEN
+            ROLLBACK;
             RAISE EXCEPTION 'product % does not exist', v_item.id_producto;
         END IF;
 
         IF v_stock < v_item.cantidad THEN
+            ROLLBACK;
             RAISE EXCEPTION 'insufficient stock for product %: have %, need %',
                 v_item.id_producto, v_stock, v_item.cantidad;
         END IF;
@@ -83,8 +90,6 @@ BEGIN
     SET    estado_carrito = 'convertido'
     WHERE  id_carrito = v_id_carrito;
 
-EXCEPTION
-    WHEN OTHERS THEN
-        RAISE;
+    COMMIT;
 END;
 $$;
