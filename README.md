@@ -502,6 +502,24 @@ La interfaz es completamente responsiva con Tailwind CSS:
 
 ---
 
+## VI · Esquema de roles de base de datos
+
+Los roles de seguridad existen directamente en el DBMS (PostgreSQL), no solo en la lógica de la aplicación. Se crean con `CREATE ROLE` (sin privilegio de LOGIN) en `db/project3/03_roles_project3.sql`; sus permisos se asignan con `GRANT` y los permisos base no deseados se revocan con `REVOKE` en `db/project3/07_permissions_project3.sql`.
+
+Como línea base de seguridad, el script ejecuta `REVOKE ALL` sobre el esquema `public` para el rol `PUBLIC`, eliminando todo acceso por defecto antes de otorgar permisos explícitos a cada rol.
+
+Cada rol corresponde a una responsabilidad de negocio distinta. El usuario técnico `proy3` (credencial de conexión del ORM, requerida por la rúbrica de evaluación) hereda los cinco roles de negocio mediante `GRANT <rol> TO proy3`; `proy3` no es un sexto rol de negocio.
+
+| Rol DBMS | Responsabilidad | Tablas / vistas accesibles | Operaciones permitidas |
+|----------|-----------------|---------------------------|------------------------|
+| `rs_admin` | Administración total del sistema | Todas las tablas del esquema (`ALL TABLES IN SCHEMA public`) y todas las vistas | SELECT, INSERT, UPDATE, DELETE en todas las tablas; USAGE / SELECT / UPDATE en todas las secuencias; EXECUTE en todos los stored procedures del proyecto |
+| `rs_empleado_ventas` | Gestión de ventas y atención a clientes | `producto`, `categoria`, `formato`, `genero_musical`, `artista`, `producto_artista`, `producto_genero` (catálogo); `cliente`; `venta`; `detalle_venta`; `carrito`, `carrito_item`; `vista_resumen_ventas` | SELECT en catálogo, carrito y vista de resumen; SELECT / INSERT / UPDATE en `cliente` y `venta`; SELECT / INSERT en `detalle_venta`; SELECT en `carrito` y `carrito_item`; EXECUTE en `sp_crear_venta`, `sp_checkout_carrito` |
+| `rs_empleado_inventario` | Control de inventario y compras a proveedores | `producto`, `proveedor`, `producto_proveedor`, `compra_proveedor`, `detalle_compra_proveedor`; `categoria`, `formato`, `genero_musical`, `artista`, `producto_artista`, `producto_genero` (solo lectura); `vista_recepciones_pendientes`, `vista_stock_critico` | SELECT / INSERT / UPDATE en tablas de inventario y proveedores; SELECT en catálogos y vistas operativas; EXECUTE en `sp_confirmar_recepcion_stock`, `sp_actualizar_imagen_producto` |
+| `rs_cliente` | Compras en línea — portal del cliente | `producto`, `categoria`, `formato`, `genero_musical`, `artista`, `producto_artista`, `producto_genero` (catálogo, solo lectura); `venta`, `detalle_venta` (historial propio, el filtrado por `id_cliente` lo aplica el backend); `cliente` (propio registro); `carrito`, `carrito_item` | SELECT en catálogo e historial de compras; SELECT / UPDATE en su propio registro `cliente`; SELECT / INSERT / UPDATE / DELETE en `carrito` y `carrito_item`; EXECUTE en `sp_checkout_carrito` |
+| `rs_proveedor` | Portal proveedor — gestión de entregas y productos propios | `producto` (SELECT general + UPDATE restringido por columna); `producto_proveedor` (SELECT); `proveedor` (propio registro); `compra_proveedor`, `detalle_compra_proveedor`; `vista_productos_proveedor` | SELECT en productos y relaciones; SELECT / UPDATE en `proveedor`; SELECT / INSERT en `compra_proveedor` y `detalle_compra_proveedor`; UPDATE a nivel de columna en `producto` solo para `descripcion_producto`, `imagen_url` e `imagen_public_id` (no puede modificar precio, stock, SKU ni estado); EXECUTE en `sp_registrar_entrega_proveedor`, `sp_actualizar_imagen_producto` |
+
+---
+
 ## Estructura del repositorio
 
 ```
