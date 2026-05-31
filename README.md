@@ -520,6 +520,40 @@ Cada rol corresponde a una responsabilidad de negocio distinta. El usuario técn
 
 ---
 
+## VII · Stored procedures del Proyecto 3
+
+El backend invoca los cinco stored procedures mediante `prisma.$queryRaw` con la instrucción `CALL <procedure>(...)`. Los procedures están definidos en `db/project3/04_procedures_project3.sql`; la versión final de `sp_checkout_carrito` está en `db/project3/09_stock_reservado.sql` y reemplaza la del archivo anterior.
+
+Todos los procedures usan `RAISE EXCEPTION` para rechazar entradas inválidas y `WHEN OTHERS THEN RAISE` para propagar errores al caller, revirtiendo la transacción activa. La excepción es `sp_checkout_carrito`, que controla la transacción con `COMMIT` y `ROLLBACK` explícitos.
+
+| Stored procedure | Operación de negocio | Parámetros principales | Manejo de errores / transacción | Invocado desde backend |
+|------------------|----------------------|------------------------|---------------------------------|------------------------|
+| `sp_registrar_entrega_proveedor` | Crea una orden de compra pendiente a partir de una entrega reportada por el proveedor; inserta en `compra_proveedor` y `detalle_compra_proveedor` | IN: `p_id_proveedor`, `p_id_producto`, `p_cantidad_reportada`, `p_costo_unitario` · OUT: `p_id_compra_generada` | `RAISE EXCEPTION` si cantidad ≤ 0, costo < 0 o producto no relacionado con el proveedor; `WHEN OTHERS THEN RAISE` propaga al caller | `proveedor-portal.service.ts` → `registrarEntrega()` |
+| `sp_confirmar_recepcion_stock` | Confirma la recepción física de mercadería; incrementa `stock_actual`; actualiza el estado de la compra a `recibida` o `parcial` | IN: `p_id_detalle_compra`, `p_cantidad_recibida`, `p_id_empleado` · OUT: `p_nuevo_stock`, `p_estado_compra` | `RAISE EXCEPTION` ante cantidad inválida, empleado inexistente, recepción duplicada, orden cancelada o exceso; `FOR UPDATE` para serializar escrituras concurrentes; `WHEN OTHERS THEN RAISE` | `inventario.service.ts` → `confirmarRecepcion()` |
+| `sp_crear_venta` | Registra una venta presencial; inserta `venta` y `detalle_venta`; descuenta `stock_actual` por cada ítem recibido como `JSONB` | IN: `p_id_cliente`, `p_id_empleado`, `p_metodo_pago`, `p_descuento_venta`, `p_items` (JSONB) · OUT: `p_id_venta_generada` | `RAISE EXCEPTION` si cliente, empleado o producto no existen, cantidad ≤ 0 o stock insuficiente; `FOR UPDATE` ordenado por `id_producto` para evitar deadlocks; `WHEN OTHERS THEN RAISE` | `ventas.service.ts` → `create()` |
+| `sp_actualizar_imagen_producto` | Actualiza `imagen_url` e `imagen_public_id`; si `p_id_proveedor` es `NULL`, omite la verificación de propiedad (flujo admin/inventario) | IN: `p_id_producto`, `p_imagen_url`, `p_imagen_public_id`, `p_id_proveedor` (NULL = admin) · OUT: `p_actualizado BOOLEAN` | `RAISE EXCEPTION` si el producto no existe, la imagen está vacía o el proveedor no tiene propiedad sobre el producto; `WHEN OTHERS THEN RAISE` | `productos.service.ts` → `updateImage()` (admin); `proveedor-portal.service.ts` → `updateProductoImagen()` (proveedor) |
+| `sp_checkout_carrito` | Convierte el carrito activo del cliente en venta; descuenta `stock_actual` y libera `stock_reservado`; marca el carrito como `convertido`. Versión activa: `09_stock_reservado.sql` | IN: `p_id_cliente`, `p_metodo_pago` · OUT: `p_id_venta_generada` | `ROLLBACK` + `RAISE EXCEPTION` en cada validación fallida (cliente inexistente, carrito vacío o sin ítems, stock insuficiente); **`COMMIT` explícito** al completar — único procedure del proyecto con transacción explícita (`COMMIT` / `ROLLBACK`) | `checkout.service.ts` → `checkout()` |
+
+---
+
+## VIII · Uso de ORM (Prisma)
+
+El backend usa **Prisma ORM** (`@prisma/client`) como capa principal de acceso a datos para operaciones CRUD estándar. Las consultas analíticas y las llamadas a stored procedures se ejecutan con `prisma.$queryRaw`. El schema de modelos está en `apps/backend/prisma/schema.prisma`.
+
+| Operación CRUD | Archivo backend | Método Prisma |
+|----------------|-----------------|---------------|
+| Crear cliente al registrar | `auth.service.ts` | `prisma.cliente.create` (dentro de `prisma.$transaction`) |
+| Crear usuario al registrar | `auth.service.ts` | `prisma.usuario.create` (dentro de `prisma.$transaction`) |
+| Crear producto | `productos.service.ts` | `prisma.producto.create` |
+| Actualizar producto | `productos.service.ts` | `prisma.producto.update` |
+| Listar recepciones de stock (paginado) | `inventario.service.ts` | `prisma.compraProveedor.findMany` |
+| Actualizar perfil del proveedor | `proveedor-portal.service.ts` | `prisma.proveedor.update` |
+| Recuperar venta post-checkout | `checkout.service.ts` | `prisma.venta.findUnique` |
+
+`prisma.$queryRaw` se usa exclusivamente para: invocar stored procedures con `CALL` y ejecutar consultas analíticas que acceden a vistas o agregaciones sin equivalente directo en la API de Prisma (por ejemplo, `vista_stock_critico` y el resumen de stock por estado).
+
+---
+
 ## Estructura del repositorio
 
 ```
