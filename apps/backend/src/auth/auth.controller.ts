@@ -33,4 +33,10 @@ export class AuthController {
   me(@CurrentUser() user: CurrentUserPayload) {
     return user;
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('logout')
+  logout() {
+    return { ok: true, message: 'Sesión cerrada correctamente' };
+  }
 }

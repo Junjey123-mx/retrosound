@@ -10,4 +10,7 @@ export const authService = {
 
   register: (payload: RegisterPayload) =>
     apiClient.post<AuthResponse>('/auth/register', payload),
+
+  logout: () =>
+    apiClient.post<{ ok: boolean; message: string }>('/auth/logout', {}),
 };
